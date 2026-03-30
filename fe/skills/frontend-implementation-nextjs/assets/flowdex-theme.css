@@ -1,0 +1,74 @@
+:root {
+  --fdx-bg: #050c16;
+  --fdx-bg-glass: #0b1f3a;
+  --fdx-primary: #00b4d8;
+  --fdx-primary-deep: #0891b2;
+  --fdx-text: #e8ecf1;
+  --fdx-text-muted: #5c7a99;
+  --fdx-success: #22c55e;
+  --fdx-error: #ef4444;
+  --fdx-warning: #f59e0b;
+
+  --fdx-asset-crypto: #f7931a;
+  --fdx-asset-stocks: #627eea;
+  --fdx-asset-forex: #22c55e;
+  --fdx-asset-commodities: #f59e0b;
+  --fdx-asset-indices: #9945ff;
+  --fdx-asset-etfs: #28a0f0;
+
+  --fdx-font-ui: "Outfit", sans-serif;
+  --fdx-font-data: "JetBrains Mono", monospace;
+
+  --fdx-container: 1200px;
+  --fdx-radius-card: 16px;
+  --fdx-radius-button: 12px;
+  --fdx-space-1: 8px;
+  --fdx-space-2: 16px;
+  --fdx-space-3: 24px;
+  --fdx-space-4: 32px;
+  --fdx-space-5: 48px;
+  --fdx-space-6: 80px;
+
+  --fdx-glass-bg: rgba(8, 24, 48, 0.35);
+  --fdx-glass-border: rgba(61, 90, 128, 0.1);
+  --fdx-glass-blur: blur(16px);
+}
+
+body {
+  background: var(--fdx-bg);
+  color: var(--fdx-text);
+  font-family: var(--fdx-font-ui);
+}
+
+.fdx-data {
+  font-family: var(--fdx-font-data);
+}
+
+.fdx-glass {
+  background: var(--fdx-glass-bg);
+  border: 1px solid var(--fdx-glass-border);
+  backdrop-filter: var(--fdx-glass-blur);
+  border-radius: var(--fdx-radius-card);
+}
+
+.fdx-button-primary {
+  background: var(--fdx-primary);
+  color: var(--fdx-bg);
+  border-radius: var(--fdx-radius-button);
+}
+
+.fdx-button-secondary {
+  background: var(--fdx-glass-bg);
+  color: var(--fdx-text);
+  border: 1px solid var(--fdx-glass-border);
+  border-radius: var(--fdx-radius-button);
+}
+
+.fdx-button-primary:hover {
+  filter: brightness(1.1);
+}
+
+.fdx-button-primary:active,
+.fdx-button-secondary:active {
+  transform: scale(0.97);
+}

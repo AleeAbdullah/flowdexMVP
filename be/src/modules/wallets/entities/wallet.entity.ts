@@ -1,0 +1,41 @@
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+
+import { Chain } from '../../../common/enums/domain.enums';
+
+@Entity('wallets')
+@Index(['chain', 'addressNormalized'], { unique: true })
+@Index('IDX_wallet_primary_per_user_chain', ['userId', 'chain'], {
+  unique: true,
+  where: '"is_primary" = true',
+})
+export class WalletEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
+
+  @Column({ name: 'user_id', type: 'varchar', length: 255 })
+  userId!: string;
+
+  @Column({ type: 'varchar', length: 20, enum: Chain })
+  chain!: Chain;
+
+  @Column({ name: 'address_raw', type: 'varchar', length: 255 })
+  addressRaw!: string;
+
+  @Column({ name: 'address_normalized', type: 'varchar', length: 255 })
+  addressNormalized!: string;
+
+  @Column({ name: 'is_primary', type: 'boolean', default: false })
+  isPrimary!: boolean;
+
+  @Column({ name: 'verified_at', type: 'timestamptz', nullable: true })
+  verifiedAt!: Date | null;
+
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  createdAt!: Date;
+}

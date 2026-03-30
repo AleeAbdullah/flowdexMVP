@@ -1,0 +1,4 @@
+interface:
+  display_name: "Backend Architect NestJS Postgres"
+  short_description: "Design NestJS/PostgreSQL backend systems"
+  default_prompt: "Use $backend-architect-nestjs-postgres to design or implement backend work in the BE directory with clear module boundaries, schema-first planning, transactional integrity, and retry-safe async processing. Load product references only when the task explicitly calls for them."
