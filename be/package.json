@@ -8,6 +8,8 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -15,7 +17,9 @@
     "migration:generate": "typeorm-ts-node-commonjs -d src/infrastructure/database/data-source.ts migration:generate src/infrastructure/database/migrations/AutoMigration",
     "migration:create": "typeorm-ts-node-commonjs -d src/infrastructure/database/data-source.ts migration:create src/infrastructure/database/migrations/ManualMigration",
     "migration:run": "typeorm-ts-node-commonjs -d src/infrastructure/database/data-source.ts migration:run",
-    "migration:revert": "typeorm-ts-node-commonjs -d src/infrastructure/database/data-source.ts migration:revert"
+    "migration:revert": "typeorm-ts-node-commonjs -d src/infrastructure/database/data-source.ts migration:revert",
+    "seed:dev": "ts-node -r tsconfig-paths/register src/infrastructure/database/seed-dev.ts",
+    "dev:setup": "npm run migration:run && npm run seed:dev"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.2",
@@ -30,6 +34,7 @@
     "bullmq": "^5.41.5",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "dotenv": "^16.4.7",
     "ethers": "^6.13.5",
     "ioredis": "^5.4.1",
     "pg": "^8.13.1",

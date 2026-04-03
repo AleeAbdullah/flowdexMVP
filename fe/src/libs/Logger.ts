@@ -1,6 +1,6 @@
 import type { AsyncSink } from '@logtape/logtape';
 import { configure, fromAsyncSink, getConsoleSink, getJsonLinesFormatter, getLogger } from '@logtape/logtape';
-import { Env } from './env';
+import { Env } from './Env';
 
 const betterStackSink: AsyncSink = async (record) => {
   await fetch(`https://${Env.NEXT_PUBLIC_BETTER_STACK_INGESTING_HOST}`, {

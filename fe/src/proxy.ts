@@ -1,11 +1,8 @@
 import type { NextFetchEvent, NextRequest } from 'next/server';
 import { detectBot } from '@arcjet/next';
-import createMiddleware from 'next-intl/middleware';
+import { getSessionCookie } from 'better-auth/cookies';
 import { NextResponse } from 'next/server';
 import arcjet from '@/libs/Arcjet';
-import { routing } from './libs/i18n-routing';
-
-const handleI18nRouting = createMiddleware(routing);
 
 // Improve security with Arcjet
 const aj = arcjet.withRule(
@@ -35,7 +32,20 @@ export default async function proxy(
     }
   }
 
-  return handleI18nRouting(request);
+  const pathname = request.nextUrl.pathname;
+  const hasSessionCookie = Boolean(getSessionCookie(request));
+
+  if (pathname.startsWith('/app') && !hasSessionCookie) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('next', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if ((pathname === '/login' || pathname === '/signup') && hasSessionCookie) {
+    return NextResponse.redirect(new URL('/app', request.url));
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {

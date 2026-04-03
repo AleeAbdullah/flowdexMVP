@@ -14,26 +14,31 @@ export class UsersService {
   ) {}
 
   async syncProfile(auth: AuthContext): Promise<UserProfileEntity> {
-    const existing = await this.userProfilesRepository.findOne({
+    const role = (auth.role as UserRole) ?? UserRole.USER;
+
+    await this.userProfilesRepository.upsert(
+      {
+        userId: auth.sub,
+        role,
+        status: UserStatus.ACTIVE,
+      },
+      ['userId'],
+    );
+
+    const profile = await this.userProfilesRepository.findOne({
       where: { userId: auth.sub },
     });
 
-    if (existing) {
-      if (existing.role !== auth.role) {
-        existing.role = auth.role as UserRole;
-        return this.userProfilesRepository.save(existing);
-      }
-
-      return existing;
+    if (!profile) {
+      throw new Error(`Failed to load profile for ${auth.sub}`);
     }
 
-    return this.userProfilesRepository.save(
-      this.userProfilesRepository.create({
-        userId: auth.sub,
-        role: (auth.role as UserRole) ?? UserRole.USER,
-        status: UserStatus.ACTIVE,
-      }),
-    );
+    if (profile.role !== role) {
+      profile.role = role;
+      return this.userProfilesRepository.save(profile);
+    }
+
+    return profile;
   }
 
   async getByUserId(userId: string): Promise<UserProfileEntity | null> {

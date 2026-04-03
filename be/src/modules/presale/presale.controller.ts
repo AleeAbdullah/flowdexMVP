@@ -1,13 +1,10 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Controller, Get } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 
-import { InternalJwtGuard } from '../../common/guards/internal-jwt.guard';
 import { PresaleTierDto } from './dto/presale.dto';
 import { PresaleService } from './presale.service';
 
 @ApiTags('presale')
-@ApiBearerAuth()
-@UseGuards(InternalJwtGuard)
 @Controller('presale')
 export class PresaleController {
   constructor(private readonly presaleService: PresaleService) {}

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import 'reflect-metadata';
 
 import { ValidationPipe } from '@nestjs/common';
@@ -5,9 +6,10 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
-import { env } from './infrastructure/config/env';
+import { assertRequiredEnv, env } from './infrastructure/config/env';
 
 async function bootstrap(): Promise<void> {
+  assertRequiredEnv();
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix(env.apiPrefix);
