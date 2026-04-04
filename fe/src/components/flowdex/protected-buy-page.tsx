@@ -6,10 +6,15 @@ import { ArrowRightLeft, CheckCircle2, Coins, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useCreatePurchaseIntent, useReportPurchaseTransaction, useWallets } from '@/dal/app/hooks';
+import {
+  useCreatePurchaseIntent,
+  useReportPurchaseTransaction,
+  useTransaction,
+  useWallets,
+} from '@/dal/app/hooks';
 import { usePresaleConfig, usePresaleStats, usePricing } from '@/dal/market/hooks';
-import { DataKicker, GlassPanel, SectionHeading } from './primitives';
-import { formatCompact, formatCurrency, parseDecimal } from './utils';
+import { DataKicker, GlassPanel, SectionHeading, StatusPill } from './primitives';
+import { formatCompact, formatCurrency, formatDateTime, formatPlainNumber, parseDecimal, truncateMiddle } from './utils';
 
 export function ProtectedBuyPage() {
   const walletsQuery = useWallets();
@@ -23,11 +28,19 @@ export function ProtectedBuyPage() {
   const [paymentAmount, setPaymentAmount] = useState('100');
   const [reportedTxHash, setReportedTxHash] = useState('');
   const [activeIntentId, setActiveIntentId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{
+    tone: 'info' | 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   const wallets = walletsQuery.data?.items ?? [];
   const supportedAssets = configQuery.data?.supportedAssets ?? [];
   const pricingItems = pricingQuery.data?.items ?? [];
   const stats = statsQuery.data;
+  const activeTransactionQuery = useTransaction(activeIntentId ?? '');
+  const activeTransaction = activeTransactionQuery.data;
+  const isBootstrapping = walletsQuery.isLoading || pricingQuery.isLoading || statsQuery.isLoading || configQuery.isLoading;
+  const bootError = walletsQuery.error || pricingQuery.error || statsQuery.error || configQuery.error;
 
   useEffect(() => {
     if (!walletId && wallets[0]) {
@@ -43,9 +56,22 @@ export function ProtectedBuyPage() {
 
   const selectedAsset = supportedAssets.find(item => item.assetCode === assetCode) ?? supportedAssets[0];
   const selectedPrice = pricingItems.find(item => item.assetCode === selectedAsset?.assetCode);
+  const normalizedPaymentAmount = parseDecimal(paymentAmount);
+  const minimumAmount = parseDecimal(selectedAsset?.minAmount ?? 0);
   const estimatedTokens = stats && selectedPrice
-    ? (parseDecimal(paymentAmount) * parseDecimal(selectedPrice.priceUsd)) / parseDecimal(stats.currentTokenPriceUsd)
+    ? (normalizedPaymentAmount * parseDecimal(selectedPrice.priceUsd)) / parseDecimal(stats.currentTokenPriceUsd)
     : 0;
+  const amountValidationMessage = !paymentAmount.trim()
+    ? 'Enter an amount to generate a purchase intent.'
+    : normalizedPaymentAmount <= 0
+      ? 'Enter a valid payment amount greater than zero.'
+      : selectedAsset && normalizedPaymentAmount < minimumAmount
+        ? `The minimum supported amount is ${formatPlainNumber(selectedAsset.minAmount, 6)} ${selectedAsset.assetCode}.`
+        : null;
+  const canCreateIntent = Boolean(walletId && assetCode && !amountValidationMessage);
+  const isIntentFinal = activeTransaction
+    ? ['CONFIRMED', 'FAILED', 'EXPIRED', 'REFUNDED'].includes(activeTransaction.status)
+    : false;
 
   const reportTxMutation = useReportPurchaseTransaction(activeIntentId ?? '');
 
@@ -54,8 +80,8 @@ export function ProtectedBuyPage() {
       <GlassPanel className="grid gap-8 p-6 lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
         <SectionHeading
           eyebrow="Protected Buy"
-          title="Create purchase intents from the authenticated app shell."
-          description="This route is the first true protected execution surface: it knows who the user is, what wallets they linked, and which backend-supported rails are currently available."
+          title="Create and track purchase intents inside the authenticated app shell."
+          description="This screen now follows the validated backend lifecycle closely: create an intent, send funds, optionally report the chain hash, and watch the backend move the transaction through confirmation or failure states."
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <DataKicker label="Current Tier" value={`Tier ${stats?.currentTier ?? 1}`} />
@@ -65,7 +91,36 @@ export function ProtectedBuyPage() {
         </div>
       </GlassPanel>
 
-      {wallets.length === 0 ? (
+      {feedback ? (
+        <GlassPanel
+          className={`p-5 ${
+            feedback.tone === 'error'
+              ? 'border border-rose-400/20 bg-rose-500/10'
+              : feedback.tone === 'success'
+                ? 'border border-emerald-400/20 bg-emerald-500/10'
+                : 'border border-cyan-400/20 bg-cyan-400/10'
+          }`}
+        >
+          <p className="text-sm leading-7 text-white">{feedback.text}</p>
+        </GlassPanel>
+      ) : null}
+
+      {isBootstrapping ? (
+        <GlassPanel className="p-6 text-sm text-slate-300">
+          Loading protected buy rails, pricing, and linked wallet readiness...
+        </GlassPanel>
+      ) : null}
+
+      {!isBootstrapping && bootError ? (
+        <GlassPanel className="border border-rose-400/20 bg-rose-500/10 p-6">
+          <div className="text-lg font-bold text-white">Protected buy is unavailable right now</div>
+          <p className="mt-3 text-sm leading-7 text-rose-100">
+            {bootError instanceof Error ? bootError.message : 'The app could not load the required backend data.'}
+          </p>
+        </GlassPanel>
+      ) : null}
+
+      {!isBootstrapping && !bootError && wallets.length === 0 ? (
         <GlassPanel className="p-6">
           <div className="flex items-start gap-4">
             <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-3 text-cyan-200">
@@ -82,7 +137,7 @@ export function ProtectedBuyPage() {
             </div>
           </div>
         </GlassPanel>
-      ) : (
+      ) : !isBootstrapping && !bootError ? (
         <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
           <GlassPanel className="p-6">
             <div className="space-y-4">
@@ -137,17 +192,34 @@ export function ProtectedBuyPage() {
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <DataKicker label="Asset USD Price" value={formatCurrency(selectedPrice?.priceUsd ?? 0, 2)} />
                   <DataKicker label="Estimated Tokens" value={formatCompact(estimatedTokens, 2)} />
-                  <DataKicker label="Min Amount" value={selectedAsset?.minAmount ?? '0'} />
+                  <DataKicker
+                    label="Min Amount"
+                    value={selectedAsset ? `${formatPlainNumber(selectedAsset.minAmount, 6)} ${selectedAsset.assetCode}` : '0'}
+                  />
                   <DataKicker label="Confirmations" value={`${selectedAsset?.minConfirmations ?? 0}`} />
                 </div>
               </div>
+
+              {amountValidationMessage ? (
+                <div className="rounded-[1rem] border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+                  {amountValidationMessage}
+                </div>
+              ) : null}
 
               <Button
                 variant="brand"
                 size="lg"
                 className="w-full"
-                disabled={createIntentMutation.isPending || !walletId || !assetCode}
+                disabled={createIntentMutation.isPending || !canCreateIntent}
                 onClick={async () => {
+                  if (amountValidationMessage) {
+                    setFeedback({
+                      tone: 'error',
+                      text: amountValidationMessage,
+                    });
+                    return;
+                  }
+
                   try {
                     const result = await createIntentMutation.mutateAsync({
                       walletId,
@@ -157,8 +229,16 @@ export function ProtectedBuyPage() {
 
                     setActiveIntentId(result.intentId);
                     setReportedTxHash('');
+                    setFeedback({
+                      tone: 'success',
+                      text: `Intent ${result.intentId.slice(0, 8)} is live. Send ${result.paymentAmount} ${result.assetCode} to the treasury address below, then optionally report the transaction hash to accelerate reconciliation.`,
+                    });
                     toast.success('Purchase intent created');
                   } catch (error) {
+                    setFeedback({
+                      tone: 'error',
+                      text: error instanceof Error ? error.message : 'Could not create purchase intent',
+                    });
                     toast.error(error instanceof Error ? error.message : 'Could not create purchase intent');
                   }
                 }}
@@ -179,15 +259,39 @@ export function ProtectedBuyPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <DataKicker label="Intent ID" value={createIntentMutation.data.intentId.slice(0, 8)} />
                   <DataKicker label="Tier" value={`Tier ${createIntentMutation.data.currentTier}`} />
+                  <div className="space-y-2">
+                    <div className="text-[10px] font-semibold tracking-[0.32em] text-slate-400 uppercase">Lifecycle</div>
+                    <StatusPill status={activeTransaction?.status ?? 'PENDING'} />
+                  </div>
+                  <DataKicker label="Confirmations" value={`${activeTransaction?.confirmations ?? 0}`} />
                   <DataKicker label="Pay To" value={createIntentMutation.data.paymentAddress} className="sm:col-span-2" />
                   <DataKicker label="Amount" value={`${createIntentMutation.data.paymentAmount} ${createIntentMutation.data.assetCode}`} />
                   <DataKicker label="Tokens Preview" value={formatCompact(createIntentMutation.data.tokensAllocatedPreview, 2)} />
+                  <DataKicker
+                    label="Reported Hash"
+                    value={activeTransaction?.reportedTxHash ? truncateMiddle(activeTransaction.reportedTxHash) : (reportedTxHash.trim() ? truncateMiddle(reportedTxHash) : 'Not submitted yet')}
+                  />
+                  <DataKicker
+                    label="Matched Hash"
+                    value={activeTransaction?.matchedTxHash ? truncateMiddle(activeTransaction.matchedTxHash) : 'Not matched yet'}
+                  />
+                  <DataKicker
+                    label="Confirmed At"
+                    value={formatDateTime(activeTransaction?.confirmedAt)}
+                    className="sm:col-span-2"
+                  />
                 </div>
+
+                {activeTransaction?.verificationFailureReason ? (
+                  <div className="rounded-[1rem] border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+                    Backend verification issue: {activeTransaction.verificationFailureReason}
+                  </div>
+                ) : null}
 
                 <div className="rounded-[1.25rem] border border-white/8 bg-white/4 p-4">
                   <div className="text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">Optional tx hint</div>
                   <p className="mt-3 text-sm leading-7 text-slate-300">
-                    If the user already sent funds, they can report the transaction hash here to help reconciliation pick it up faster.
+                    Once funds are sent, report the chain hash here to help the backend find and verify the transfer faster. Reporting a hash does not confirm the transaction by itself.
                   </p>
                   <Input
                     value={reportedTxHash}
@@ -198,7 +302,7 @@ export function ProtectedBuyPage() {
                   <Button
                     variant="glass"
                     className="mt-4 w-full"
-                    disabled={reportTxMutation.isPending || !activeIntentId || !reportedTxHash.trim()}
+                    disabled={reportTxMutation.isPending || !activeIntentId || !reportedTxHash.trim() || isIntentFinal}
                     onClick={async () => {
                       if (!activeIntentId) {
                         return;
@@ -206,19 +310,41 @@ export function ProtectedBuyPage() {
 
                       try {
                         await reportTxMutation.mutateAsync({ txHash: reportedTxHash });
+                        setFeedback({
+                          tone: 'info',
+                          text: `Transaction hash ${reportedTxHash} was submitted. The backend will reconcile it, attach verification results, and keep this lifecycle panel updated as confirmations progress.`,
+                        });
                         toast.success('Transaction hash submitted');
                       } catch (error) {
+                        setFeedback({
+                          tone: 'error',
+                          text: error instanceof Error ? error.message : 'Could not report transaction',
+                        });
                         toast.error(error instanceof Error ? error.message : 'Could not report transaction');
                       }
                     }}
                   >
                     {reportTxMutation.isPending ? 'Submitting...' : 'Report transaction hash'}
                   </Button>
+                  {activeTransactionQuery.isError ? (
+                    <p className="mt-3 text-sm text-rose-200">
+                      {activeTransactionQuery.error instanceof Error
+                        ? activeTransactionQuery.error.message
+                        : 'The latest transaction lifecycle state could not be refreshed.'}
+                    </p>
+                  ) : null}
                 </div>
 
-                <Button variant="brand" asChild className="w-full">
-                  <Link href="/app/transactions">Go to transaction history</Link>
-                </Button>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Button variant="brand" asChild className="w-full">
+                    <Link href="/app/transactions">Go to transaction history</Link>
+                  </Button>
+                  {activeIntentId ? (
+                    <Button variant="glass" asChild className="w-full">
+                      <Link href={`/app/transactions/${activeIntentId}`}>Open transaction detail</Link>
+                    </Button>
+                  ) : null}
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
@@ -233,7 +359,7 @@ export function ProtectedBuyPage() {
             )}
           </GlassPanel>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

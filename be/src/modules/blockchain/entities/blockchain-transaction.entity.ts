@@ -56,6 +56,9 @@ export class BlockchainTransactionEntity {
   @Column({ name: 'matched_intent_id', type: 'uuid', nullable: true })
   matchedIntentId!: string | null;
 
+  @Column({ name: 'reconciliation_reason', type: 'varchar', length: 120, nullable: true })
+  reconciliationReason!: string | null;
+
   @Column({ name: 'raw_payload', type: 'jsonb', nullable: true })
   rawPayload!: Record<string, unknown> | null;
 

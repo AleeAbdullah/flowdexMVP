@@ -6,6 +6,9 @@ import { getOptionalSession } from '@/lib/auth-server';
 import { FlowdexWordmark } from './primitives';
 
 const navigation = [
+  { label: 'About', href: '/about' },
+  { label: 'Whitepaper', href: '/whitepaper' },
+  { label: 'Updates', href: '/updates' },
   { label: 'Overview', href: '#overview' },
   { label: 'Tiers', href: '#tiers' },
   { label: 'Tokenomics', href: '#tokenomics' },
@@ -55,21 +58,19 @@ export async function MarketingShell({
             {navigation.map(item => (
               <Link
                 key={item.href}
-                href={`/${item.href}`}
+                href={item.href.startsWith('#') ? `/${item.href}` : item.href}
                 className="text-sm font-semibold text-slate-300 hover:text-cyan-200"
               >
                 {item.label}
               </Link>
             ))}
-            <a
-              href="https://example.com/whitepaper"
-              target="_blank"
-              rel="noreferrer"
+            <Link
+              href="/whitepaper"
               className="inline-flex items-center gap-2 text-sm font-semibold text-slate-300 hover:text-white"
             >
               <FileText className="h-4 w-4" />
               Whitepaper
-            </a>
+            </Link>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -114,16 +115,17 @@ export async function MarketingShell({
             title="Navigation"
             items={[
               { label: 'Home', href: `/` },
+              { label: 'About', href: `/about` },
               { label: 'Buy', href: `/buy` },
-              { label: 'Trade', href: `/app/trade` },
+              { label: 'Updates', href: `/updates` },
             ]}
           />
           <FooterColumn
             title="Resources"
             items={[
-              { label: 'Whitepaper', href: 'https://example.com/whitepaper' },
-              { label: 'Docs', href: 'https://example.com/docs' },
-              { label: 'Terms', href: 'https://example.com/terms' },
+              { label: 'Whitepaper', href: '/whitepaper' },
+              { label: 'Terms', href: '/terms' },
+              { label: 'Privacy', href: '/privacy' },
             ]}
           />
           <FooterColumn

@@ -31,3 +31,24 @@ export function formatPlainNumber(value: string | number, maximumFractionDigits 
 export function formatPercent(value: number) {
   return `${value.toFixed(0)}%`;
 }
+
+export function formatDateTime(value?: string | Date | null) {
+  if (!value) {
+    return 'Pending';
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return 'Pending';
+  }
+
+  return date.toLocaleString();
+}
+
+export function truncateMiddle(value: string, head = 10, tail = 8) {
+  if (value.length <= head + tail + 3) {
+    return value;
+  }
+
+  return `${value.slice(0, head)}...${value.slice(-tail)}`;
+}

@@ -1,5 +1,7 @@
 import type { BetterAuthSession } from '@/lib/auth-server';
+import Link from 'next/link';
 import type { AuthMe } from '@/dal/app/types';
+import { Button } from '@/components/ui/button';
 import { DataKicker, GlassPanel, SectionHeading } from './primitives';
 import { SignOutButton } from './sign-out-button';
 
@@ -11,17 +13,20 @@ export function AccountPage(props: {
 
   return (
     <div className="space-y-8">
-      <GlassPanel className="grid gap-8 p-6 lg:grid-cols-[1.1fr_0.9fr] lg:p-8">
+      <GlassPanel className="grid gap-8 p-6 lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
         <SectionHeading
           eyebrow="Account"
           title={`Welcome back, ${displayName}.`}
-          description="This page is hydrated from the backend auth context, not just the browser session. It is the canonical surface for role, status, and linked wallet visibility."
+          description="This screen is now a focused identity and session surface. Dashboard metrics live on `/app`; this page stays responsible for profile state, backend role/status visibility, and account control."
         />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <DataKicker label="Role" value={props.profile.role} />
-          <DataKicker label="Status" value={props.profile.status} />
-          <DataKicker label="Wallets" value={`${props.profile.wallets.length}`} />
-          <DataKicker label="Session" value={props.session.session.id.slice(0, 8)} />
+        <div className="space-y-4 rounded-[1.5rem] border border-cyan-400/12 bg-cyan-400/6 p-5">
+          <div className="text-[10px] font-bold tracking-[0.28em] text-cyan-300 uppercase">Session Facts</div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <DataKicker label="Role" value={props.profile.role} />
+            <DataKicker label="Status" value={props.profile.status} />
+            <DataKicker label="Wallets" value={`${props.profile.wallets.length}`} />
+            <DataKicker label="Session" value={props.session.session.id.slice(0, 8)} />
+          </div>
         </div>
       </GlassPanel>
 
@@ -34,11 +39,16 @@ export function AccountPage(props: {
         <GlassPanel className="p-5">
           <div className="text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">Wallet Readiness</div>
           <div className="mt-4 text-lg font-bold text-white">
-            {props.profile.wallets.length > 0 ? 'Ready to buy' : 'Link a wallet first'}
+            {props.profile.wallets.length > 0 ? 'Ready for protected execution' : 'Link a wallet first'}
           </div>
           <p className="mt-3 text-sm leading-7 text-slate-300">
-            Purchase intents require a verified wallet. If none are linked yet, start from the Wallets tab before heading to the protected buy flow.
+            Wallet verification stays separate from email auth by design. If none are linked yet, the wallets screen is the next required step before creating purchase intents.
           </p>
+          <div className="mt-4">
+            <Button variant="glass" asChild>
+              <Link href="/app/wallets">Open wallets</Link>
+            </Button>
+          </div>
         </GlassPanel>
         <GlassPanel className="p-5">
           <div className="text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">Session Control</div>
@@ -59,12 +69,12 @@ export function AccountPage(props: {
               className="flex flex-col gap-3 border-b border-white/6 px-6 py-5 last:border-b-0 md:flex-row md:items-center md:justify-between"
             >
               <div>
-                <div className="font-semibold text-white">{wallet.chain}</div>
-                <div className="mt-1 text-sm text-slate-400">{wallet.address}</div>
-              </div>
-              <div className="text-sm text-cyan-200">
-                {wallet.verifiedAt ? 'Verified' : 'Pending verification'}
-              </div>
+              <div className="font-semibold text-white">{wallet.chain}</div>
+              <div className="mt-1 text-sm text-slate-400">{wallet.address}</div>
+            </div>
+            <div className="text-sm text-cyan-200">
+              {wallet.verifiedAt ? 'Verified for Phase 2 rails' : 'Pending verification'}
+            </div>
             </div>
           )) : (
             <div className="px-6 py-5 text-sm text-slate-300">

@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useTransactions } from '@/dal/app/hooks';
-import { GlassPanel, SectionHeading } from './primitives';
+import { GlassPanel, SectionHeading, StatusPill } from './primitives';
+import { formatDateTime, formatPlainNumber, truncateMiddle } from './utils';
 
 export function TransactionsPage() {
   const transactionsQuery = useTransactions();
@@ -15,7 +16,7 @@ export function TransactionsPage() {
         <SectionHeading
           eyebrow="Transactions"
           title="Track purchase intents, chain progress, and refund status."
-          description="This is the user-facing read model for the backend purchase lifecycle. It joins intents, reported chain hashes, token allocations, and refunds into one surface."
+          description="This is the user-facing read model for the backend lifecycle. It now exposes reported versus matched hashes, machine-readable verification issues, refund posture, and confirmed timestamps in one place."
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <Metric label="Transactions" value={`${items.length}`} />
@@ -30,6 +31,12 @@ export function TransactionsPage() {
           Transaction History
         </div>
         <div>
+          {transactionsQuery.isError ? (
+            <div className="px-6 py-5 text-sm text-rose-200">
+              {transactionsQuery.error instanceof Error ? transactionsQuery.error.message : 'Could not load protected transactions.'}
+            </div>
+          ) : null}
+
           {transactionsQuery.isLoading ? (
             <div className="px-6 py-5 text-sm text-slate-300">Loading transactions...</div>
           ) : null}
@@ -51,14 +58,29 @@ export function TransactionsPage() {
               className="flex flex-col gap-4 border-b border-white/6 px-6 py-5 last:border-b-0 xl:flex-row xl:items-center xl:justify-between"
             >
               <div className="space-y-1">
-                <div className="font-semibold text-white">{item.assetCode} on {item.chain}</div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="font-semibold text-white">{item.assetCode} on {item.chain}</div>
+                  <StatusPill status={item.status} />
+                </div>
                 <div className="text-sm text-slate-400">Intent {item.id}</div>
+                <div className="text-sm text-slate-500">
+                  {item.matchedTxHash
+                    ? `Matched hash: ${truncateMiddle(item.matchedTxHash)}`
+                    : item.reportedTxHash
+                      ? `Reported hash: ${truncateMiddle(item.reportedTxHash)}`
+                      : 'Waiting for a reported or matched chain hash'}
+                </div>
+                {item.verificationFailureReason ? (
+                  <div className="text-sm text-rose-200">
+                    Verification issue: {item.verificationFailureReason}
+                  </div>
+                ) : null}
               </div>
               <div className="grid gap-4 sm:grid-cols-4 xl:min-w-[42rem]">
-                <Metric label="Status" value={item.status} />
-                <Metric label="Amount" value={`${item.amountPaid} ${item.assetCode}`} />
-                <Metric label="Tokens" value={item.tokensAllocated ?? 'Pending'} />
+                <Metric label="Amount" value={`${formatPlainNumber(item.amountPaid, 6)} ${item.assetCode}`} />
+                <Metric label="Tokens" value={item.tokensAllocated ? formatPlainNumber(item.tokensAllocated, 6) : 'Pending'} />
                 <Metric label="Confirmations" value={`${item.confirmations}`} />
+                <Metric label="Confirmed" value={formatDateTime(item.confirmedAt)} />
               </div>
               <Button variant="glass" asChild>
                 <Link href={`/app/transactions/${item.id}`}>View detail</Link>

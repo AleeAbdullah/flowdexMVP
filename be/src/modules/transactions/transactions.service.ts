@@ -2,10 +2,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { AuthContext } from '../../common/decorators/current-auth.decorator';
+import { normalizeFixed } from '../../common/utils/decimal';
 import { BlockchainTransactionEntity } from '../blockchain/entities/blockchain-transaction.entity';
 import { SupportedAssetEntity } from '../pricing/entities/supported-asset.entity';
 import { PurchaseIntentEntity } from '../purchase-intents/entities/purchase-intent.entity';
 import { RefundEntity } from '../admin/entities/refund.entity';
+import { UsersService } from '../users/users.service';
+import { WalletEntity } from '../wallets/entities/wallet.entity';
 import { TransactionListItemDto } from './dto/transactions.dto';
 import { TokenAllocationEntity } from './entities/token-allocation.entity';
 
@@ -22,11 +26,16 @@ export class TransactionsService {
     private readonly tokenAllocationsRepository: Repository<TokenAllocationEntity>,
     @InjectRepository(SupportedAssetEntity)
     private readonly supportedAssetsRepository: Repository<SupportedAssetEntity>,
+    @InjectRepository(WalletEntity)
+    private readonly walletsRepository: Repository<WalletEntity>,
+    private readonly usersService: UsersService,
   ) {}
 
-  async listForUser(userId: string): Promise<{ items: TransactionListItemDto[] }> {
+  async listForUser(auth: AuthContext): Promise<{ items: TransactionListItemDto[] }> {
+    await this.usersService.syncAndRequireActive(auth);
+
     const intents = await this.purchaseIntentsRepository.find({
-      where: { userId },
+      where: { userId: auth.sub },
       order: { createdAt: 'DESC' },
     });
 
@@ -35,9 +44,11 @@ export class TransactionsService {
     };
   }
 
-  async getForUser(userId: string, id: string): Promise<TransactionListItemDto> {
+  async getForUser(auth: AuthContext, id: string): Promise<TransactionListItemDto> {
+    await this.usersService.syncAndRequireActive(auth);
+
     const intent = await this.purchaseIntentsRepository.findOne({
-      where: { id, userId },
+      where: { id, userId: auth.sub },
     });
     if (!intent) {
       throw new NotFoundException('Transaction not found');
@@ -95,7 +106,7 @@ export class TransactionsService {
   }
 
   private async toDto(intent: PurchaseIntentEntity): Promise<TransactionListItemDto> {
-    const [chainTx, refund, allocation, asset] = await Promise.all([
+    const [chainTx, refund, allocation, asset, wallet] = await Promise.all([
       intent.matchedBlockchainTxId
         ? this.blockchainTransactionsRepository.findOne({
             where: { id: intent.matchedBlockchainTxId },
@@ -110,18 +121,29 @@ export class TransactionsService {
       this.supportedAssetsRepository.findOne({
         where: { id: intent.assetId },
       }),
+      this.walletsRepository.findOne({
+        where: { id: intent.walletId },
+      }),
     ]);
 
     return {
       id: intent.id,
+      userId: intent.userId,
       status: intent.status,
+      walletId: intent.walletId,
+      walletAddress: wallet?.addressNormalized ?? null,
       chain: asset?.chain ?? '',
       assetCode: asset?.assetCode ?? '',
       txHash: chainTx?.txHash ?? intent.reportedTxHash,
-      amountPaid: intent.expectedAmount,
-      tokensAllocated: allocation?.tokensReal ?? null,
+      reportedTxHash: intent.reportedTxHash,
+      matchedTxHash: chainTx?.txHash ?? null,
+      amountPaid: normalizeFixed(intent.expectedAmount),
+      tokensAllocated: allocation ? normalizeFixed(allocation.tokensReal) : null,
+      verificationFailureReason: intent.failureReason ?? chainTx?.reconciliationReason ?? null,
+      refundEligible: intent.status === 'CONFIRMED' && !refund,
       confirmations: chainTx?.confirmations ?? 0,
       blockTime: chainTx?.blockTime ?? null,
+      confirmedAt: intent.confirmedAt,
       refund: refund
         ? {
             id: refund.id,

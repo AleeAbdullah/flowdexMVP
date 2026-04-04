@@ -119,6 +119,16 @@ export async function getAuthenticatedAppContext() {
   }
 }
 
+export async function requireAdminAppContext() {
+  const context = await getAuthenticatedAppContext();
+
+  if (context.profile.role !== 'ADMIN') {
+    redirect('/app');
+  }
+
+  return context;
+}
+
 export async function proxyBackendRequest(
   request: NextRequest,
   pathSegments: string[],

@@ -49,6 +49,9 @@ export class PurchaseIntentEntity {
   @Column({ name: 'matched_blockchain_tx_id', type: 'uuid', nullable: true })
   matchedBlockchainTxId!: string | null;
 
+  @Column({ name: 'failure_reason', type: 'varchar', length: 120, nullable: true })
+  failureReason!: string | null;
+
   @Column({ name: 'confirmed_at', type: 'timestamptz', nullable: true })
   confirmedAt!: Date | null;
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { ArrowRightLeft, Coins, CreditCard, Layers3, ShieldCheck, Wallet } from 'lucide-react';
 import { usePresaleConfig, usePresaleStats, usePresaleTiers, usePricing } from '@/dal/market/hooks';
 import { Button } from '@/components/ui/button';
@@ -218,8 +219,8 @@ export function BuyPage() {
               </div>
             </div>
 
-            <Button variant="brand" size="lg" className="w-full" disabled>
-              Wallet connect and protected purchase flow come next
+            <Button variant="brand" size="lg" className="w-full" asChild>
+              <Link href="/app/buy">Continue to protected buy</Link>
             </Button>
           </div>
         </GlassPanel>

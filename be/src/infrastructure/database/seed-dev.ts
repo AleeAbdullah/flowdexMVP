@@ -44,7 +44,7 @@ const ASSETS: Array<Partial<SupportedAssetEntity>> = [
     treasuryAddress: 'T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb',
     minConfirmations: 20,
     minAmount: '10.000000000000000000',
-    isActive: true,
+    isActive: false,
   },
 ];
 

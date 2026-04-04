@@ -15,7 +15,7 @@ export class TransactionsController {
 
   @Get()
   list(@CurrentAuth() auth: AuthContext): Promise<{ items: TransactionListItemDto[] }> {
-    return this.transactionsService.listForUser(auth.sub);
+    return this.transactionsService.listForUser(auth);
   }
 
   @Get(':id')
@@ -23,6 +23,6 @@ export class TransactionsController {
     @CurrentAuth() auth: AuthContext,
     @Param('id') id: string,
   ): Promise<TransactionListItemDto> {
-    return this.transactionsService.getForUser(auth.sub, id);
+    return this.transactionsService.getForUser(auth, id);
   }
 }

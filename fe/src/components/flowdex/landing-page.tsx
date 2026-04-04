@@ -245,6 +245,37 @@ export function LandingPage() {
         </GlassPanel>
       </section>
 
+      <section className="section-shell">
+        <GlassPanel className="grid gap-4 p-6 md:grid-cols-3 md:p-7">
+          {[
+            {
+              label: 'About',
+              href: '/about',
+              body: 'A tighter explanation of the product thesis, market opportunity, and development phases.',
+            },
+            {
+              label: 'Whitepaper',
+              href: '/whitepaper',
+              body: 'A web-first rendering of the March 2026 whitepaper with the actual document structure.',
+            },
+            {
+              label: 'Updates',
+              href: '/updates',
+              body: 'A public launch-log view of presale progress, product milestones, and ecosystem direction.',
+            },
+          ].map(card => (
+            <Link
+              key={card.label}
+              href={card.href}
+              className="rounded-[1.2rem] border border-white/8 bg-white/4 p-5 hover:border-cyan-400/25 hover:bg-cyan-400/6"
+            >
+              <div className="text-[10px] font-bold tracking-[0.28em] text-cyan-300 uppercase">{card.label}</div>
+              <p className="mt-3 text-sm leading-8 text-slate-300">{card.body}</p>
+            </Link>
+          ))}
+        </GlassPanel>
+      </section>
+
       {hasError ? (
         <section className="section-shell">
           <GlassPanel className="border-amber-400/20 bg-amber-500/8 p-4 text-sm text-amber-100">

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -15,19 +15,19 @@ export class UsersService {
 
   async syncProfile(auth: AuthContext): Promise<UserProfileEntity> {
     const role = (auth.role as UserRole) ?? UserRole.USER;
-
-    await this.userProfilesRepository.upsert(
-      {
-        userId: auth.sub,
-        role,
-        status: UserStatus.ACTIVE,
-      },
-      ['userId'],
-    );
-
-    const profile = await this.userProfilesRepository.findOne({
+    let profile = await this.userProfilesRepository.findOne({
       where: { userId: auth.sub },
     });
+
+    if (!profile) {
+      profile = await this.userProfilesRepository.save(
+        this.userProfilesRepository.create({
+          userId: auth.sub,
+          role,
+          status: UserStatus.ACTIVE,
+        }),
+      );
+    }
 
     if (!profile) {
       throw new Error(`Failed to load profile for ${auth.sub}`);
@@ -36,6 +36,30 @@ export class UsersService {
     if (profile.role !== role) {
       profile.role = role;
       return this.userProfilesRepository.save(profile);
+    }
+
+    return profile;
+  }
+
+  async syncAndRequireActive(auth: AuthContext): Promise<UserProfileEntity> {
+    const profile = await this.syncProfile(auth);
+
+    if (profile.status !== UserStatus.ACTIVE) {
+      throw new ForbiddenException('User account is not active');
+    }
+
+    return profile;
+  }
+
+  async requireActiveByUserId(userId: string): Promise<UserProfileEntity> {
+    const profile = await this.getByUserId(userId);
+
+    if (!profile) {
+      throw new ForbiddenException('User profile not found');
+    }
+
+    if (profile.status !== UserStatus.ACTIVE) {
+      throw new ForbiddenException('User account is not active');
     }
 
     return profile;

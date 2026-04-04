@@ -14,6 +14,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:phase2": "jest --config ./test/jest-phase2.json --runInBand",
+    "smoke:phase2": "ts-node -r tsconfig-paths/register test/phase2-smoke.ts",
     "migration:generate": "typeorm-ts-node-commonjs -d src/infrastructure/database/data-source.ts migration:generate src/infrastructure/database/migrations/AutoMigration",
     "migration:create": "typeorm-ts-node-commonjs -d src/infrastructure/database/data-source.ts migration:create src/infrastructure/database/migrations/ManualMigration",
     "migration:run": "typeorm-ts-node-commonjs -d src/infrastructure/database/data-source.ts migration:run",

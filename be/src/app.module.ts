@@ -7,6 +7,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AuthContextModule } from './modules/auth-context/auth-context.module';
 import { BlockchainModule } from './modules/blockchain/blockchain.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { PresaleModule } from './modules/presale/presale.module';
 import { PricingModule } from './modules/pricing/pricing.module';
@@ -47,6 +48,7 @@ import { QueuesModule } from './infrastructure/queues/queues.module';
     PresaleModule,
     PurchaseIntentsModule,
     TransactionsModule,
+    DashboardModule,
     BlockchainModule,
     AdminModule,
   ],

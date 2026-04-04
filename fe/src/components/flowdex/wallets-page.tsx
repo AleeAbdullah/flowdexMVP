@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +13,7 @@ import {
 } from '@/dal/app/hooks';
 import { GlassPanel, SectionHeading } from './primitives';
 
-type Chain = 'ETH' | 'ERC20' | 'TRC20';
+type Chain = 'ETH';
 
 export function WalletsPage() {
   const walletsQuery = useWallets();
@@ -20,11 +21,16 @@ export function WalletsPage() {
   const verifyMutation = useVerifyWalletSignature();
   const deleteMutation = useDeleteWallet();
 
-  const [chain, setChain] = useState<Chain>('ETH');
+  const [chain] = useState<Chain>('ETH');
   const [address, setAddress] = useState('');
   const [signature, setSignature] = useState('');
   const [activeChallengeId, setActiveChallengeId] = useState<string | null>(null);
   const [challengeMessage, setChallengeMessage] = useState('');
+  const [challengeExpiresAt, setChallengeExpiresAt] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{
+    tone: 'success' | 'error' | 'info';
+    text: string;
+  } | null>(null);
 
   const wallets = walletsQuery.data?.items ?? [];
   const canAutoSign = useMemo(() => {
@@ -37,52 +43,55 @@ export function WalletsPage() {
       tronWeb?: { trx?: { signMessageV2?: (message: string) => Promise<string> } };
     };
 
-    return chain === 'TRC20'
-      ? Boolean(win.tronWeb?.trx?.signMessageV2)
-      : Boolean(win.ethereum?.request);
-  }, [chain]);
+    return Boolean(win.ethereum?.request);
+  }, []);
 
   return (
     <div className="space-y-8">
       <GlassPanel className="grid gap-8 p-6 lg:grid-cols-[1.1fr_0.9fr] lg:p-8">
         <SectionHeading
           eyebrow="Wallets"
-          title="Link the wallet that will anchor protected presale actions."
-          description="Challenge creation and signature verification are delegated to the backend. This surface orchestrates the chain choice, signing step, and wallet list refresh."
+          title="Link the EVM wallet that will anchor Phase 2 presale actions."
+          description="Phase 2 wallet UX is intentionally narrowed to the EVM path used for both ETH and USDT ERC20 purchases. Challenge creation and signature verification are still delegated to the backend."
         />
         <div className="space-y-4 rounded-[1.5rem] border border-cyan-400/12 bg-cyan-400/6 p-5">
-          <div className="text-[10px] font-bold tracking-[0.28em] text-cyan-300 uppercase">Flow</div>
+          <div className="text-[10px] font-bold tracking-[0.28em] text-cyan-300 uppercase">Phase 2 Wallet Flow</div>
           <ol className="space-y-3 text-sm leading-7 text-slate-200">
-            <li>1. Choose the target chain and wallet address.</li>
+            <li>1. Enter an EVM wallet address for ETH and USDT ERC20 purchases.</li>
             <li>2. Request a backend challenge bound to your user and address.</li>
-            <li>3. Sign it in the wallet or paste the signature manually.</li>
-            <li>4. Verify and refresh the protected wallet list.</li>
+            <li>3. Sign it with your wallet or paste the signature manually.</li>
+            <li>4. Verify ownership and refresh the protected wallet list.</li>
           </ol>
         </div>
       </GlassPanel>
+
+      {feedback ? (
+        <GlassPanel
+          className={`p-5 ${
+            feedback.tone === 'error'
+              ? 'border border-rose-400/20 bg-rose-500/10'
+              : feedback.tone === 'success'
+                ? 'border border-emerald-400/20 bg-emerald-500/10'
+                : 'border border-cyan-400/20 bg-cyan-400/10'
+          }`}
+        >
+          <p className="text-sm leading-7 text-white">{feedback.text}</p>
+        </GlassPanel>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <GlassPanel className="p-6">
           <div className="space-y-4">
             <div className="text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">Link Wallet</div>
 
-            <div className="flex flex-wrap gap-2">
-              {(['ETH', 'ERC20', 'TRC20'] as const).map(option => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setChain(option)}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold ${chain === option ? 'bg-cyan-400 text-slate-950' : 'border border-white/8 bg-white/4 text-slate-300'}`}
-                >
-                  {option}
-                </button>
-              ))}
+            <div className="rounded-[1rem] border border-cyan-400/14 bg-cyan-400/8 px-4 py-3 text-sm text-cyan-50">
+              EVM wallet mode is active. One verified wallet can now be used for both <span className="font-semibold">ETH</span> and <span className="font-semibold">USDT ERC20</span> purchase intents.
             </div>
 
             <Input
               value={address}
               onChange={event => setAddress(event.target.value)}
-              placeholder={chain === 'TRC20' ? 'TRON address' : '0x wallet address'}
+              placeholder="0x wallet address"
               className="h-12 border-white/10 bg-white/5 text-white"
             />
 
@@ -99,9 +108,18 @@ export function WalletsPage() {
 
                   setActiveChallengeId(challenge.challengeId);
                   setChallengeMessage(challenge.message);
+                  setChallengeExpiresAt(challenge.expiresAt);
                   setSignature('');
+                  setFeedback({
+                    tone: 'info',
+                    text: `Challenge issued for the linked EVM wallet. It expires at ${new Date(challenge.expiresAt).toLocaleString()}.`,
+                  });
                   toast.success('Challenge created');
                 } catch (error) {
+                  setFeedback({
+                    tone: 'error',
+                    text: error instanceof Error ? error.message : 'Could not create challenge',
+                  });
                   toast.error(error instanceof Error ? error.message : 'Could not create challenge');
                 }
               }}
@@ -113,20 +131,33 @@ export function WalletsPage() {
               <div className="space-y-4 rounded-[1.25rem] border border-white/8 bg-white/4 p-4">
                 <div className="text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">Challenge Message</div>
                 <pre className="overflow-x-auto whitespace-pre-wrap text-sm leading-6 text-slate-200">{challengeMessage}</pre>
+                {challengeExpiresAt ? (
+                  <div className="text-xs text-slate-400">
+                    This challenge expires at {new Date(challengeExpiresAt).toLocaleString()}.
+                  </div>
+                ) : null}
 
                 {canAutoSign ? (
                   <Button
                     variant="glass"
                     className="w-full"
                     onClick={async () => {
-                      try {
-                        const signed = await signChallenge(chain, address, challengeMessage);
-                        setSignature(signed);
-                        toast.success('Signature captured from wallet');
-                      } catch (error) {
-                        toast.error(error instanceof Error ? error.message : 'Wallet signing failed');
-                      }
-                    }}
+                    try {
+                      const signed = await signChallenge(address, challengeMessage);
+                      setSignature(signed);
+                      setFeedback({
+                        tone: 'info',
+                        text: 'A wallet signature was captured. Submit verification to link the wallet to the Phase 2 protected app.',
+                      });
+                      toast.success('Signature captured from wallet');
+                    } catch (error) {
+                      setFeedback({
+                        tone: 'error',
+                        text: error instanceof Error ? error.message : 'Wallet signing failed',
+                      });
+                      toast.error(error instanceof Error ? error.message : 'Wallet signing failed');
+                    }
+                  }}
                   >
                     Sign with wallet
                   </Button>
@@ -155,11 +186,20 @@ export function WalletsPage() {
                       });
 
                       toast.success('Wallet verified');
+                      setFeedback({
+                        tone: 'success',
+                        text: 'Wallet verified successfully. It is now available for protected purchase intents.',
+                      });
                       setAddress('');
                       setSignature('');
                       setActiveChallengeId(null);
                       setChallengeMessage('');
+                      setChallengeExpiresAt(null);
                     } catch (error) {
+                      setFeedback({
+                        tone: 'error',
+                        text: error instanceof Error ? error.message : 'Wallet verification failed',
+                      });
                       toast.error(error instanceof Error ? error.message : 'Wallet verification failed');
                     }
                   }}
@@ -176,6 +216,12 @@ export function WalletsPage() {
             Linked Wallets
           </div>
           <div>
+            {walletsQuery.isError ? (
+              <div className="px-6 py-5 text-sm text-rose-200">
+                {walletsQuery.error instanceof Error ? walletsQuery.error.message : 'Could not load linked wallets.'}
+              </div>
+            ) : null}
+
             {wallets.map(wallet => (
               <div
                 key={wallet.id}
@@ -194,8 +240,16 @@ export function WalletsPage() {
                     onClick={async () => {
                       try {
                         await deleteMutation.mutateAsync(wallet.id);
+                        setFeedback({
+                          tone: 'success',
+                          text: 'Wallet removed from the protected app surface.',
+                        });
                         toast.success('Wallet removed');
                       } catch (error) {
+                        setFeedback({
+                          tone: 'error',
+                          text: error instanceof Error ? error.message : 'Could not remove wallet',
+                        });
                         toast.error(error instanceof Error ? error.message : 'Could not remove wallet');
                       }
                     }}
@@ -211,8 +265,13 @@ export function WalletsPage() {
             ) : null}
 
             {!walletsQuery.isLoading && wallets.length === 0 ? (
-              <div className="px-6 py-5 text-sm text-slate-300">
-                No wallets linked yet. Create a challenge on the left to begin.
+              <div className="space-y-4 px-6 py-5">
+                <p className="text-sm text-slate-300">
+                  No wallets linked yet. Create a challenge on the left to begin, then continue into the protected buy flow once verification completes.
+                </p>
+                <Button variant="glass" asChild>
+                  <Link href="/app/buy">Go to buy after linking</Link>
+                </Button>
               </div>
             ) : null}
           </div>
@@ -222,21 +281,10 @@ export function WalletsPage() {
   );
 }
 
-async function signChallenge(chain: Chain, address: string, message: string) {
+async function signChallenge(address: string, message: string) {
   const win = window as Window & {
     ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> };
-    tronWeb?: { trx?: { signMessageV2?: (payload: string) => Promise<string> } };
   };
-
-  if (chain === 'TRC20') {
-    const signer = win.tronWeb?.trx?.signMessageV2;
-
-    if (!signer) {
-      throw new Error('TRON wallet signer is not available in this browser');
-    }
-
-    return signer(message);
-  }
 
   if (!win.ethereum?.request) {
     throw new Error('Ethereum wallet provider is not available in this browser');

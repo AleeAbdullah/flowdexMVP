@@ -11,6 +11,7 @@ import { FlowdexWordmark, GlassPanel } from './primitives';
 import { formatCurrency } from './utils';
 
 const appNav = [
+  { label: 'Dashboard', href: '' },
   { label: 'Account', href: 'account' },
   { label: 'Wallets', href: 'wallets' },
   { label: 'Buy', href: 'buy' },
@@ -32,6 +33,9 @@ export function AppShell({
   const pathname = usePathname();
   const statsQuery = usePresaleStats();
   const configQuery = usePresaleConfig();
+  const nav = profile.role === 'ADMIN'
+    ? [...appNav, { label: 'Admin', href: 'admin' }]
+    : appNav;
 
   const stats = statsQuery.data;
   const config = configQuery.data;
@@ -50,9 +54,11 @@ export function AppShell({
           </div>
           <div className="flex flex-col items-start gap-4 xl:items-end">
             <nav className="flex flex-wrap gap-2">
-              {appNav.map(item => {
-                const href = `/app/${item.href}`;
-                const isActive = pathname === href;
+              {nav.map(item => {
+                const href = item.href ? `/app/${item.href}` : '/app';
+                const isActive = href === '/app'
+                  ? pathname === '/app'
+                  : pathname === href || pathname.startsWith(`${href}/`);
 
                 return (
                   <Link

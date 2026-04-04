@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -13,12 +14,14 @@ import { v4 as uuidv4 } from 'uuid';
 import { AuthContext } from '../../common/decorators/current-auth.decorator';
 import { Chain, IntentStatus } from '../../common/enums/domain.enums';
 import { PurchaseIntentEntity } from '../purchase-intents/entities/purchase-intent.entity';
+import { UsersService } from '../users/users.service';
 import { WalletDto } from './dto/wallets.dto';
 import { WalletChallengeEntity } from './entities/wallet-challenge.entity';
 import { WalletEntity } from './entities/wallet.entity';
 
 @Injectable()
 export class WalletsService {
+  private readonly logger = new Logger(WalletsService.name);
   private readonly tronWeb = new TronWeb({
     fullHost: 'https://api.trongrid.io',
   });
@@ -30,6 +33,7 @@ export class WalletsService {
     private readonly walletChallengesRepository: Repository<WalletChallengeEntity>,
     @InjectRepository(PurchaseIntentEntity)
     private readonly purchaseIntentsRepository: Repository<PurchaseIntentEntity>,
+    private readonly usersService: UsersService,
   ) {}
 
   async createChallenge(auth: AuthContext, chain: Chain, address: string): Promise<{
@@ -37,6 +41,8 @@ export class WalletsService {
     message: string;
     expiresAt: Date;
   }> {
+    await this.usersService.syncAndRequireActive(auth);
+
     const addressNormalized = this.normalizeAddress(chain, address);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     const nonce = uuidv4();
@@ -58,6 +64,7 @@ export class WalletsService {
     });
 
     const saved = await this.walletChallengesRepository.save(challenge);
+    this.logger.log(`Created ${chain} wallet challenge ${saved.id} for user ${auth.sub}.`);
 
     return {
       challengeId: saved.id,
@@ -67,6 +74,8 @@ export class WalletsService {
   }
 
   async verify(auth: AuthContext, challengeId: string, signature: string): Promise<WalletDto> {
+    await this.usersService.syncAndRequireActive(auth);
+
     const challenge = await this.walletChallengesRepository.findOne({
       where: { id: challengeId, userId: auth.sub },
     });
@@ -131,7 +140,13 @@ export class WalletsService {
     await this.walletChallengesRepository.save(challenge);
 
     const saved = await this.walletsRepository.save(wallet);
+    this.logger.log(`Verified wallet ${saved.id} (${saved.chain}) for user ${auth.sub}.`);
     return this.toDto(saved);
+  }
+
+  async listForActiveUser(auth: AuthContext): Promise<WalletDto[]> {
+    await this.usersService.syncAndRequireActive(auth);
+    return this.listForUser(auth.sub);
   }
 
   async listForUser(userId: string): Promise<WalletDto[]> {
@@ -143,7 +158,10 @@ export class WalletsService {
     return wallets.map((wallet) => this.toDto(wallet));
   }
 
-  async removeForUser(userId: string, walletId: string): Promise<void> {
+  async removeForAuth(auth: AuthContext, walletId: string): Promise<void> {
+    await this.usersService.syncAndRequireActive(auth);
+
+    const userId = auth.sub;
     const wallet = await this.walletsRepository.findOne({
       where: { id: walletId, userId },
     });
@@ -167,6 +185,7 @@ export class WalletsService {
     }
 
     await this.walletsRepository.delete({ id: walletId, userId });
+    this.logger.log(`Removed wallet ${walletId} for user ${userId}.`);
   }
 
   private toDto(wallet: WalletEntity): WalletDto {

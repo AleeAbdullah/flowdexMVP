@@ -44,3 +44,38 @@ export class AdminTransactionFiltersDto {
   @IsString()
   to?: string;
 }
+
+export class AdminUnmatchedTransactionDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  chain!: string;
+
+  @ApiProperty()
+  assetCode!: string;
+
+  @ApiProperty()
+  txHash!: string;
+
+  @ApiProperty()
+  fromAddress!: string;
+
+  @ApiProperty()
+  toAddress!: string;
+
+  @ApiProperty()
+  amount!: string;
+
+  @ApiProperty()
+  confirmations!: number;
+
+  @ApiProperty({ nullable: true })
+  reconciliationReason!: string | null;
+
+  @ApiProperty()
+  createdAt!: Date;
+
+  @ApiProperty()
+  updatedAt!: Date;
+}

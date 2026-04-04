@@ -2,6 +2,7 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -11,6 +12,8 @@ import { AuthContext } from '../decorators/current-auth.decorator';
 
 @Injectable()
 export class InternalJwtGuard implements CanActivate {
+  private readonly logger = new Logger(InternalJwtGuard.name);
+
   constructor(
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
@@ -21,6 +24,7 @@ export class InternalJwtGuard implements CanActivate {
     const authHeader = request.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
+      this.logger.warn('Rejected request with missing bearer token.');
       throw new UnauthorizedException('Missing bearer token');
     }
 
@@ -35,7 +39,12 @@ export class InternalJwtGuard implements CanActivate {
 
       request.auth = payload;
       return true;
-    } catch {
+    } catch (error) {
+      this.logger.warn(
+        `Rejected request with invalid internal auth token: ${
+          error instanceof Error ? error.message : 'Unknown verification error'
+        }.`,
+      );
       throw new UnauthorizedException('Invalid internal auth token');
     }
   }

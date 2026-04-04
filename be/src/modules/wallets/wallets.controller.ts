@@ -47,13 +47,13 @@ export class WalletsController {
   })
   async list(@CurrentAuth() auth: AuthContext): Promise<{ items: WalletDto[] }> {
     return {
-      items: await this.walletsService.listForUser(auth.sub),
+      items: await this.walletsService.listForActiveUser(auth),
     };
   }
 
   @Delete(':id')
   async remove(@CurrentAuth() auth: AuthContext, @Param('id') id: string): Promise<{ deleted: true }> {
-    await this.walletsService.removeForUser(auth.sub, id);
+    await this.walletsService.removeForAuth(auth, id);
     return { deleted: true };
   }
 }

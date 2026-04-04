@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { multiplyFixed } from '../../common/utils/decimal';
 import { PricingService } from '../pricing/pricing.service';
 import { PresaleTierDto } from './dto/presale.dto';
 import { PresaleStateEntity } from './entities/presale-state.entity';
@@ -57,9 +58,9 @@ export class PresaleService {
 
     return {
       fundsRaisedRealUsd: state.totalRaisedUsdReal,
-      fundsRaisedDisplayUsd: (Number(state.totalRaisedUsdReal) * multiplier).toString(),
+      fundsRaisedDisplayUsd: multiplyFixed(state.totalRaisedUsdReal, multiplier.toString()),
       tokensSoldReal: state.totalTokensSoldReal,
-      tokensSoldDisplay: (Number(state.totalTokensSoldReal) * multiplier).toString(),
+      tokensSoldDisplay: multiplyFixed(state.totalTokensSoldReal, multiplier.toString()),
       currentTier: tier.sortOrder,
       currentTokenPriceUsd: tier.tokenPriceUsd,
       displayMultiplier: multiplier,

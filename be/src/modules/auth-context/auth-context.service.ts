@@ -24,7 +24,7 @@ export class AuthContextService {
       verifiedAt: Date | null;
     }>;
   }> {
-    const profile = await this.usersService.syncProfile(auth);
+    const profile = await this.usersService.syncAndRequireActive(auth);
     const wallets = await this.walletsService.listForUser(auth.sub);
 
     return {

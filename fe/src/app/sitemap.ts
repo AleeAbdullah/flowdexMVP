@@ -2,13 +2,50 @@ import type { MetadataRoute } from 'next';
 import { getBaseUrl } from '@/utils/Helpers';
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  const lastModified = new Date();
+
   return [
     {
       url: `${getBaseUrl()}/`,
-      lastModified: new Date(),
+      lastModified,
       changeFrequency: 'daily',
-      priority: 0.7,
+      priority: 1,
     },
-    // Add more URLs here
+    {
+      url: `${getBaseUrl()}/about`,
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
+      url: `${getBaseUrl()}/whitepaper`,
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
+      url: `${getBaseUrl()}/updates`,
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.75,
+    },
+    {
+      url: `${getBaseUrl()}/terms`,
+      lastModified,
+      changeFrequency: 'monthly',
+      priority: 0.4,
+    },
+    {
+      url: `${getBaseUrl()}/privacy`,
+      lastModified,
+      changeFrequency: 'monthly',
+      priority: 0.4,
+    },
+    {
+      url: `${getBaseUrl()}/buy`,
+      lastModified,
+      changeFrequency: 'daily',
+      priority: 0.95,
+    },
   ];
 }

@@ -1,12 +1,5 @@
-import { redirect } from 'next/navigation';
-import { getAuthenticatedAppContext } from '@/lib/auth-server';
+import { DashboardPage } from '@/components/flowdex/dashboard-page';
 
 export default async function AppIndex() {
-  const { profile } = await getAuthenticatedAppContext();
-
-  if (profile.wallets.length === 0) {
-    redirect('/app/wallets');
-  }
-
-  redirect('/app/account');
+  return <DashboardPage />;
 }
