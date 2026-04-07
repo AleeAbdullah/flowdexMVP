@@ -2,7 +2,7 @@ export const Hello = () => {
   return (
     <>
       <p>
-        👋 Welcome to Next.js Boilerplate!
+        Welcome to Next.js Boilerplate!
       </p>
       <p>
         Need advanced features? Shadcn UI, End-to-End Typesafety with oRPC, Stripe Payment, Light / Dark mode. Try{' '}

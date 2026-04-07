@@ -1,524 +1,839 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
+  ArrowLeft,
   ArrowRight,
-  BarChart3,
+  Blocks,
   CheckCircle2,
   Coins,
+  FileCheck2,
   Globe2,
-  Layers3,
-  Mail,
-  Rocket,
+  Link2,
+  LockKeyhole,
   ShieldCheck,
-  Wallet,
+  Target,
+  TrendingUp,
+  Zap,
+  type LucideIcon,
 } from 'lucide-react';
-import { usePresaleConfig, usePresaleStats, usePresaleTiers, usePricing } from '@/dal/market/hooks';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardTitle } from '@/components/ui/card';
+import { HeroDitheringCard } from '@/components/ui/hero-dithering-card';
 import { Input } from '@/components/ui/input';
-import { DataKicker, GlassPanel, SectionHeading } from './primitives';
-import { formatCompact, formatCurrency, formatPlainNumber, parseDecimal } from './utils';
 
-const socialCards = [
-  { label: 'Telegram', href: 'https://t.me', note: 'Live launch room and tier alerts' },
-  { label: 'X', href: 'https://x.com', note: 'Announcements, market context, and release drops' },
-  { label: 'Discord', href: 'https://discord.com', note: 'Builders, traders, and community ops' },
-  { label: 'Medium', href: 'https://medium.com', note: 'Deep dives, roadmap, and token updates' },
-  { label: 'GitHub', href: 'https://github.com', note: 'Protocol-facing engineering and repos' },
+type CtaLink = {
+  label: string;
+  href: string;
+};
+
+type HeroSlide = {
+  badge: string;
+  headline: {
+    firstLine: string;
+    secondLine: string;
+    highlight: string;
+  };
+  description: string;
+  primaryCta: CtaLink;
+  secondaryCta: CtaLink;
+};
+
+type FeatureCard = {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  accent: string;
+};
+
+type PresaleTier = {
+  name: string;
+  price: string;
+  discount: string;
+  cap: string;
+  isLive?: boolean;
+};
+
+type TokenDistributionItem = {
+  label: string;
+  percentage: number;
+  tokens: string;
+  color: string;
+};
+
+type RoadmapPhase = {
+  phase: string;
+  timeline: string;
+  title: string;
+  items: string;
+  isActive?: boolean;
+};
+
+type TeamMember = {
+  alias: string;
+  role: string;
+  background: string;
+};
+
+type PseudonymousReason = {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+};
+
+type FaqItem = {
+  question: string;
+  answer: string;
+};
+
+type TechStackItem = string;
+
+const SLIDE_DURATION_MS = 8000;
+
+const heroSlides: HeroSlide[] = [
+  {
+    badge: 'Presale Live - Tier 1 Open Now',
+    headline: {
+      firstLine: 'Trade Everything.',
+      secondLine: 'One Exchange.',
+      highlight: 'Everything',
+    },
+    description: 'Bitcoin, Tesla, gold, EUR/USD, and 500+ assets at full launch - non-custodial, cross-chain, settled on-chain.',
+    primaryCta: { label: 'Join Presale', href: '/buy' },
+    secondaryCta: { label: 'How It Works', href: '#about' },
+  },
+  {
+    badge: 'Tier 1 - 98% Off Listing Price',
+    headline: {
+      firstLine: 'Get In Early at $0.001',
+      secondLine: 'per $FDN',
+      highlight: '$0.001',
+    },
+    description: 'Listing price: $0.05. Tier 1 gives you the deepest discount in the 8-tier presale. $1,000 becomes $50,000 at listing.',
+    primaryCta: { label: 'View Presale Tiers', href: '#presale' },
+    secondaryCta: { label: 'Read Whitepaper', href: '/whitepaper' },
+  },
+  {
+    badge: 'ERC-20 on Ethereum',
+    headline: {
+      firstLine: 'Built on Ethereum.',
+      secondLine: 'Scaling to FlowChain.',
+      highlight: 'FlowChain',
+    },
+    description: 'Launches as ERC-20 for day-one security, then expands through multi-chain routing and the long-term FlowChain appchain direction.',
+    primaryCta: { label: 'Read Whitepaper', href: '/whitepaper' },
+    secondaryCta: { label: 'See Roadmap', href: '#roadmap' },
+  },
+  {
+    badge: 'Staking Rewards - 12-18% APY',
+    headline: {
+      firstLine: 'Stake $FDN.',
+      secondLine: 'Earn 40% of All Fees.',
+      highlight: '40%',
+    },
+    description: 'Protocol fee sharing, governance voting, and routing priority. Every trade on every asset class strengthens the token utility story.',
+    primaryCta: { label: 'Learn About $FDN', href: '#tokenomics' },
+    secondaryCta: { label: 'View Roadmap', href: '#roadmap' },
+  },
+  {
+    badge: '75% Community - No VC',
+    headline: {
+      firstLine: 'By the Community.',
+      secondLine: 'For the Community.',
+      highlight: 'Community',
+    },
+    description: 'No venture capital allocation. 75% of all tokens go to community-facing categories. Core team tokens are locked and vested.',
+    primaryCta: { label: 'Tokenomics', href: '#tokenomics' },
+    secondaryCta: { label: 'Meet the Team', href: '#team' },
+  },
 ];
 
-const partners = ['Ondo Finance', 'Backed Finance', 'Chainlink', 'Pyth', 'LayerZero', 'Wormhole', 'Dinari'];
-
-const featureCards = [
-  { title: '500+ Assets', body: 'A universal trading surface for crypto, tokenized equities, forex, gold, ETFs, and indices.', icon: Globe2 },
-  { title: 'Non-Custodial', body: 'Wallet-first flows with on-chain settlement and clear proof surfaces around every transaction.', icon: Wallet },
-  { title: 'Smart Routing', body: 'Execution intent designed for multi-venue liquidity and asset-specific settlement paths.', icon: BarChart3 },
-  { title: 'Cross-Chain', body: 'ETH, FlowChain, and multi-chain asset mobility without reducing the interface to one ecosystem.', icon: Layers3 },
-  { title: 'Fee Sharing', body: 'Protocol fee participation designed to push utility back to the community-owned token base.', icon: Coins },
-  { title: 'FlowChain', body: 'Purpose-built chain direction for multi-asset trading, settlement, and data visibility.', icon: Rocket },
+const keyStats = [
+  { value: '500+', label: 'Assets' },
+  { value: '10+', label: 'Chains' },
+  { value: '$80M', label: 'Raise Target' },
+  { value: '98%', label: 'Max Discount' },
+  { value: '75%', label: 'Community' },
 ];
 
-const roadmap = [
-  { phase: '01', title: 'Foundation', body: 'Core exchange surface, non-custodial wallet flows, and institutional-style market presentation.' },
-  { phase: '02', title: 'Presale', body: 'Community-owned token launch, live tier engine, and distribution visibility across every milestone.' },
-  { phase: '03', title: 'Multi-Chain + 500 Assets', body: 'Tokenized stocks, forex pairs, commodities, and broader liquidity routing across chains.' },
-  { phase: '04', title: 'FlowChain', body: 'Chain layer optimized around cross-asset execution, proof, and settlement discovery.' },
-  { phase: '05', title: 'Global', body: 'Broader market access, more provider integrations, and community-governed growth paths.' },
+const trustBadges = [
+  'Audits Planned with Trail of Bits',
+  'OpenZeppelin Scheduled',
+  'ERC-20 on Ethereum',
+  'No VC',
 ];
 
-const team = [
-  { name: 'Atlas', role: 'Protocol Strategy', note: 'Cross-asset market design and token architecture.' },
-  { name: 'Nyx', role: 'Core Engineering', note: 'Smart contract and execution pipeline lead.' },
-  { name: 'Mira', role: 'Product Systems', note: 'App surfaces, market UX, and conversion design.' },
-  { name: 'Orion', role: 'Chain Infrastructure', note: 'Cross-chain routing, observability, and ops.' },
-  { name: 'Sable', role: 'Community Ops', note: 'Growth loops, contributor programs, and launch cadence.' },
-  { name: 'Kite', role: 'Research', note: 'RWA integrations, macro surfaces, and market structure.' },
+const features: FeatureCard[] = [
+  {
+    icon: Globe2,
+    title: 'Targeting 500+ Assets',
+    description: 'Crypto, tokenized stocks, forex, commodities, indices, ETFs, options, and futures at full launch.',
+    accent: '#00B4D8',
+  },
+  {
+    icon: LockKeyhole,
+    title: 'Non-Custodial',
+    description: 'Your assets remain wallet-first. No broker account, no custodial platform balance, no opaque fund handling.',
+    accent: '#55A868',
+  },
+  {
+    icon: Zap,
+    title: 'Smart Order Routing',
+    description: 'Routing intent across DEXs, RWA providers, bridges, and asset-specific execution paths.',
+    accent: '#D4A843',
+  },
+  {
+    icon: Link2,
+    title: 'Cross-Chain Native',
+    description: 'Ethereum launch posture with multi-chain expansion across major ecosystems and bridge infrastructure.',
+    accent: '#7B68AE',
+  },
+  {
+    icon: Coins,
+    title: 'Earn 40% of All Fees',
+    description: 'Stake $FDN to participate in fee sharing across crypto, RWA, forex, commodity, and routing activity.',
+    accent: '#C44E52',
+  },
+  {
+    icon: Blocks,
+    title: 'FlowChain (2027-2028)',
+    description: 'Long-term infrastructure direction for faster finality, zero-gas routing, and cross-asset margin.',
+    accent: '#3D5A80',
+  },
 ];
 
-const faqs = [
+const techStack: TechStackItem[] = [
+  'Ondo Finance',
+  'Backed Finance',
+  'Chainlink',
+  'Pyth Network',
+  'LayerZero',
+  'Wormhole',
+  'Uniswap',
+  'Dinari',
+  'Celestia',
+  'EigenLayer',
+];
+
+const tokenDistribution: TokenDistributionItem[] = [
+  { label: 'Community & Ecosystem', percentage: 30, tokens: '3.00B', color: '#3D5A80' },
+  { label: 'Presale (8 Tiers)', percentage: 22.5, tokens: '2.25B', color: '#0B1F3A' },
+  { label: 'Staking Rewards', percentage: 12.5, tokens: '1.25B', color: '#D4A843' },
+  { label: 'Core Contributors', percentage: 12, tokens: '1.20B', color: '#55A868' },
+  { label: 'Genesis Airdrop', percentage: 10, tokens: '1.00B', color: '#00B4D8' },
+  { label: 'Treasury / DAO', percentage: 8, tokens: '0.80B', color: '#C44E52' },
+  { label: 'Initial Liquidity', percentage: 5, tokens: '0.50B', color: '#7B68AE' },
+];
+
+const feeDistribution = [
+  { label: 'Stakers', percentage: 40, color: '#00B4D8' },
+  { label: 'Insurance Fund', percentage: 30, color: '#3D5A80' },
+  { label: 'Treasury', percentage: 20, color: '#D4A843' },
+  { label: 'Burn', percentage: 10, color: '#C44E52' },
+];
+
+const presaleTiers: PresaleTier[] = [
+  { name: 'Tier 1 - Genesis', price: '$0.001', discount: '98%', cap: '$5M', isLive: true },
+  { name: 'Tier 2 - Pioneer', price: '$0.005', discount: '90%', cap: '$8M' },
+  { name: 'Tier 3 - Seed', price: '$0.01', discount: '80%', cap: '$10M' },
+  { name: 'Tier 4 - Early Bird', price: '$0.015', discount: '70%', cap: '$12M' },
+  { name: 'Tier 5 - Builder', price: '$0.02', discount: '60%', cap: '$15M' },
+  { name: 'Tier 6 - Accelerator', price: '$0.03', discount: '40%', cap: '$15M' },
+  { name: 'Tier 7 - Growth', price: '$0.04', discount: '20%', cap: '$10M' },
+  { name: 'Tier 8 - Launch', price: '$0.05', discount: '0%', cap: '$5M' },
+];
+
+const roadmap: RoadmapPhase[] = [
   {
-    question: 'What makes FlowDex different from a typical crypto-only exchange?',
-    answer: 'FlowDex is framed around a universal exchange surface, so the product direction spans crypto, tokenized stocks, forex, gold, indices, and ETFs instead of stopping at one asset class.',
+    phase: 'Phase 0',
+    timeline: 'Q1 2026',
+    title: 'Foundation',
+    items: 'Whitepaper v6.0, website, whitelist, security audits, RWA partnerships, and community building.',
+    isActive: true,
   },
   {
-    question: 'Does FlowDex custody user funds?',
-    answer: 'No. The product direction is explicitly non-custodial. The wallet remains the primary trust surface while the backend provides pricing, reconciliation, and presale orchestration.',
+    phase: 'Phase 1',
+    timeline: 'Q2 2026',
+    title: 'Presale & Launch',
+    items: '8-tier presale, $FDN ERC-20 deploy, tokenized stocks, forex, gold, and staking portal.',
   },
   {
-    question: 'What is the current presale token price?',
-    answer: 'The page reads the current tier price directly from the backend presale stats so the number here stays aligned with the backend source of truth.',
+    phase: 'Phase 2',
+    timeline: 'Q3-Q4 2026',
+    title: '500 Assets',
+    items: 'BSC, Solana, Arbitrum, targeted 500+ assets, options, futures, mobile app, and DAO.',
   },
   {
-    question: 'How many assets will the exchange support?',
-    answer: 'The positioning goal is 500+ assets across multiple market classes, with launch phases expanding the coverage over time.',
+    phase: 'Phase 3',
+    timeline: '2027-2028',
+    title: 'FlowChain',
+    items: 'Own appchain, 50K TPS target, zero-gas routing, cross-asset margin, and token migration.',
   },
   {
-    question: 'Will staking and governance matter in the product?',
-    answer: 'Yes. The product vision includes fee sharing, staking, and community-led governance so utility extends beyond simple token ownership.',
-  },
-  {
-    question: 'Is the team public?',
-    answer: 'The current launch direction uses pseudonymous operator profiles while preserving trust through process, visible delivery, and future verification artifacts.',
+    phase: 'Phase 4',
+    timeline: '2028+',
+    title: 'Global Exchange',
+    items: 'Validators, DAO handoff, structured products, institutional brokerage, and advanced analytics.',
   },
 ];
 
-const tokenomics = [
-  { label: 'Community', share: 75, color: '#00B4D8' },
-  { label: 'Protocol Treasury', share: 10, color: '#0891B2' },
-  { label: 'Liquidity', share: 8, color: '#22D3EE' },
-  { label: 'Growth + Airdrops', share: 7, color: '#67E8F9' },
+const team: TeamMember[] = [
+  { alias: 'Atlas', role: 'Founder & CEO', background: 'Former quant trader at a top-5 global bank. 8+ years in DeFi.' },
+  { alias: 'Helix', role: 'CTO', background: 'PhD Distributed Systems, ETH Zurich. Former L1 core engineer.' },
+  { alias: 'Vector', role: 'Head of Risk', background: 'Former risk manager at Tier-1 exchange. Ex-Goldman Sachs.' },
+  { alias: 'Cipher', role: 'Lead Smart Contracts', background: 'Core contributor to 2 audited protocols with >$1B TVL.' },
+  { alias: 'Nova', role: 'Head of Research', background: 'PhD Cryptography. 15+ peer-reviewed publications.' },
+  { alias: 'Orbit', role: 'Head of Growth', background: 'Led growth at two top-50 crypto projects.' },
+];
+
+const pseudonymousReasons: PseudonymousReason[] = [
+  {
+    icon: Target,
+    title: 'Product Over Personality',
+    description: 'The protocol should stand on fundamentals, code, and execution rather than personal brands.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Security First',
+    description: 'Teams managing high-value treasury systems face real physical and social-engineering threats.',
+  },
+  {
+    icon: FileCheck2,
+    title: 'KYC-Verified',
+    description: 'Core members are represented as verified through an independent third-party legal entity.',
+  },
+  {
+    icon: TrendingUp,
+    title: 'Progressive Doxxing',
+    description: 'Team reveal is framed as milestone-based, with identity earned through results.',
+  },
+];
+
+const faqs: FaqItem[] = [
+  {
+    question: 'What is FlowDex Network?',
+    answer: 'FlowDex Network is a non-custodial Universal Exchange bridging blockchain and traditional finance, with a target of 500+ tradeable assets from one decentralized interface at full launch.',
+  },
+  {
+    question: 'What can I trade?',
+    answer: 'The product direction spans crypto, tokenized stocks, forex, commodities, indices, ETFs, options, and futures through phased rollout.',
+  },
+  {
+    question: 'How is this different from Bitget TradFi?',
+    answer: 'FlowDex is positioned as non-custodial and cross-chain, while centralized TradFi products require platform custody and account-based access.',
+  },
+  {
+    question: 'How do tokenized stocks work?',
+    answer: 'Tokenized stocks are issued by regulated providers and backed by the underlying assets. FlowDex routes access; it does not become the issuer.',
+  },
+  {
+    question: 'What about BlockchainFX?',
+    answer: 'The public FlowDex position is decentralized, non-custodial, and cross-chain, avoiding the custodial and offshore-account assumptions of centralized alternatives.',
+  },
+  {
+    question: 'What are the token details?',
+    answer: '$FDN has a fixed 10B supply, Tier 1 pricing at $0.001, target listing at $0.05, and 75% community-facing allocation.',
+  },
+  {
+    question: 'Is this safe?',
+    answer: 'The product posture emphasizes non-custodial wallets, planned audits, formal verification direction, a bug bounty plan, and multisig treasury controls. It still carries smart-contract, market, and execution risk.',
+  },
 ];
 
 export function LandingPage() {
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [progress, setProgress] = useState(0);
   const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
 
-  const pricingQuery = usePricing();
-  const presaleStatsQuery = usePresaleStats();
-  const presaleTiersQuery = usePresaleTiers();
-  const presaleConfigQuery = usePresaleConfig();
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      setProgress(0);
+      return;
+    }
 
-  const stats = presaleStatsQuery.data;
-  const tiers = presaleTiersQuery.data?.items ?? [];
-  const pricing = pricingQuery.data?.items ?? [];
-  const supportedAssets = presaleConfigQuery.data?.supportedAssets ?? [];
+    const startedAt = Date.now();
+    const interval = window.setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      setProgress(Math.min((elapsed / SLIDE_DURATION_MS) * 100, 100));
 
-  const heroCards = [
-    {
-      label: 'Universal Exchange',
-      title: 'One market surface for crypto, tokenized stocks, forex, gold, and ETFs.',
-    },
-    {
-      label: 'Pricing',
-      title: `Live presale at ${stats ? formatCurrency(stats.currentTokenPriceUsd, 3) : '$0.001'} with backend-fed tier stats.`,
-    },
-    {
-      label: 'TradFi Bridge',
-      title: 'Bring institutional market language and data density into a wallet-first experience.',
-    },
-    {
-      label: 'Non-Custodial Trust',
-      title: 'Clear backend and chain truth layers designed around user-owned wallets, not custodial balances.',
-    },
-    {
-      label: 'Staking',
-      title: 'Utility extends into governance, fee sharing, and protocol-aligned participation.',
-    },
-  ];
+      if (elapsed >= SLIDE_DURATION_MS) {
+        setActiveSlide(current => (current + 1) % heroSlides.length);
+      }
+    }, 100);
 
-  const pricingSpotlight = pricing.slice(0, 3);
-  const listingPrice = 0.05;
-  const hasError = pricingQuery.isError || presaleStatsQuery.isError || presaleTiersQuery.isError || presaleConfigQuery.isError;
+    return () => window.clearInterval(interval);
+  }, [activeSlide]);
 
-  let tokenomicsProgress = 0;
-  const pieStyle = {
-    background: `conic-gradient(${tokenomics
-      .map((item) => {
-        const start = tokenomicsProgress;
-        tokenomicsProgress += item.share;
-        return `${item.color} ${start}% ${tokenomicsProgress}%`;
-      })
-      .join(', ')})`,
-  };
+  function goToSlide(index: number) {
+    setActiveSlide(index);
+    setProgress(0);
+  }
+
+  function shiftSlide(direction: -1 | 1) {
+    setActiveSlide(current => (current + direction + heroSlides.length) % heroSlides.length);
+    setProgress(0);
+  }
+
+  function handleSubscribe() {
+    if (email.includes('@')) {
+      setIsSubscribed(true);
+    }
+  }
+
+  const slide = heroSlides[activeSlide] ?? heroSlides[0]!;
 
   return (
-    <div className="pb-10">
-      <section className="section-shell section-pad grid gap-10 lg:grid-cols-[1.3fr_0.7fr] lg:items-end">
+    <div className="pb-12">
+      <section className="mx-auto w-full max-w-[88rem] px-3 py-12 md:px-5 md:py-16 lg:px-6 lg:py-20 relative grid gap-8 lg:grid-cols-[1.12fr_0.88fr] lg:items-center">
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(var(--flowdex-card-border)_1px,transparent_1px),linear-gradient(90deg,var(--flowdex-card-border)_1px,transparent_1px)] bg-[size:60px_60px] opacity-[0.08]" />
+
         <div className="space-y-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/8 px-4 py-2 text-xs font-semibold tracking-[0.24em] text-cyan-200 uppercase">
-            <ShieldCheck className="h-4 w-4" />
-            Non-custodial universal exchange
-          </div>
+          <Badge variant="brand" className="gap-2 px-[22px] py-2">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--flowdex-green)]" />
+            {slide.badge}
+          </Badge>
 
-          <div className="space-y-5">
-            <h1 className="text-balance max-w-4xl text-5xl font-black leading-none tracking-tight text-white md:text-7xl">
-              Bridging blockchain and traditional finance through one deliberate market interface.
+          <div className="min-h-[300px] space-y-6 md:min-h-[330px]">
+            <h1 className="font-heading max-w-4xl text-[clamp(2.35rem,6.2vw,4.35rem)] font-bold leading-[1.02] tracking-tight text-[var(--flowdex-text)]">
+              <span className="block">
+                <HighlightText text={slide.headline.firstLine} highlight={slide.headline.highlight} />
+              </span>
+              <span className="block">
+                <HighlightText text={slide.headline.secondLine} highlight={slide.headline.highlight} />
+              </span>
             </h1>
-            <p className="max-w-2xl text-base leading-8 text-slate-300 md:text-lg">
-              FlowDex is building a finance-grade exchange experience for crypto, tokenized equities,
-              forex, gold, ETFs, and indices. The presale surface already reads from the live backend,
-              so the numbers here stay aligned with the product system we are building.
+            <p className="max-w-2xl text-base leading-8 text-[var(--flowdex-muted)] md:text-xl">
+              {slide.description}
             </p>
+
+            <div className="flex flex-wrap gap-3">
+              <Button variant="brand" size="lg" asChild>
+                <Link href={slide.primaryCta.href}>
+                  {slide.primaryCta.label}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button variant="glass" size="lg" asChild>
+                <Link href={slide.secondaryCta.href}>{slide.secondaryCta.label}</Link>
+              </Button>
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <Button variant="brand" size="lg" asChild>
-              <Link href="/buy">
-                Participate in Presale
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+          <div className="flex items-center gap-4">
+            <Button
+              type="button"
+              variant="glass"
+              size="icon"
+              aria-label="Previous slide"
+              onClick={() => shiftSlide(-1)}
+            >
+              <ArrowLeft className="h-4 w-4" />
             </Button>
-            <Button variant="glass" size="lg" asChild>
-              <Link href="/app/trade">Explore Product Vision</Link>
+            <div className="flex gap-2">
+              {heroSlides.map((item, index) => (
+                <button
+                  key={item.badge}
+                  type="button"
+                  aria-label={`Show slide ${index + 1}`}
+                  onClick={() => goToSlide(index)}
+                  className={`h-2.5 rounded-full transition-all ${activeSlide === index ? 'w-7 bg-[var(--flowdex-cyan)]' : 'w-2.5 bg-[var(--flowdex-track)]'}`}
+                />
+              ))}
+            </div>
+            <Button
+              type="button"
+              variant="glass"
+              size="icon"
+              aria-label="Next slide"
+              onClick={() => shiftSlide(1)}
+            >
+              <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
-
-          <div className="grid gap-4 md:grid-cols-5">
-            {heroCards.map(card => (
-              <GlassPanel key={card.label} className="p-5">
-                <div className="text-[10px] font-bold tracking-[0.28em] text-cyan-300 uppercase">
-                  {card.label}
-                </div>
-                <p className="mt-3 text-sm leading-7 text-slate-200">{card.title}</p>
-              </GlassPanel>
-            ))}
+          <div className="h-1.5 max-w-xs overflow-hidden rounded-full bg-[var(--flowdex-track)]">
+            <div
+              className="h-full rounded-full bg-[var(--flowdex-cyan)] transition-[width] duration-100"
+              style={{ width: `${progress}%` }}
+            />
           </div>
         </div>
 
-        <GlassPanel className="overflow-hidden p-6 md:p-8">
-          <div className="flex items-start justify-between gap-4">
+        <HeroDitheringCard className="p-5 md:p-6" contentClassName="space-y-5">
+          <div className="flex items-center justify-between gap-4">
             <div>
-              <div className="text-[10px] font-bold tracking-[0.32em] text-slate-400 uppercase">
+              <div className="text-[10px] font-bold tracking-[0.32em] text-[var(--flowdex-muted)] uppercase">
                 Live Presale Pulse
               </div>
-              <div className="mt-2 text-2xl font-black text-white md:text-3xl">Tier {stats?.currentTier ?? 1}</div>
+              <div className="font-heading mt-2 text-2xl font-bold text-[var(--flowdex-text)]">Tier 1</div>
             </div>
-            <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+            <Badge variant="success">Live</Badge>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <DataStat label="Token Price" value="$0.001" />
+            <DataStat label="Listing Target" value="$0.05" />
+            <DataStat label="Max Discount" value="-98%" tone="success" />
+            <DataStat label="Community Allocation" value="75%" />
+          </div>
+        </HeroDitheringCard>
+      </section>
+
+      <section id="about" className="section-shell section-pad text-center">
+        <Badge variant="brand" className="gap-2 px-[22px] py-2">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--flowdex-green)]" />
+          Token Presale Now Live
+        </Badge>
+        <h2 className="font-heading mx-auto mt-6 max-w-3xl text-3xl font-bold tracking-tight text-[var(--flowdex-text)] md:text-5xl">
+          What is <span className="text-[var(--flowdex-cyan)]">FlowDex Network</span>?
+        </h2>
+        <p className="mx-auto mt-5 max-w-3xl text-base leading-8 text-[var(--flowdex-muted)] md:text-lg">
+          FlowDex Network is a non-custodial Universal Exchange bridging blockchain and traditional finance. It is designed for crypto, tokenized stocks, forex, commodities, ETFs, and indices from one decentralized interface.
+        </p>
+        <p className="mx-auto mt-4 max-w-3xl text-sm leading-8 text-[var(--flowdex-muted)] md:text-base">
+          $FDN launches as an ERC-20 token on Ethereum. Tier 1 is live at $0.001 per token, with the long-term architecture moving from Ethereum launch to multi-chain expansion and the FlowChain appchain direction.
+        </p>
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {keyStats.map(stat => (
+            <Card key={stat.label} className="p-5 text-center">
+              <div className="font-data text-3xl font-bold text-[var(--flowdex-cyan)]">{stat.value}</div>
+              <div className="mt-2 text-[11px] font-semibold tracking-[0.22em] text-[var(--flowdex-muted)] uppercase">
+                {stat.label}
+              </div>
+            </Card>
+          ))}
+        </div>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          {trustBadges.map(badge => (
+            <Badge key={badge} variant="subtle" className="gap-2 normal-case tracking-normal">
+              <CheckCircle2 className="h-3.5 w-3.5 text-[var(--flowdex-green)]" />
+              {badge}
+            </Badge>
+          ))}
+        </div>
+      </section>
+
+      <section className="section-shell grid gap-4 md:grid-cols-[1.05fr_0.95fr]">
+        <Card className="p-6 md:p-8">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-[10px] font-bold tracking-[0.3em] text-[var(--flowdex-muted)] uppercase">
+                Tier 1 - Live
+              </div>
+              <div className="font-data mt-3 text-3xl font-bold text-[var(--flowdex-text)]">$1.85M / $5.00M</div>
+            </div>
+            <Badge variant="success" className="gap-2">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--flowdex-green)]" />
               Live
-            </div>
+            </Badge>
           </div>
-
-          <div className="mt-8 grid gap-6">
-            <DataKicker label="Token Price" value={stats ? formatCurrency(stats.currentTokenPriceUsd, 3) : '$0.001'} />
-            <DataKicker label="Funds Raised (Display)" value={stats ? formatCurrency(stats.fundsRaisedDisplayUsd, 0) : '$0'} />
-            <DataKicker label="Tokens Sold (Display)" value={stats ? formatCompact(stats.tokensSoldDisplay, 1) : '0'} />
-            <DataKicker label="Live Assets" value={`${supportedAssets.length || 3}+`} />
+          <div className="mt-6 h-2.5 overflow-hidden rounded-[5px] bg-[var(--flowdex-track)]">
+            <div className="h-full w-[36.9%] rounded-[5px] bg-[var(--flowdex-cyan)]" />
           </div>
-
-          <div className="hairline my-8" />
-
-          <div className="grid gap-4 md:grid-cols-3">
-            {pricingSpotlight.map(item => (
-              <div key={item.assetCode} className="rounded-2xl border border-white/8 bg-white/4 p-4">
-                <div className="text-[10px] font-semibold tracking-[0.28em] text-slate-400 uppercase">
-                  {item.chain}
-                </div>
-                <div className="mt-2 text-sm font-semibold text-white">{item.assetCode}</div>
-                <div className="font-data mt-3 text-lg text-cyan-200">{formatCurrency(item.priceUsd, 2)}</div>
-              </div>
-            ))}
+          <div className="mt-5 grid gap-4 text-sm sm:grid-cols-4">
+            <DataStat label="Price" value="$0.001" />
+            <DataStat label="Discount" value="-98%" tone="success" />
+            <DataStat label="Listing" value="$0.05" />
+            <DataStat label="Filled" value="36.9%" />
           </div>
-        </GlassPanel>
+        </Card>
+
+        <Card className="p-6 md:p-8">
+          <div className="text-[10px] font-bold tracking-[0.3em] text-[var(--flowdex-muted)] uppercase">
+            Vesting Schedule
+          </div>
+          <div className="mt-6 flex h-9 overflow-hidden rounded-lg bg-[var(--flowdex-track)] text-[10px] font-bold">
+            <div className="flex w-[14%] min-w-16 items-center justify-center bg-[var(--flowdex-cyan)] text-white">5% TGE</div>
+            <div className="flex w-[33%] items-center justify-center border-l border-white/10 text-[var(--flowdex-muted)]">12mo cliff</div>
+            <div className="flex flex-1 items-center justify-center border-l border-white/10 bg-[linear-gradient(90deg,var(--flowdex-cyan-deep),var(--flowdex-cyan))] text-white">24mo linear vest</div>
+          </div>
+          <div className="font-data mt-4 text-sm text-[var(--flowdex-text)]">
+            Full unlock: 36 months
+          </div>
+        </Card>
       </section>
 
-      <section id="overview" className="section-shell section-pad grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <SectionHeading
-          eyebrow="Project Intro"
-          title="Institutional precision without custodial compromise."
-          description="The product direction is not a generic swap page. FlowDex is intended to feel closer to a cross-asset market terminal while still keeping wallet ownership, chain settlement, and community ownership visible."
-        />
-
-        <GlassPanel className="grid gap-5 p-6 md:grid-cols-2 md:p-8">
-          <DataKicker label="Community Owned" value="75%" />
-          <DataKicker label="Target Asset Coverage" value="500+" />
-          <DataKicker label="Supported Chains" value="10+" />
-          <DataKicker label="Listing Target" value="$0.05" />
-          <div className="md:col-span-2 flex flex-wrap gap-3 text-xs text-slate-300">
-            {['Audit posture', 'Trail of Bits', 'OpenZeppelin', 'Zellic', 'Wallet-first settlement'].map(item => (
-              <span key={item} className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/4 px-3 py-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                {item}
-              </span>
-            ))}
-          </div>
-        </GlassPanel>
-      </section>
-
-      <section className="section-shell">
-        <GlassPanel className="grid gap-4 p-6 md:grid-cols-3 md:p-7">
-          {[
-            {
-              label: 'About',
-              href: '/about',
-              body: 'A tighter explanation of the product thesis, market opportunity, and development phases.',
-            },
-            {
-              label: 'Whitepaper',
-              href: '/whitepaper',
-              body: 'A web-first rendering of the March 2026 whitepaper with the actual document structure.',
-            },
-            {
-              label: 'Updates',
-              href: '/updates',
-              body: 'A public launch-log view of presale progress, product milestones, and ecosystem direction.',
-            },
-          ].map(card => (
-            <Link
-              key={card.label}
-              href={card.href}
-              className="rounded-[1.2rem] border border-white/8 bg-white/4 p-5 hover:border-cyan-400/25 hover:bg-cyan-400/6"
+      <section className="section-shell section-pad">
+        <SectionHeader eyebrow="How It Works" title="Crypto. Stocks. Forex. Gold. One platform." description="Six pillars define the Universal Exchange direction without forcing the full whitepaper into the home page." />
+        <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {features.map(feature => (
+            <Card
+              key={feature.title}
+              className="p-6"
+              style={{
+                borderLeftColor: feature.accent,
+                borderLeftWidth: 4,
+                backgroundColor: `${feature.accent}10`,
+              }}
             >
-              <div className="text-[10px] font-bold tracking-[0.28em] text-cyan-300 uppercase">{card.label}</div>
-              <p className="mt-3 text-sm leading-8 text-slate-300">{card.body}</p>
-            </Link>
-          ))}
-        </GlassPanel>
-      </section>
-
-      {hasError ? (
-        <section className="section-shell">
-          <GlassPanel className="border-amber-400/20 bg-amber-500/8 p-4 text-sm text-amber-100">
-            Live backend data could not be loaded for one or more sections. The UI stays usable, but we should check the frontend API URL or backend runtime before moving to protected flows.
-          </GlassPanel>
-        </section>
-      ) : null}
-
-      <section className="section-shell section-pad">
-        <SectionHeading
-          eyebrow="Community"
-          title="Social surfaces built as first-class trust signals."
-          description="Instead of hiding community channels in the footer, the landing flow puts them near the live stats and positioning copy to support legitimacy and discovery."
-        />
-        <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          {socialCards.map(card => (
-            <a key={card.label} href={card.href} target="_blank" rel="noreferrer">
-              <GlassPanel className="h-full p-5 hover:border-cyan-400/40">
-                <div className="text-sm font-bold text-white">{card.label}</div>
-                <p className="mt-3 text-sm leading-7 text-slate-300">{card.note}</p>
-              </GlassPanel>
-            </a>
+              <feature.icon className="h-8 w-8" style={{ color: feature.accent }} />
+              <h3 className="font-heading mt-5 text-lg font-bold text-[var(--flowdex-text)]">{feature.title}</h3>
+              <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">{feature.description}</p>
+            </Card>
           ))}
         </div>
       </section>
 
-      <section className="section-shell">
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-[1.5rem] border border-white/8 bg-white/4 px-6 py-5">
-          <div className="text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">Liquidity and data stack</div>
-          <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-slate-200">
-            {partners.map(partner => (
-              <span key={partner}>{partner}</span>
+      <section className="border-y border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg)] py-10">
+        <div className="section-shell">
+          <div className="text-center text-[11px] font-bold tracking-[0.28em] text-[var(--flowdex-muted)] uppercase">
+            Planned Technology Stack
+          </div>
+          <div className="mt-5 flex flex-wrap justify-center gap-3">
+            {techStack.map(item => (
+              <Badge key={item} variant="subtle" className="px-5 py-3 normal-case tracking-normal">
+                {item}
+              </Badge>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="section-shell section-pad">
-        <SectionHeading
-          eyebrow="Core Features"
-          title="Card-first, data-first, and intentionally multi-asset."
-          description="Every major product promise is surfaced as a deliberate system card rather than generic landing-page filler. The layout leans into finance-density without losing clarity."
-        />
-        <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {featureCards.map((feature) => {
-            const Icon = feature.icon;
-            return (
-              <GlassPanel key={feature.title} className="p-6">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-3 text-cyan-200">
-                    <Icon className="h-5 w-5" />
+      <section id="tokenomics" className="section-shell section-pad">
+        <SectionHeader eyebrow="Tokenomics" title="$FDN Token" description="Fixed supply, community-heavy allocation, and fee sharing summarized for the landing page." />
+        <div className="mt-10 grid gap-8 lg:grid-cols-2">
+          <Card className="p-6">
+            <CardTitle>Token Distribution</CardTitle>
+            <div className="mt-6 space-y-4">
+              {tokenDistribution.map(item => (
+                <div key={item.label}>
+                  <div className="mb-2 flex justify-between gap-4 text-sm">
+                    <span className="font-medium text-[var(--flowdex-text)]">{item.label}</span>
+                    <span className="font-data text-[var(--flowdex-muted)]">{item.percentage}% · {item.tokens}</span>
                   </div>
-                  <div className="text-lg font-bold text-white">{feature.title}</div>
+                  <div className="h-2 overflow-hidden rounded-full bg-[var(--flowdex-track)]">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${item.percentage * 3.33}%`, backgroundColor: item.color }}
+                    />
+                  </div>
                 </div>
-                <p className="mt-5 text-sm leading-7 text-slate-300">{feature.body}</p>
-              </GlassPanel>
-            );
-          })}
+              ))}
+            </div>
+          </Card>
+
+          <div className="grid gap-5">
+            <Card className="p-6">
+              <CardTitle>Fee Revenue Distribution</CardTitle>
+              <div className="font-data mt-2 text-sm text-[var(--flowdex-muted)]">Taker fee: 0.035%</div>
+              <div className="mt-6 space-y-4">
+                {feeDistribution.map(item => (
+                  <div key={item.label} className="flex items-center gap-3">
+                    <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: item.color }} />
+                    <span className="flex-1 text-sm text-[var(--flowdex-text)]">{item.label}</span>
+                    <span className="font-data text-sm font-bold" style={{ color: item.color }}>{item.percentage}%</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+            <Card className="border-[var(--flowdex-accent-border)] bg-[var(--flowdex-accent-bg)] p-6">
+              <div className="text-sm font-semibold text-[var(--flowdex-text)]">Projected Year 1 Staking APY</div>
+              <div className="font-data mt-3 text-4xl font-bold text-[var(--flowdex-cyan)]">12-18%</div>
+              <p className="mt-2 text-sm text-[var(--flowdex-muted)]">At modeled protocol volume and stake participation.</p>
+              <Button variant="glass" size="sm" asChild className="mt-5">
+                <Link href="/tokenomics">Open tokenomics details</Link>
+              </Button>
+            </Card>
+          </div>
         </div>
       </section>
 
-      <section id="tokenomics" className="section-shell section-pad grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
-        <div>
-          <SectionHeading
-            eyebrow="Tokenomics"
-            title="Community ownership is the anchor, not an afterthought."
-            description="The launch story keeps the majority of the token base community-owned and treats staking, liquidity, treasury capacity, and growth as visible operating systems instead of hidden line items."
-          />
+      <section id="presale" className="section-shell section-pad">
+        <SectionHeader eyebrow="Token Sale" title="Eight-tier presale" description="$80M target across eight tiers. Tier 1 is highlighted here; the buy route owns the transaction flow." />
+        <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {presaleTiers.map((tier, index) => (
+            <Card
+              key={tier.name}
+              className={`p-6 ${tier.isLive ? 'border-[var(--flowdex-cyan)] bg-[var(--flowdex-accent-bg)]' : ''}`}
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div className="text-[11px] font-bold tracking-[0.22em] text-[var(--flowdex-muted)] uppercase">
+                  Tier {index + 1}
+                </div>
+                {tier.isLive ? <Badge variant="brand">Live</Badge> : null}
+              </div>
+              <div className="font-heading mt-4 text-lg font-bold text-[var(--flowdex-text)]">{tier.name.split(' - ')[1]}</div>
+              <div className="font-data mt-3 text-3xl font-bold text-[var(--flowdex-cyan)]">{tier.price}</div>
+              <div className="mt-5 space-y-2 text-sm text-[var(--flowdex-muted)]">
+                <div>Raise cap: <span className="font-data text-[var(--flowdex-text)]">{tier.cap}</span></div>
+                <div>Discount: <span className="font-data text-[var(--flowdex-green)]">{tier.discount}</span></div>
+              </div>
+            </Card>
+          ))}
         </div>
-        <GlassPanel className="grid gap-8 p-6 md:grid-cols-[0.8fr_1.2fr] md:p-8">
-          <div className="space-y-4">
-            <div className="mx-auto h-52 w-52 rounded-full border border-white/8 p-4">
-              <div className="h-full w-full rounded-full" style={pieStyle} />
-            </div>
-            <div className="text-center text-xs text-slate-400">
-              Planning view for the initial launch mix. Final schedule should track the official token docs.
-            </div>
-          </div>
-          <div className="space-y-4">
-            {tokenomics.map(item => (
-              <div key={item.label} className="rounded-2xl border border-white/8 bg-white/4 p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="font-semibold text-white">{item.label}</span>
-                  </div>
-                  <span className="font-data text-cyan-200">{item.share}%</span>
-                </div>
-              </div>
-            ))}
-            <div className="rounded-2xl border border-cyan-400/12 bg-cyan-400/6 p-5">
-              <div className="text-[10px] font-bold tracking-[0.3em] text-cyan-300 uppercase">Token Details</div>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <DataKicker label="Ticker" value="$FDN" />
-                <DataKicker label="Standard" value="ERC-20" />
-                <DataKicker label="Total Supply" value={formatPlainNumber(10_000_000_000)} />
-                <DataKicker label="Listing Target" value="$0.05" />
-              </div>
-            </div>
-          </div>
-        </GlassPanel>
-      </section>
-
-      <section id="tiers" className="section-shell section-pad">
-        <SectionHeading
-          eyebrow="Presale Tiers"
-          title="Backend-fed tier pricing with visible upside framing."
-          description="These rows read from the presale service, so the pricing surface stays tied to the same backend contract the eventual buy flow will use."
-        />
-        <GlassPanel className="mt-10 overflow-hidden">
-          <div className="grid grid-cols-[0.8fr_0.8fr_1fr_1fr_0.8fr] gap-4 border-b border-white/8 px-6 py-4 text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">
-            <div>Tier</div>
-            <div>Price</div>
-            <div>Token Cap</div>
-            <div>Listing ROI</div>
-            <div>Status</div>
-          </div>
-          <div>
-            {tiers.map(tier => {
-              const tierPrice = parseDecimal(tier.tokenPriceUsd);
-              const roi = tierPrice > 0 ? ((listingPrice - tierPrice) / tierPrice) * 100 : 0;
-
-              return (
-                <div
-                  key={tier.id}
-                  className="grid grid-cols-[0.8fr_0.8fr_1fr_1fr_0.8fr] gap-4 border-b border-white/6 px-6 py-5 text-sm text-slate-200 last:border-b-0"
-                >
-                  <div className="font-semibold text-white">Tier {tier.order}</div>
-                  <div className="font-data text-cyan-200">{formatCurrency(tier.tokenPriceUsd, 3)}</div>
-                  <div className="font-data">{formatCompact(tier.tokenCapReal, 1)}</div>
-                  <div className="font-data text-emerald-300">{formatPlainNumber(roi, 0)}%</div>
-                  <div>
-                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tier.isActive ? 'bg-emerald-400/12 text-emerald-300' : 'bg-white/6 text-slate-300'}`}>
-                      {tier.isActive ? 'Active' : 'Queued'}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </GlassPanel>
+        <div className="mt-10 text-center">
+          <Button variant="brand" size="lg" asChild>
+            <Link href="/buy">Connect Wallet & Join Presale</Link>
+          </Button>
+        </div>
       </section>
 
       <section id="roadmap" className="section-shell section-pad">
-        <SectionHeading
-          eyebrow="Roadmap"
-          title="Launch in phases, but keep the product story coherent from day one."
-          description="The roadmap stays visible because this is not a single-feature token launch. The market story, chain story, and governance story all need room to breathe."
-        />
-        <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <SectionHeader eyebrow="Roadmap" title="Building in public" description="The home page keeps the phase summary concise; the roadmap page carries deeper sequencing." />
+        <div className="mt-10 grid gap-4 lg:grid-cols-5">
           {roadmap.map(item => (
-            <GlassPanel key={item.phase} className="p-6">
-              <div className="font-data text-cyan-300">{item.phase}</div>
-              <div className="mt-4 text-lg font-bold text-white">{item.title}</div>
-              <p className="mt-4 text-sm leading-7 text-slate-300">{item.body}</p>
-            </GlassPanel>
-          ))}
-        </div>
-      </section>
-
-      <section className="section-shell section-pad">
-        <SectionHeading
-          eyebrow="Team"
-          title="Pseudonymous by design, operator-focused by execution."
-          description="The current launch presentation keeps identities product-centric while emphasizing delivery, systems thinking, and visible coordination. KYC and future trust artifacts can sit beside this layer rather than replacing it."
-        />
-        <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {team.map(member => (
-            <GlassPanel key={member.name} className="p-6">
-              <div className="flex items-center justify-between gap-4">
+            <Card key={item.phase} className={`p-5 ${item.isActive ? 'border-[var(--flowdex-cyan)] bg-[var(--flowdex-accent-bg)]' : ''}`}>
+              <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-xl font-bold text-white">{member.name}</div>
-                  <div className="mt-1 text-sm text-cyan-200">{member.role}</div>
+                  <div className="text-[10px] font-bold tracking-[0.24em] text-[var(--flowdex-cyan)] uppercase">{item.phase}</div>
+                  <div className="mt-1 text-xs text-[var(--flowdex-muted)]">{item.timeline}</div>
                 </div>
-                <div className="rounded-full border border-cyan-400/15 bg-cyan-400/8 px-3 py-1 text-[10px] font-bold tracking-[0.24em] text-cyan-200 uppercase">
-                  KYC Ready
-                </div>
+                {item.isActive ? <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--flowdex-cyan)]" /> : null}
               </div>
-              <p className="mt-4 text-sm leading-7 text-slate-300">{member.note}</p>
-            </GlassPanel>
+              <h3 className="font-heading mt-5 text-lg font-bold text-[var(--flowdex-text)]">{item.title}</h3>
+              <p className="mt-3 text-xs leading-6 text-[var(--flowdex-muted)]">{item.items}</p>
+            </Card>
           ))}
+        </div>
+        <div className="mt-8">
+          <Button variant="glass" asChild>
+            <Link href="/roadmap">Open full roadmap</Link>
+          </Button>
         </div>
       </section>
 
-      <section id="faq" className="section-shell section-pad">
-        <SectionHeading
-          eyebrow="FAQ"
-          title="Answer the serious questions before asking for conversion."
-          description="The FAQ section is intentionally positioned after the product proof and tier sections so skeptical users can validate the story before deciding to participate."
-        />
-        <div className="mt-10 space-y-4">
-          {faqs.map(item => (
-            <GlassPanel key={item.question} className="p-5">
-              <details className="group">
-                <summary className="cursor-pointer list-none text-lg font-semibold text-white group-open:text-cyan-200">
-                  {item.question}
-                </summary>
-                <p className="mt-4 text-sm leading-7 text-slate-300">{item.answer}</p>
-              </details>
-            </GlassPanel>
+      <section id="team" className="section-shell section-pad">
+        <SectionHeader eyebrow="Team" title="Built by DeFi and TradFi veterans" description="The home page shows the pseudonymous team posture without duplicating the full trust narrative from About." />
+        <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {team.map(member => (
+            <Card key={member.alias} className="p-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-[linear-gradient(135deg,#00B4D8,#0090B0)] font-heading text-lg font-bold text-white">
+                {member.alias[0]}
+              </div>
+              <h3 className="font-heading mt-5 text-xl font-bold text-[var(--flowdex-text)]">{member.alias}</h3>
+              <div className="mt-1 text-sm font-semibold text-[var(--flowdex-cyan)]">{member.role}</div>
+              <p className="mt-4 text-sm leading-7 text-[var(--flowdex-muted)]">{member.background}</p>
+            </Card>
           ))}
         </div>
-      </section>
 
-      <section className="section-shell pb-16">
-        <GlassPanel className="grid gap-6 p-6 md:grid-cols-[1.1fr_0.9fr] md:p-8">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/18 bg-cyan-400/8 px-3 py-1 text-[10px] font-bold tracking-[0.24em] text-cyan-300 uppercase">
-              <Mail className="h-3.5 w-3.5" />
-              Email Subscribe
-            </div>
-            <h3 className="mt-5 text-3xl font-black text-white md:text-4xl">Stay close to the launch cadence.</h3>
-            <p className="mt-4 max-w-xl text-sm leading-7 text-slate-300">
-              Get presale tier updates, product milestones, and protocol notes without relying on fragmented social feeds.
+        <div className="mx-auto mt-12 max-w-5xl">
+          <div className="text-center">
+            <div className="text-[11px] font-bold tracking-[0.28em] text-[var(--flowdex-cyan)] uppercase">Why Pseudonymous?</div>
+            <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-[var(--flowdex-muted)]">
+              Pseudonymity is framed as product-first trust and operational security, not an evasion of accountability.
             </p>
           </div>
-
-          <form
-            className="flex flex-col gap-3 md:justify-center"
-            onSubmit={(event) => {
-              event.preventDefault();
-              setSubmitted(true);
-              setEmail('');
-            }}
-          >
-            <Input
-              type="email"
-              value={email}
-              onChange={event => setEmail(event.target.value)}
-              placeholder="you@marketdesk.com"
-              className="h-12 rounded-2xl border-white/10 bg-[#071423] text-white placeholder:text-slate-500"
-            />
-            <Button variant="brand" size="lg" type="submit" disabled={!email}>
-              Subscribe
-            </Button>
-            {submitted ? (
-              <div className="text-sm text-emerald-300">
-                Thanks. The subscription UI is in place; connect your real mailing provider when we wire the production flow.
-              </div>
-            ) : null}
-          </form>
-        </GlassPanel>
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            {pseudonymousReasons.map(reason => (
+              <Card key={reason.title} className="p-6">
+                <reason.icon className="h-8 w-8 text-[var(--flowdex-cyan)]" />
+                <h3 className="font-heading mt-4 text-lg font-bold text-[var(--flowdex-text)]">{reason.title}</h3>
+                <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">{reason.description}</p>
+              </Card>
+            ))}
+          </div>
+          <div className="mt-6 flex justify-center">
+            <Badge variant="success" className="gap-2 px-[22px] py-2 normal-case tracking-normal">
+              <CheckCircle2 className="h-4 w-4" />
+              All team members KYC-verified through an independent third-party legal entity
+            </Badge>
+          </div>
+        </div>
       </section>
+
+      <section id="faq" className="section-shell section-pad max-w-4xl">
+        <SectionHeader eyebrow="FAQ" title="Frequently asked questions" description="Concise answers here; the FAQ route can carry the deeper set." />
+        <Accordion type="single" collapsible className="mt-10 space-y-3">
+          {faqs.map(item => (
+            <AccordionItem key={item.question} value={item.question}>
+              <AccordionTrigger>{item.question}</AccordionTrigger>
+              <AccordionContent>{item.answer}</AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </section>
+
+      <section className="section-shell section-pad text-center">
+        <Card className="mx-auto max-w-3xl border-[var(--flowdex-accent-border)] bg-[var(--flowdex-accent-bg)] p-8 md:p-10">
+          <h2 className="font-heading text-3xl font-bold text-[var(--flowdex-text)] md:text-5xl">
+            Trade Everything. Own the Exchange.
+          </h2>
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-[var(--flowdex-muted)]">
+            $0.001 today. $0.05 target listing. Join the Genesis presale or read the full public whitepaper first.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Button variant="brand" size="lg" asChild>
+              <Link href="/buy">Join Presale</Link>
+            </Button>
+            <Button variant="glass" size="lg" asChild>
+              <Link href="/whitepaper">Read Whitepaper</Link>
+            </Button>
+          </div>
+          {isSubscribed ? (
+            <Card className="mx-auto mt-8 max-w-md p-5">
+              <div className="font-heading text-lg font-bold text-[var(--flowdex-cyan)]">Subscribed.</div>
+              <p className="mt-2 text-sm text-[var(--flowdex-muted)]">Updates will go to {email}.</p>
+            </Card>
+          ) : (
+            <div className="mx-auto mt-8 flex max-w-lg flex-col gap-3 sm:flex-row">
+              <Input
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={event => setEmail(event.target.value)}
+              />
+              <Button type="button" variant="brand" onClick={handleSubscribe}>
+                Subscribe
+              </Button>
+            </div>
+          )}
+        </Card>
+      </section>
+    </div>
+  );
+}
+
+function SectionHeader(props: {
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="max-w-3xl">
+      <div className="text-xs font-bold tracking-[0.3em] text-[var(--flowdex-cyan)] uppercase">{props.eyebrow}</div>
+      <h2 className="font-heading mt-3 text-3xl font-bold tracking-tight text-[var(--flowdex-text)] md:text-5xl">
+        {props.title}
+      </h2>
+      <p className="mt-4 text-base leading-8 text-[var(--flowdex-muted)]">{props.description}</p>
+    </div>
+  );
+}
+
+function HighlightText(props: {
+  text: string;
+  highlight: string;
+}) {
+  if (!props.text.includes(props.highlight)) {
+    return <>{props.text}</>;
+  }
+
+  const [before, ...after] = props.text.split(props.highlight);
+
+  return (
+    <>
+      {before}
+      <span className="text-[var(--flowdex-cyan)]">{props.highlight}</span>
+      {after.join(props.highlight)}
+    </>
+  );
+}
+
+function DataStat(props: {
+  label: string;
+  value: string;
+  tone?: 'success';
+}) {
+  return (
+    <div>
+      <div className="text-[10px] font-bold tracking-[0.24em] text-[var(--flowdex-muted)] uppercase">{props.label}</div>
+      <div className={`font-data mt-2 text-xl font-bold ${props.tone === 'success' ? 'text-[var(--flowdex-green)]' : 'text-[var(--flowdex-text)]'}`}>
+        {props.value}
+      </div>
     </div>
   );
 }

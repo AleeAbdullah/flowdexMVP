@@ -38,7 +38,7 @@ export default function RootLayout(props: {
   children: ReactNode;
 }) {
   return (
-    <html lang={AppConfig.language}>
+    <html lang={AppConfig.language} data-theme="dark" suppressHydrationWarning>
       <body>
         <QueryProvider>
           <NuqsProvider>

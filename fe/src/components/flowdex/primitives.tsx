@@ -4,13 +4,13 @@ import { cn } from '@/lib/utils';
 export function FlowdexWordmark({ compact = false }: { compact?: boolean }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-cyan-400/35 bg-cyan-400/12 shadow-[0_0_32px_rgba(0,180,216,0.28)]">
-        <div className="h-4 w-4 rotate-45 rounded-[6px] border border-cyan-300/70 bg-gradient-to-br from-cyan-300 to-sky-600" />
+      <div className={cn('flex items-center justify-center bg-[linear-gradient(135deg,#00B4D8,#0090B0)] text-white shadow-[0_0_32px_rgba(0,180,216,0.24)]', compact ? 'h-6 w-6 rounded-md' : 'h-8 w-8 rounded-lg')}>
+        <span className={cn('font-heading font-bold leading-none', compact ? 'text-xs' : 'text-base')}>F</span>
       </div>
       {!compact ? (
         <div className="leading-none">
-          <div className="text-lg font-extrabold tracking-[0.24em] text-white uppercase">FlowDex</div>
-          <div className="text-[10px] font-semibold tracking-[0.36em] text-cyan-300/80 uppercase">
+          <div className="font-heading text-lg font-bold tracking-tight text-[var(--flowdex-text)]">FlowDex</div>
+          <div className="text-[10px] font-semibold tracking-[0.28em] text-[var(--flowdex-cyan)] uppercase">
             Universal Exchange
           </div>
         </div>
@@ -41,10 +41,10 @@ export function SectionHeading(props: {
       <div className="inline-flex rounded-full border border-cyan-400/20 bg-cyan-400/8 px-4 py-1 text-[10px] font-bold tracking-[0.35em] text-cyan-300 uppercase">
         {props.eyebrow}
       </div>
-      <h2 className="text-balance text-3xl font-black tracking-tight text-white md:text-5xl">
+      <h2 className="font-heading text-balance text-3xl font-bold tracking-tight text-[var(--flowdex-text)] md:text-5xl">
         {props.title}
       </h2>
-      <p className="text-balance text-sm leading-7 text-slate-300 md:text-base">
+      <p className="text-balance text-sm leading-7 text-[var(--flowdex-muted)] md:text-base">
         {props.description}
       </p>
     </div>
@@ -61,7 +61,7 @@ export function DataKicker(props: {
       <div className="text-[10px] font-semibold tracking-[0.32em] text-slate-400 uppercase">
         {props.label}
       </div>
-      <div className="font-data text-xl font-semibold text-white md:text-2xl">{props.value}</div>
+      <div className="font-data text-xl font-semibold text-[var(--flowdex-text)] md:text-2xl">{props.value}</div>
     </div>
   );
 }

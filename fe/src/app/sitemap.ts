@@ -18,16 +18,40 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      url: `${getBaseUrl()}/tokenomics`,
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
+      url: `${getBaseUrl()}/roadmap`,
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.75,
+    },
+    {
       url: `${getBaseUrl()}/whitepaper`,
       lastModified,
       changeFrequency: 'weekly',
       priority: 0.9,
     },
     {
-      url: `${getBaseUrl()}/updates`,
+      url: `${getBaseUrl()}/faq`,
       lastModified,
       changeFrequency: 'weekly',
       priority: 0.75,
+    },
+    {
+      url: `${getBaseUrl()}/blogs`,
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.75,
+    },
+    {
+      url: `${getBaseUrl()}/legal`,
+      lastModified,
+      changeFrequency: 'monthly',
+      priority: 0.5,
     },
     {
       url: `${getBaseUrl()}/terms`,

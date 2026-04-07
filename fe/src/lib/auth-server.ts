@@ -22,7 +22,7 @@ export class BackendApiError extends Error {
   }
 }
 
-function resolveUserRole(email: string): 'USER' | 'ADMIN' {
+export function resolveUserRole(email: string): 'USER' | 'ADMIN' {
   const adminEmails = (Env.ADMIN_EMAILS ?? '')
     .split(',')
     .map(value => value.trim().toLowerCase())
