@@ -92,7 +92,7 @@ export function TokenomicsPage() {
               const Icon = card.icon;
 
               return (
-                <Card key={card.title} className="border-white/8 bg-white/4">
+                <Card key={card.title}>
                   <CardHeader>
                     <Badge variant="brand" className="w-fit gap-2">
                       <Icon className="h-3.5 w-3.5" />

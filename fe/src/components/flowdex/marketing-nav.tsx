@@ -1,31 +1,25 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { FlowdexWordmark } from './primitives';
 import { ThemeToggle } from './theme-toggle';
+import {
+  getActiveMarketingNavHref,
+  getMarketingNavActions,
+  MARKETING_NAV_ITEMS,
+} from './marketing-nav.utils';
 
-type NavItem = {
-  label: string;
-  href: string;
-};
-
-const navItems: NavItem[] = [
-  { label: 'About', href: '/#about' },
-  { label: 'Tokenomics', href: '/#tokenomics' },
-  { label: 'Presale', href: '/#presale' },
-  { label: 'Roadmap', href: '/#roadmap' },
-  { label: 'Team', href: '/#team' },
-  { label: 'FAQ', href: '/#faq' },
-];
-
-export function MarketingNav() {
+export function MarketingNav({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
   const [menuState, setMenuState] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const pathname = usePathname();
+  const activeHref = getActiveMarketingNavHref(pathname);
+  const actions = getMarketingNavActions(isAuthenticated);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -74,21 +68,38 @@ export function MarketingNav() {
 
           <div className="absolute inset-0 m-auto hidden size-fit lg:block">
             <ul className="flex gap-8 text-sm">
-              {navItems.map(item => (
-                <li key={item.href}>
+              {MARKETING_NAV_ITEMS.map(item => {
+                const isActive = activeHref === item.href;
+
+                return (
+                <li key={item.href} className="relative">
                   <Link
                     href={item.href}
-                    className="block font-medium text-[var(--flowdex-muted)] duration-150 hover:text-[var(--flowdex-cyan)]"
+                    className={cn(
+                      'block font-medium duration-150',
+                      isActive
+                        ? 'text-[var(--flowdex-text)]'
+                        : 'text-[var(--flowdex-muted)] hover:text-[var(--flowdex-cyan)]',
+                    )}
                   >
                     {item.label}
                   </Link>
+                  {isActive ? (
+                    <span className="absolute -bottom-[1.15rem] left-0 right-0 h-0.5 rounded-full bg-[var(--flowdex-cyan)]" />
+                  ) : null}
                 </li>
-              ))}
+                );
+              })}
             </ul>
           </div>
 
           <div className="hidden items-center gap-3 lg:flex">
             <ThemeToggle />
+            {actions.includes('login') ? (
+              <Button variant="glass" size="sm" asChild>
+                <Link href="/login">Login</Link>
+              </Button>
+            ) : null}
             <Button variant="brand" size="sm" asChild>
               <Link href="/buy">Join Presale</Link>
             </Button>
@@ -96,21 +107,37 @@ export function MarketingNav() {
 
           <div className="mb-5 hidden w-full flex-wrap items-center justify-end space-y-6 rounded-3xl border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg)]/95 p-6 shadow-2xl shadow-slate-950/20 backdrop-blur-xl group-data-[state=active]:block md:flex-nowrap lg:m-0 lg:hidden lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none">
             <ul className="space-y-5 text-base">
-              {navItems.map(item => (
+              {MARKETING_NAV_ITEMS.map(item => {
+                const isActive = activeHref === item.href;
+
+                return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
                     onClick={() => setMenuState(false)}
-                    className="block font-semibold text-[var(--flowdex-muted)] duration-150 hover:text-[var(--flowdex-cyan)]"
+                    className={cn(
+                      'block font-semibold duration-150',
+                      isActive
+                        ? 'text-[var(--flowdex-text)]'
+                        : 'text-[var(--flowdex-muted)] hover:text-[var(--flowdex-cyan)]',
+                    )}
                   >
                     {item.label}
                   </Link>
                 </li>
-              ))}
+                );
+              })}
             </ul>
 
             <div className="mt-6 flex w-full flex-col gap-3 sm:flex-row">
               <ThemeToggle />
+              {actions.includes('login') ? (
+                <Button variant="glass" size="sm" asChild className="sm:flex-1">
+                  <Link href="/login" onClick={() => setMenuState(false)}>
+                    Login
+                  </Link>
+                </Button>
+              ) : null}
               <Button variant="brand" size="sm" asChild className="sm:flex-1">
                 <Link href="/buy" onClick={() => setMenuState(false)}>
                   Join Presale

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { getOptionalSession } from '@/lib/auth-server';
 import { MarketingNav } from './marketing-nav';
 import { FlowdexWordmark } from './primitives';
 
@@ -11,6 +12,8 @@ export async function MarketingShell({
 }: {
   children: ReactNode;
 }) {
+  const session = await getOptionalSession();
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-[var(--flowdex-bg)] text-[var(--flowdex-text)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,color-mix(in_srgb,var(--flowdex-cyan)_15%,transparent),transparent_22%),radial-gradient(circle_at_78%_8%,color-mix(in_srgb,var(--flowdex-green)_10%,transparent),transparent_20%)]" />
@@ -39,7 +42,7 @@ export async function MarketingShell({
             </a>
           </div>
         </div>
-        <MarketingNav />
+        <MarketingNav isAuthenticated={Boolean(session)} />
       </header>
 
       <main className="pt-40 md:pt-32">{children}</main>

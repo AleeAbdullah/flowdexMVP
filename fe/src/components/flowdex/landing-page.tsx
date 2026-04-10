@@ -455,12 +455,12 @@ export function LandingPage() {
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
-          <div className="h-1.5 max-w-xs overflow-hidden rounded-full bg-[var(--flowdex-track)]">
+          {/* <div className="h-1.5 max-w-xs overflow-hidden rounded-full bg-[var(--flowdex-track)]">
             <div
               className="h-full rounded-full bg-[var(--flowdex-cyan)] transition-[width] duration-100"
               style={{ width: `${progress}%` }}
             />
-          </div>
+          </div> */}
         </div>
 
         <HeroDitheringCard className="p-5 md:p-6" contentClassName="space-y-5">

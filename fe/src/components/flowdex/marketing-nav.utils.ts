@@ -1,0 +1,27 @@
+export type MarketingNavItem = {
+  label: string;
+  href: string;
+};
+
+export const MARKETING_NAV_ITEMS: MarketingNavItem[] = [
+  { label: 'About', href: '/about' },
+  { label: 'Tokenomics', href: '/tokenomics' },
+  { label: 'Presale', href: '/buy' },
+  { label: 'Roadmap', href: '/roadmap' },
+  { label: 'Whitepaper', href: '/whitepaper' },
+  { label: 'FAQ', href: '/faq' },
+];
+
+const ACTIVE_NAV_HREFS = new Set(MARKETING_NAV_ITEMS.map(item => item.href));
+
+export function getActiveMarketingNavHref(pathname: string): string | null {
+  if (ACTIVE_NAV_HREFS.has(pathname)) {
+    return pathname;
+  }
+
+  return null;
+}
+
+export function getMarketingNavActions(isAuthenticated: boolean): Array<'login' | 'buy'> {
+  return isAuthenticated ? ['buy'] : ['login', 'buy'];
+}

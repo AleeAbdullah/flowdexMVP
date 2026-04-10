@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Globe2, Layers3, Wallet } from 'lucide-react';
+import { ArrowRight, FileText, Globe2, Layers3, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   MarketingBody,
@@ -80,6 +80,7 @@ export function AboutPage() {
           { id: 'opportunity', label: 'Opportunity' },
           { id: 'assets', label: 'What Users Can Trade' },
           { id: 'principles', label: 'Product Principles' },
+          { id: 'whitepaper', label: 'Whitepaper' },
           { id: 'phases', label: 'Development Phases' },
         ]}
       >
@@ -120,12 +121,12 @@ export function AboutPage() {
             ].map(item => {
               const Icon = item.icon;
               return (
-                <div key={item.title} className="rounded-[1.15rem] border border-white/8 bg-white/4 p-5">
-                  <div className="inline-flex rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-3 text-cyan-200">
+                <div key={item.title} className="rounded-[1.15rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] p-5">
+                  <div className="inline-flex rounded-2xl border border-[var(--flowdex-accent-border)] bg-[var(--flowdex-accent-bg)] p-3 text-[var(--flowdex-cyan)]">
                     <Icon className="h-5 w-5" />
                   </div>
-                  <div className="mt-4 text-lg font-bold text-white">{item.title}</div>
-                  <p className="mt-3 text-sm leading-8 text-slate-300">{item.body}</p>
+                  <div className="mt-4 text-lg font-bold text-[var(--flowdex-text)]">{item.title}</div>
+                  <p className="mt-3 text-sm leading-8 text-[var(--flowdex-muted)]">{item.body}</p>
                 </div>
               );
             })}
@@ -157,6 +158,42 @@ export function AboutPage() {
           description="These principles should remain visible across both the marketing site and the product shell."
         >
           <MarketingBulletList items={principles} columns={2} />
+        </MarketingSection>
+
+        <MarketingSection
+          id="whitepaper"
+          eyebrow="Whitepaper"
+          title="The concise product story is here. The full operating thesis lives in the whitepaper."
+          description="Use the whitepaper when you want the longer-form treatment of the problem, architecture, token model, presale design, roadmap, and risk framing."
+        >
+          <div className="grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
+            <MarketingBody>
+              <p>
+                The About page explains what FlowDex is and why it exists. The whitepaper goes deeper into how the platform is expected to evolve from Ethereum launch posture into a broader multi-chain exchange and, later, the FlowChain infrastructure direction.
+              </p>
+              <p>
+                It also consolidates tokenomics, presale structure, governance, market opportunity, and the legal and risk framing into one route so serious buyers do not need to reconstruct the product narrative from scattered sections.
+              </p>
+            </MarketingBody>
+
+            <div className="rounded-[1.15rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] p-5">
+              <div className="inline-flex rounded-2xl border border-[var(--flowdex-accent-border)] bg-[var(--flowdex-accent-bg)] p-3 text-[var(--flowdex-cyan)]">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div className="mt-4 text-lg font-bold text-[var(--flowdex-text)]">Whitepaper v6.0</div>
+              <div className="mt-2 text-sm leading-7 text-[var(--flowdex-muted)]">
+                Public release covering architecture, token utility, roadmap, market thesis, and launch framing.
+              </div>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Button variant="brand" size="sm" asChild>
+                  <Link href="/whitepaper">
+                    Open Whitepaper
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
         </MarketingSection>
 
         <MarketingSection

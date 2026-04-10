@@ -13,7 +13,7 @@ export function DashboardPage() {
 
   if (summaryQuery.isLoading) {
     return (
-      <GlassPanel className="p-6 text-sm text-slate-300">
+      <GlassPanel className="p-6 text-sm text-[var(--flowdex-muted)]">
         Loading dashboard summary, wallet readiness, and recent transaction activity...
       </GlassPanel>
     );
@@ -22,7 +22,7 @@ export function DashboardPage() {
   if (summaryQuery.isError || !summary) {
     return (
       <GlassPanel className="border border-rose-400/20 bg-rose-500/10 p-6">
-        <div className="text-lg font-bold text-white">Dashboard unavailable</div>
+        <div className="text-lg font-bold text-[var(--flowdex-text)]">Dashboard unavailable</div>
         <p className="mt-3 text-sm leading-7 text-rose-100">
           {summaryQuery.error instanceof Error
             ? summaryQuery.error.message
@@ -53,12 +53,12 @@ export function DashboardPage() {
       {!hasWallet ? (
         <GlassPanel className="border border-amber-300/20 bg-amber-400/10 p-6">
           <div className="flex items-start gap-4">
-            <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-3 text-amber-100">
+            <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-3 text-amber-700">
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div className="space-y-3">
-              <div className="text-lg font-bold text-white">No wallet linked yet</div>
-              <p className="text-sm leading-7 text-amber-50/90">
+              <div className="text-lg font-bold text-[var(--flowdex-text)]">No wallet linked yet</div>
+              <p className="text-sm leading-7 text-amber-700">
                 Your account is active, but protected purchase execution still needs a verified EVM wallet. You can still browse stats and recent lifecycle data without being redirected away from the dashboard.
               </p>
               <Button variant="brand" asChild>
@@ -75,39 +75,39 @@ export function DashboardPage() {
             <BarChart3 className="h-5 w-5" />
             <span className="text-xs font-semibold tracking-[0.24em] uppercase">Total Contributed</span>
           </div>
-          <div className="font-data mt-4 text-2xl text-white">
+          <div className="font-data mt-4 text-2xl text-[var(--flowdex-text)]">
             {formatPlainNumber(summary.totalContributedAmount, 6)}
           </div>
-          <p className="mt-3 text-sm leading-6 text-slate-300">Confirmed contribution total across finalized transactions.</p>
+          <p className="mt-3 text-sm leading-6 text-[var(--flowdex-muted)]">Confirmed contribution total across finalized transactions.</p>
         </GlassPanel>
         <GlassPanel className="p-5">
           <div className="flex items-center gap-3 text-cyan-200">
             <Coins className="h-5 w-5" />
             <span className="text-xs font-semibold tracking-[0.24em] uppercase">Allocated Tokens</span>
           </div>
-          <div className="font-data mt-4 text-2xl text-white">
+          <div className="font-data mt-4 text-2xl text-[var(--flowdex-text)]">
             {formatPlainNumber(summary.totalAllocatedTokens, 2)}
           </div>
-          <p className="mt-3 text-sm leading-6 text-slate-300">Backend-confirmed token allocation tied to finalized purchase intents.</p>
+          <p className="mt-3 text-sm leading-6 text-[var(--flowdex-muted)]">Backend-confirmed token allocation tied to finalized purchase intents.</p>
         </GlassPanel>
         <GlassPanel className="p-5">
           <div className="flex items-center gap-3 text-cyan-200">
             <Wallet className="h-5 w-5" />
             <span className="text-xs font-semibold tracking-[0.24em] uppercase">Primary Wallet</span>
           </div>
-          <div className="mt-4 text-lg font-bold text-white">
+          <div className="mt-4 text-lg font-bold text-[var(--flowdex-text)]">
             {summary.walletSummary.primaryWallet
               ? truncateMiddle(summary.walletSummary.primaryWallet.address)
               : 'Not linked'}
           </div>
-          <p className="mt-3 text-sm leading-6 text-slate-300">Use the wallet screen to add, verify, or rotate the address used for presale actions.</p>
+          <p className="mt-3 text-sm leading-6 text-[var(--flowdex-muted)]">Use the wallet screen to add, verify, or rotate the address used for presale actions.</p>
         </GlassPanel>
         <GlassPanel className="p-5">
           <div className="flex items-center gap-3 text-cyan-200">
             <ArrowRight className="h-5 w-5" />
             <span className="text-xs font-semibold tracking-[0.24em] uppercase">Next Action</span>
           </div>
-          <div className="mt-4 text-lg font-bold text-white">
+          <div className="mt-4 text-lg font-bold text-[var(--flowdex-text)]">
             {hasWallet ? 'Create a purchase intent' : 'Complete wallet linking'}
           </div>
           <div className="mt-4">
@@ -122,9 +122,9 @@ export function DashboardPage() {
 
       <div className="grid gap-4 xl:grid-cols-3">
         <GlassPanel className="p-5">
-          <div className="text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">Identity</div>
-          <div className="mt-4 text-xl font-bold text-white">{summary.profile.email}</div>
-          <p className="mt-3 text-sm leading-7 text-slate-300">
+          <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Identity</div>
+          <div className="mt-4 text-xl font-bold text-[var(--flowdex-text)]">{summary.profile.email}</div>
+          <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">
             Backend role and status are projected here from the authenticated app context, not from browser-only session state.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -133,16 +133,16 @@ export function DashboardPage() {
           </div>
         </GlassPanel>
         <GlassPanel className="p-5">
-          <div className="text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">Wallet Readiness</div>
-          <div className="mt-4 text-xl font-bold text-white">
+          <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Wallet Readiness</div>
+          <div className="mt-4 text-xl font-bold text-[var(--flowdex-text)]">
             {hasWallet ? 'Ready for ETH and USDT ERC20 purchases' : 'Wallet verification required'}
           </div>
-          <p className="mt-3 text-sm leading-7 text-slate-300">
+          <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">
             Phase 2 wallet UX is intentionally EVM-only, matching the active ETH and USDT ERC20 buy rails exposed by the backend.
           </p>
         </GlassPanel>
         <GlassPanel className="p-5">
-          <div className="text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">Quick Actions</div>
+          <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Quick Actions</div>
           <div className="mt-4 grid gap-3">
             <Button variant="glass" asChild className="justify-between">
               <Link href="/app/account">Review account profile</Link>
@@ -158,13 +158,13 @@ export function DashboardPage() {
       </div>
 
       <GlassPanel className="overflow-hidden">
-        <div className="border-b border-white/8 px-6 py-4 text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">
+        <div className="border-b border-[var(--flowdex-card-border)] px-6 py-4 text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
           Recent Transactions
         </div>
         <div>
           {summary.recentTransactions.length === 0 ? (
             <div className="space-y-4 px-6 py-5">
-              <p className="text-sm text-slate-300">
+              <p className="text-sm text-[var(--flowdex-muted)]">
                 No transaction lifecycle exists yet. Once you create a protected purchase intent, the most recent items will surface here.
               </p>
               <Button variant="brand" asChild>
@@ -177,14 +177,14 @@ export function DashboardPage() {
             summary.recentTransactions.map(transaction => (
               <div
                 key={transaction.id}
-                className="flex flex-col gap-4 border-b border-white/6 px-6 py-5 last:border-b-0 xl:flex-row xl:items-center xl:justify-between"
+                className="flex flex-col gap-4 border-b border-[var(--flowdex-card-border)] px-6 py-5 last:border-b-0 xl:flex-row xl:items-center xl:justify-between"
               >
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-3">
-                    <div className="font-semibold text-white">{transaction.assetCode} on {transaction.chain}</div>
+                    <div className="font-semibold text-[var(--flowdex-text)]">{transaction.assetCode} on {transaction.chain}</div>
                     <StatusPill status={transaction.status} />
                   </div>
-                  <div className="text-sm text-slate-400">
+                  <div className="text-sm text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)]">
                     {transaction.matchedTxHash
                       ? `Matched hash ${truncateMiddle(transaction.matchedTxHash)}`
                       : transaction.reportedTxHash

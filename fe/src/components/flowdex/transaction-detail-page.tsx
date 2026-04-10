@@ -17,7 +17,7 @@ export function TransactionDetailPage(props: {
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <div className="text-[10px] font-semibold tracking-[0.32em] text-slate-400 uppercase">Status</div>
+            <div className="text-[10px] font-semibold tracking-[0.32em] text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)] uppercase">Status</div>
             <StatusPill status={transaction.status} />
           </div>
           <DataKicker label="Confirmations" value={`${transaction.confirmations}`} />
@@ -55,8 +55,8 @@ export function TransactionDetailPage(props: {
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="text-lg font-bold text-white">No refund on record</div>
-              <p className="text-sm leading-7 text-slate-300">
+              <div className="text-lg font-bold text-[var(--flowdex-text)]">No refund on record</div>
+              <p className="text-sm leading-7 text-[var(--flowdex-muted)]">
                 If this transaction ever enters the refund workflow, the backend will project that state here through the same transaction detail contract.
               </p>
             </div>
@@ -65,7 +65,7 @@ export function TransactionDetailPage(props: {
       </div>
 
       <GlassPanel className="p-6">
-        <div className="text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">Lifecycle Timeline</div>
+        <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Lifecycle Timeline</div>
         <div className="mt-5 grid gap-4 md:grid-cols-3">
           <LifecycleStep
             title="Intent created"
@@ -124,9 +124,9 @@ function LifecycleStep(props: {
   active: boolean;
 }) {
   return (
-    <div className={`rounded-[1.2rem] border p-4 ${props.active ? 'border-cyan-400/20 bg-cyan-400/8' : 'border-white/8 bg-white/4'}`}>
-      <div className="text-sm font-semibold text-white">{props.title}</div>
-      <p className="mt-3 text-sm leading-6 text-slate-300">{props.description}</p>
+    <div className={`rounded-[1.2rem] border p-4 ${props.active ? 'border-[var(--flowdex-cyan)] bg-[var(--flowdex-accent-bg)]' : 'border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)]'}`}>
+      <div className="text-sm font-semibold text-[var(--flowdex-text)]">{props.title}</div>
+      <p className="mt-3 text-sm leading-6 text-[var(--flowdex-muted)]">{props.description}</p>
     </div>
   );
 }

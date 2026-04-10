@@ -14,7 +14,7 @@ const SheetOverlay = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
-    className={cn('fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm', className)}
+    className={cn('fixed inset-0 z-50 bg-[color-mix(in_srgb,var(--flowdex-bg)_72%,transparent)] backdrop-blur-sm', className)}
     {...props}
     ref={ref}
   />
@@ -22,14 +22,14 @@ const SheetOverlay = React.forwardRef<
 SheetOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
-  'fixed z-50 gap-4 bg-[#07101b]/98 p-6 shadow-[0_24px_90px_rgba(0,0,0,0.5)] transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500',
+  'fixed z-50 gap-4 bg-[color-mix(in_srgb,var(--flowdex-bg)_96%,transparent)] p-6 text-[var(--flowdex-text)] shadow-[0_24px_90px_rgba(0,0,0,0.28)] transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500',
   {
     variants: {
       side: {
-        top: 'inset-x-0 top-0 border-b border-white/10 data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top',
-        bottom: 'inset-x-0 bottom-0 border-t border-white/10 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
-        left: 'inset-y-0 left-0 h-full w-3/4 border-r border-white/10 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm',
-        right: 'inset-y-0 right-0 h-full w-3/4 border-l border-white/10 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm',
+        top: 'inset-x-0 top-0 border-b border-[var(--flowdex-card-border)] data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top',
+        bottom: 'inset-x-0 bottom-0 border-t border-[var(--flowdex-card-border)] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
+        left: 'inset-y-0 left-0 h-full w-3/4 border-r border-[var(--flowdex-card-border)] data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm',
+        right: 'inset-y-0 right-0 h-full w-3/4 border-l border-[var(--flowdex-card-border)] data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm',
       },
     },
     defaultVariants: {
@@ -54,7 +54,7 @@ const SheetContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-full border border-white/10 p-2 text-slate-300 transition-colors hover:border-cyan-400/35 hover:text-white">
+      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-full border border-[var(--flowdex-card-border)] p-2 text-[var(--flowdex-muted)] transition-colors hover:border-[var(--flowdex-cyan)] hover:text-[var(--flowdex-text)]">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
@@ -81,7 +81,7 @@ const SheetTitle = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
 >(({ className, ...props }, ref) => (
-  <DialogPrimitive.Title ref={ref} className={cn('text-lg font-bold text-white', className)} {...props} />
+  <DialogPrimitive.Title ref={ref} className={cn('text-lg font-bold text-[var(--flowdex-text)]', className)} {...props} />
 ));
 SheetTitle.displayName = DialogPrimitive.Title.displayName;
 
@@ -89,7 +89,7 @@ const SheetDescription = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
 >(({ className, ...props }, ref) => (
-  <DialogPrimitive.Description ref={ref} className={cn('text-sm leading-7 text-slate-300', className)} {...props} />
+  <DialogPrimitive.Description ref={ref} className={cn('text-sm leading-7 text-[var(--flowdex-muted)]', className)} {...props} />
 ));
 SheetDescription.displayName = DialogPrimitive.Description.displayName;
 

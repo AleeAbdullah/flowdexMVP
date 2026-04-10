@@ -19,7 +19,7 @@ export function AdminTransactionDetailPage(props: {
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <div className="text-[10px] font-semibold tracking-[0.32em] text-slate-400 uppercase">Status</div>
+            <div className="text-[10px] font-semibold tracking-[0.32em] text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)] uppercase">Status</div>
             <StatusPill status={transaction.status} />
           </div>
           <DataKicker label="User ID" value={transaction.userId} />
@@ -45,15 +45,15 @@ export function AdminTransactionDetailPage(props: {
         <GlassPanel className="p-6">
           {transaction.verificationFailureReason ? (
             <div className="space-y-3">
-              <div className="text-lg font-bold text-white">Verification issue</div>
+              <div className="text-lg font-bold text-[var(--flowdex-text)]">Verification issue</div>
               <p className="text-sm leading-7 text-rose-100">
                 {transaction.verificationFailureReason}
               </p>
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="text-lg font-bold text-white">Verification posture</div>
-              <p className="text-sm leading-7 text-slate-300">
+              <div className="text-lg font-bold text-[var(--flowdex-text)]">Verification posture</div>
+              <p className="text-sm leading-7 text-[var(--flowdex-muted)]">
                 No machine-readable verification failure is currently attached to this lifecycle.
               </p>
             </div>
@@ -76,8 +76,8 @@ export function AdminTransactionDetailPage(props: {
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="text-lg font-bold text-white">No refund record yet</div>
-            <p className="text-sm leading-7 text-slate-300">
+            <div className="text-lg font-bold text-[var(--flowdex-text)]">No refund record yet</div>
+            <p className="text-sm leading-7 text-[var(--flowdex-muted)]">
               If this confirmed transaction remains eligible, the refund operations screen can create one from the admin flow.
             </p>
           </div>

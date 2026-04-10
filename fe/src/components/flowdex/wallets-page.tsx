@@ -55,8 +55,8 @@ export function WalletsPage() {
           description="Phase 2 wallet UX is intentionally narrowed to the EVM path used for both ETH and USDT ERC20 purchases. Challenge creation and signature verification are still delegated to the backend."
         />
         <div className="space-y-4 rounded-[1.5rem] border border-cyan-400/12 bg-cyan-400/6 p-5">
-          <div className="text-[10px] font-bold tracking-[0.28em] text-cyan-300 uppercase">Phase 2 Wallet Flow</div>
-          <ol className="space-y-3 text-sm leading-7 text-slate-200">
+          <div className="text-[10px] font-bold tracking-[0.28em] text-[var(--flowdex-cyan)] uppercase">Phase 2 Wallet Flow</div>
+          <ol className="space-y-3 text-sm leading-7 text-[var(--flowdex-text)]">
             <li>1. Enter an EVM wallet address for ETH and USDT ERC20 purchases.</li>
             <li>2. Request a backend challenge bound to your user and address.</li>
             <li>3. Sign it with your wallet or paste the signature manually.</li>
@@ -75,16 +75,16 @@ export function WalletsPage() {
                 : 'border border-cyan-400/20 bg-cyan-400/10'
           }`}
         >
-          <p className="text-sm leading-7 text-white">{feedback.text}</p>
+          <p className="text-sm leading-7 text-[var(--flowdex-text)]">{feedback.text}</p>
         </GlassPanel>
       ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <GlassPanel className="p-6">
           <div className="space-y-4">
-            <div className="text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">Link Wallet</div>
+            <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Link Wallet</div>
 
-            <div className="rounded-[1rem] border border-cyan-400/14 bg-cyan-400/8 px-4 py-3 text-sm text-cyan-50">
+            <div className="rounded-[1rem] border border-[var(--flowdex-accent-border)] bg-[var(--flowdex-accent-bg)] px-4 py-3 text-sm text-[var(--flowdex-text)]">
               EVM wallet mode is active. One verified wallet can now be used for both <span className="font-semibold">ETH</span> and <span className="font-semibold">USDT ERC20</span> purchase intents.
             </div>
 
@@ -92,7 +92,7 @@ export function WalletsPage() {
               value={address}
               onChange={event => setAddress(event.target.value)}
               placeholder="0x wallet address"
-              className="h-12 border-white/10 bg-white/5 text-white"
+              className="h-12 border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-text)]"
             />
 
             <Button
@@ -128,11 +128,11 @@ export function WalletsPage() {
             </Button>
 
             {activeChallengeId ? (
-              <div className="space-y-4 rounded-[1.25rem] border border-white/8 bg-white/4 p-4">
-                <div className="text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">Challenge Message</div>
-                <pre className="overflow-x-auto whitespace-pre-wrap text-sm leading-6 text-slate-200">{challengeMessage}</pre>
+              <div className="space-y-4 rounded-[1.25rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] p-4">
+                <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Challenge Message</div>
+                <pre className="overflow-x-auto whitespace-pre-wrap text-sm leading-6 text-[var(--flowdex-text)]">{challengeMessage}</pre>
                 {challengeExpiresAt ? (
-                  <div className="text-xs text-slate-400">
+                  <div className="text-xs text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)]">
                     This challenge expires at {new Date(challengeExpiresAt).toLocaleString()}.
                   </div>
                 ) : null}
@@ -167,7 +167,7 @@ export function WalletsPage() {
                   value={signature}
                   onChange={event => setSignature(event.target.value)}
                   placeholder="Paste wallet signature"
-                  className="h-12 border-white/10 bg-[#071423] text-white"
+                  className="h-12 border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-bg)_32%,var(--flowdex-card-bg))] text-[var(--flowdex-text)]"
                 />
 
                 <Button
@@ -212,7 +212,7 @@ export function WalletsPage() {
         </GlassPanel>
 
         <GlassPanel className="overflow-hidden">
-          <div className="border-b border-white/8 px-6 py-4 text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">
+          <div className="border-b border-[var(--flowdex-card-border)] px-6 py-4 text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
             Linked Wallets
           </div>
           <div>
@@ -225,11 +225,11 @@ export function WalletsPage() {
             {wallets.map(wallet => (
               <div
                 key={wallet.id}
-                className="flex flex-col gap-4 border-b border-white/6 px-6 py-5 last:border-b-0 md:flex-row md:items-center md:justify-between"
+                className="flex flex-col gap-4 border-b border-[var(--flowdex-card-border)] px-6 py-5 last:border-b-0 md:flex-row md:items-center md:justify-between"
               >
                 <div>
-                  <div className="font-semibold text-white">{wallet.chain}</div>
-                  <div className="mt-1 text-sm text-slate-400">{wallet.address}</div>
+                  <div className="font-semibold text-[var(--flowdex-text)]">{wallet.chain}</div>
+                  <div className="mt-1 text-sm text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)]">{wallet.address}</div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-sm text-cyan-200">{wallet.isPrimary ? 'Primary' : 'Linked'}</div>
@@ -261,12 +261,12 @@ export function WalletsPage() {
             ))}
 
             {walletsQuery.isLoading ? (
-              <div className="px-6 py-5 text-sm text-slate-300">Loading linked wallets...</div>
+              <div className="px-6 py-5 text-sm text-[var(--flowdex-muted)]">Loading linked wallets...</div>
             ) : null}
 
             {!walletsQuery.isLoading && wallets.length === 0 ? (
               <div className="space-y-4 px-6 py-5">
-                <p className="text-sm text-slate-300">
+                <p className="text-sm text-[var(--flowdex-muted)]">
                   No wallets linked yet. Create a challenge on the left to begin, then continue into the protected buy flow once verification completes.
                 </p>
                 <Button variant="glass" asChild>

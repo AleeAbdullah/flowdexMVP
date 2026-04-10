@@ -39,7 +39,7 @@ export function LegalHubPage() {
         >
           <div className="grid gap-4 md:grid-cols-2">
             {legalUpdateCards.map(card => (
-              <Card key={card.href} className="border-white/8 bg-white/4">
+              <Card key={card.href}>
                 <CardHeader>
                   <Badge variant="brand" className="w-fit gap-2">
                     <Scale className="h-3.5 w-3.5" />

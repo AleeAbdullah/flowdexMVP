@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowRightLeft, Coins, CreditCard, Layers3, ShieldCheck, Wallet } from 'lucide-react';
 import { usePresaleConfig, usePresaleStats, usePresaleTiers, usePricing } from '@/dal/market/hooks';
 import { Button } from '@/components/ui/button';
+import { HeroDitheringCard } from '@/components/ui/hero-dithering-card';
 import { Input } from '@/components/ui/input';
 import { DataKicker, GlassPanel, SectionHeading } from './primitives';
 import { formatCompact, formatCurrency, formatPercent, parseDecimal } from './utils';
@@ -61,20 +62,20 @@ export function BuyPage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <GlassPanel className="p-5">
-              <div className="text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">Current Price</div>
-              <div className="font-data mt-4 text-3xl text-white">
+              <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Current Price</div>
+              <div className="font-data mt-4 text-3xl text-[var(--flowdex-text)]">
                 {stats ? formatCurrency(stats.currentTokenPriceUsd, 3) : '$0.001'}
               </div>
-              <p className="mt-3 text-sm leading-7 text-slate-300">
+              <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">
                 Tier {stats?.currentTier ?? 1} is live and reflected directly from the backend presale stats.
               </p>
             </GlassPanel>
             <GlassPanel className="p-5">
-              <div className="text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">Display Raise</div>
-              <div className="font-data mt-4 text-3xl text-white">
+              <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Display Raise</div>
+              <div className="font-data mt-4 text-3xl text-[var(--flowdex-text)]">
                 {stats ? formatCurrency(stats.fundsRaisedDisplayUsd, 0) : '$0'}
               </div>
-              <p className="mt-3 text-sm leading-7 text-slate-300">
+              <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">
                 The 10x presentation multiplier is handled in the response layer, not the stored backend values.
               </p>
             </GlassPanel>
@@ -82,19 +83,19 @@ export function BuyPage() {
 
           <GlassPanel className="p-6">
             <div className="flex items-center gap-3">
-              <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/8 p-3 text-cyan-200">
+              <div className="rounded-2xl border border-[var(--flowdex-accent-border)] bg-[var(--flowdex-accent-bg)] p-3 text-[var(--flowdex-cyan)]">
                 <Layers3 className="h-5 w-5" />
               </div>
               <div>
-                <div className="text-lg font-bold text-white">Asset Showcase</div>
-                <p className="text-sm text-slate-300">Universal exchange positioning across crypto and TradFi-native surfaces.</p>
+                <div className="text-lg font-bold text-[var(--flowdex-text)]">Asset Showcase</div>
+                <p className="text-sm text-[var(--flowdex-muted)]">Universal exchange positioning across crypto and TradFi-native surfaces.</p>
               </div>
             </div>
             <div className="mt-5 flex flex-wrap gap-3">
               {showcaseAssets.map(asset => (
                 <span
                   key={asset}
-                  className="rounded-full border border-white/8 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-200"
+                  className="rounded-full border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] px-4 py-2 text-sm font-semibold text-[var(--flowdex-text)]"
                 >
                   {asset}
                 </span>
@@ -103,16 +104,16 @@ export function BuyPage() {
           </GlassPanel>
         </div>
 
-        <GlassPanel className="p-6 md:p-7">
+        <HeroDitheringCard className="h-fit p-6 md:p-7" contentClassName="space-y-0">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <div className="text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">Tier Progress</div>
-              <div className="mt-2 text-2xl font-black text-white">Tier {stats?.currentTier ?? 1}</div>
+              <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Tier Progress</div>
+              <div className="mt-2 text-2xl font-black text-[var(--flowdex-text)]">Tier {stats?.currentTier ?? 1}</div>
             </div>
             <div className="font-data text-cyan-200">{formatPercent(tierProgress || 0)}</div>
           </div>
 
-          <div className="mt-6 h-3 overflow-hidden rounded-full bg-white/7">
+          <div className="mt-6 h-3 overflow-hidden rounded-full bg-[var(--flowdex-track)]">
             <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-sky-500" style={{ width: `${tierProgress}%` }} />
           </div>
 
@@ -120,19 +121,19 @@ export function BuyPage() {
             {tiers.map(tier => {
               const isActive = tier.order === stats?.currentTier;
               return (
-                <div key={tier.id} className={`rounded-2xl border px-4 py-3 ${isActive ? 'border-cyan-400/35 bg-cyan-400/8' : 'border-white/8 bg-white/4'}`}>
+                <div key={tier.id} className={`rounded-2xl border px-4 py-3 ${isActive ? 'border-[var(--flowdex-cyan)] bg-[var(--flowdex-accent-bg)]' : 'border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)]'}`}>
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <div className="text-sm font-bold text-white">Tier {tier.order}</div>
-                      <div className="font-data mt-1 text-sm text-slate-300">{formatCurrency(tier.tokenPriceUsd, 3)}</div>
+                      <div className="text-sm font-bold text-[var(--flowdex-text)]">Tier {tier.order}</div>
+                      <div className="font-data mt-1 text-sm text-[var(--flowdex-muted)]">{formatCurrency(tier.tokenPriceUsd, 3)}</div>
                     </div>
-                    <div className="font-data text-xs text-slate-400">{formatCompact(tier.tokenCapReal, 1)}</div>
+                    <div className="font-data text-xs text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)]">{formatCompact(tier.tokenCapReal, 1)}</div>
                   </div>
                 </div>
               );
             })}
           </div>
-        </GlassPanel>
+        </HeroDitheringCard>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
@@ -143,7 +144,7 @@ export function BuyPage() {
                 key={option}
                 type="button"
                 onClick={() => setMode(option)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold capitalize ${mode === option ? 'bg-cyan-400 text-slate-950' : 'border border-white/8 bg-white/4 text-slate-300'}`}
+                className={`rounded-full px-4 py-2 text-sm font-semibold capitalize ${mode === option ? 'bg-cyan-400 text-slate-950' : 'border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-muted)]'}`}
               >
                 {option}
               </button>
@@ -161,7 +162,7 @@ export function BuyPage() {
                   key={option.key}
                   type="button"
                   onClick={() => setPaymentRail(option.key)}
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${paymentRail === option.key ? 'bg-white text-slate-950' : 'border border-white/8 bg-white/4 text-slate-300'}`}
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${paymentRail === option.key ? 'bg-[var(--flowdex-text)] text-[var(--flowdex-bg)]' : 'border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-muted)]'}`}
                 >
                   <Icon className="h-4 w-4" />
                   {option.label}
@@ -172,14 +173,14 @@ export function BuyPage() {
 
           <div className="mt-8 space-y-4">
             <div>
-              <div className="mb-2 text-xs font-semibold tracking-[0.24em] text-slate-500 uppercase">Accepted Assets</div>
+              <div className="mb-2 text-xs font-semibold tracking-[0.24em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Accepted Assets</div>
               <div className="flex flex-wrap gap-2">
                 {assets.map(asset => (
                   <button
                     key={asset.assetCode}
                     type="button"
                     onClick={() => setSelectedAssetCode(asset.assetCode)}
-                    className={`rounded-full px-4 py-2 text-sm font-semibold ${selectedAssetCode === asset.assetCode ? 'bg-cyan-400 text-slate-950' : 'border border-white/8 bg-white/4 text-slate-300'}`}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold ${selectedAssetCode === asset.assetCode ? 'bg-cyan-400 text-slate-950' : 'border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-muted)]'}`}
                   >
                     {asset.assetCode}
                   </button>
@@ -188,21 +189,21 @@ export function BuyPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-[1.25rem] border border-white/8 bg-[#071423] p-4">
-                <div className="text-[10px] font-bold tracking-[0.24em] text-slate-500 uppercase">You Pay</div>
+              <div className="rounded-[1.25rem] border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-bg)_32%,var(--flowdex-card-bg))] p-4">
+                <div className="text-[10px] font-bold tracking-[0.24em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">You Pay</div>
                 <Input
                   value={paymentAmount}
                   onChange={event => setPaymentAmount(event.target.value)}
                   inputMode="decimal"
-                  className="mt-4 h-14 border-0 bg-transparent px-0 text-3xl font-semibold text-white placeholder:text-slate-500"
+                  className="mt-4 h-14 border-0 bg-transparent px-0 text-3xl font-semibold text-[var(--flowdex-text)] placeholder:text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)]"
                 />
-                <div className="mt-3 text-sm text-slate-400">{selectedAsset?.assetCode ?? 'Select asset'}</div>
+                <div className="mt-3 text-sm text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)]">{selectedAsset?.assetCode ?? 'Select asset'}</div>
               </div>
 
-              <div className="rounded-[1.25rem] border border-white/8 bg-[#071423] p-4">
-                <div className="text-[10px] font-bold tracking-[0.24em] text-slate-500 uppercase">You Receive</div>
-                <div className="font-data mt-4 text-3xl text-white">{formatCompact(estimatedTokens, 2)}</div>
-                <div className="mt-3 text-sm text-slate-400">$FDN preview at current tier pricing</div>
+              <div className="rounded-[1.25rem] border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-bg)_32%,var(--flowdex-card-bg))] p-4">
+                <div className="text-[10px] font-bold tracking-[0.24em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">You Receive</div>
+                <div className="font-data mt-4 text-3xl text-[var(--flowdex-text)]">{formatCompact(estimatedTokens, 2)}</div>
+                <div className="mt-3 text-sm text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)]">$FDN preview at current tier pricing</div>
               </div>
             </div>
 
@@ -240,13 +241,13 @@ export function BuyPage() {
               return (
                 <GlassPanel key={multiplier} className="p-5">
                   <div className="flex items-center justify-between gap-4">
-                    <div className="text-lg font-bold text-white">{multiplier === 1 ? 'Listing' : `${multiplier}x Scenario`}</div>
-                    <div className="rounded-full border border-white/8 bg-white/6 px-3 py-1 text-xs font-semibold text-slate-300">
+                    <div className="text-lg font-bold text-[var(--flowdex-text)]">{multiplier === 1 ? 'Listing' : `${multiplier}x Scenario`}</div>
+                    <div className="rounded-full border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] px-3 py-1 text-xs font-semibold text-[var(--flowdex-muted)]">
                       {formatPercent(roi)}
                     </div>
                   </div>
                   <div className="font-data mt-4 text-2xl text-cyan-200">{formatCurrency(scenarioPrice, 3)}</div>
-                  <div className="mt-4 flex items-center gap-2 text-sm text-slate-300">
+                  <div className="mt-4 flex items-center gap-2 text-sm text-[var(--flowdex-muted)]">
                     <Coins className="h-4 w-4 text-cyan-300" />
                     Implied FDV {formatCurrency(fdv, 0)}
                   </div>
@@ -261,8 +262,8 @@ export function BuyPage() {
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <div className="text-lg font-bold text-white">Read-only by design for phase one</div>
-                <p className="mt-3 text-sm leading-7 text-slate-300">
+                <div className="text-lg font-bold text-[var(--flowdex-text)]">Read-only by design for phase one</div>
+                <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">
                   This page already consumes live pricing and presale config from the backend, but protected purchase actions stay deferred until the Better Auth BFF bridge is in place.
                 </p>
               </div>

@@ -30,13 +30,13 @@ export function AuthForm(props: {
           <FlowdexWordmark />
 
           <div className="space-y-3">
-            <div className="inline-flex rounded-full border border-cyan-400/20 bg-cyan-400/8 px-4 py-1 text-[10px] font-bold tracking-[0.32em] text-cyan-300 uppercase">
+            <div className="inline-flex rounded-full border border-[var(--flowdex-accent-border)] bg-[var(--flowdex-accent-bg)] px-4 py-1 text-[10px] font-bold tracking-[0.32em] text-[var(--flowdex-cyan)] uppercase">
               {isSignup ? 'Create Session' : 'Sign In'}
             </div>
-            <h1 className="text-4xl font-black tracking-tight text-white">
+            <h1 className="text-4xl font-black tracking-tight text-[var(--flowdex-text)]">
               {isSignup ? 'Enter the protected FlowDex surface.' : 'Resume your protected FlowDex session.'}
             </h1>
-            <p className="text-sm leading-7 text-slate-300">
+            <p className="text-sm leading-7 text-[var(--flowdex-muted)]">
               Email-first auth keeps the browser session in the frontend, while the backend only sees a short-lived internal transport token from the BFF.
             </p>
           </div>
@@ -71,37 +71,37 @@ export function AuthForm(props: {
           >
             {isSignup ? (
               <label className="block space-y-2">
-                <span className="text-xs font-semibold tracking-[0.24em] text-slate-500 uppercase">Display Name</span>
+                <span className="text-xs font-semibold tracking-[0.24em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Display Name</span>
                 <Input
                   value={name}
                   onChange={event => setName(event.target.value)}
                   placeholder="FlowDex operator"
-                  className="h-12 border-white/10 bg-white/5 text-white"
+                  className="h-12 border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-text)]"
                   required
                 />
               </label>
             ) : null}
 
             <label className="block space-y-2">
-              <span className="text-xs font-semibold tracking-[0.24em] text-slate-500 uppercase">Email</span>
+              <span className="text-xs font-semibold tracking-[0.24em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Email</span>
               <Input
                 type="email"
                 value={email}
                 onChange={event => setEmail(event.target.value)}
                 placeholder="operator@flowdex.io"
-                className="h-12 border-white/10 bg-white/5 text-white"
+                className="h-12 border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-text)]"
                 required
               />
             </label>
 
             <label className="block space-y-2">
-              <span className="text-xs font-semibold tracking-[0.24em] text-slate-500 uppercase">Password</span>
+              <span className="text-xs font-semibold tracking-[0.24em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Password</span>
               <Input
                 type="password"
                 value={password}
                 onChange={event => setPassword(event.target.value)}
                 placeholder="Minimum 8 characters"
-                className="h-12 border-white/10 bg-white/5 text-white"
+                className="h-12 border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-text)]"
                 minLength={8}
                 required
               />
@@ -120,31 +120,31 @@ export function AuthForm(props: {
           </form>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-white">
+            <div className="rounded-2xl border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[var(--flowdex-text)]">
                 <Mail className="h-4 w-4 text-cyan-300" />
                 Email-first access
               </div>
-              <p className="mt-2 text-sm leading-6 text-slate-300">
+              <p className="mt-2 text-sm leading-6 text-[var(--flowdex-muted)]">
                 Wallet linking happens after login, so the account surface can own chain-specific flows deliberately.
               </p>
             </div>
-            <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-white">
+            <div className="rounded-2xl border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[var(--flowdex-text)]">
                 <ShieldCheck className="h-4 w-4 text-cyan-300" />
                 BFF transport token
               </div>
-              <p className="mt-2 text-sm leading-6 text-slate-300">
+              <p className="mt-2 text-sm leading-6 text-[var(--flowdex-muted)]">
                 The browser never sends the Nest internal JWT directly. Next.js signs that token only on the server.
               </p>
             </div>
           </div>
 
-          <div className="text-sm text-slate-300">
+          <div className="text-sm text-[var(--flowdex-muted)]">
             {isSignup ? 'Already have an account?' : 'Need an account?'}{' '}
             <Link
               href={isSignup ? '/login' : '/signup'}
-              className="font-semibold text-cyan-200 hover:text-white"
+              className="font-semibold text-[var(--flowdex-cyan)] hover:text-[var(--flowdex-text)]"
             >
               {isSignup ? 'Log in here' : 'Create one here'}
             </Link>

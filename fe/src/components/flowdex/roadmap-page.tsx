@@ -53,7 +53,7 @@ export function RoadmapPage() {
         >
           <div className="grid gap-4">
             {marketingRoadmap.map((item, index) => (
-              <Card key={item.phase} className="border-white/8 bg-white/4">
+              <Card key={item.phase}>
                 <CardHeader className="md:flex-row md:items-start md:justify-between">
                   <div>
                     <div className="text-[10px] font-bold tracking-[0.28em] text-cyan-300 uppercase">
@@ -61,10 +61,10 @@ export function RoadmapPage() {
                     </div>
                     <CardTitle className="mt-3">{item.title}</CardTitle>
                   </div>
-                  <div className="font-data text-4xl text-slate-600">0{index + 1}</div>
+                  <div className="font-data text-4xl text-[color-mix(in_srgb,var(--flowdex-text)_28%,transparent)]">0{index + 1}</div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm leading-8 text-slate-300">{item.body}</p>
+                  <p className="text-sm leading-8 text-[var(--flowdex-muted)]">{item.body}</p>
                 </CardContent>
               </Card>
             ))}

@@ -38,7 +38,7 @@ export function SectionHeading(props: {
 }) {
   return (
     <div className={cn('max-w-3xl space-y-4', props.align === 'center' && 'mx-auto text-center')}>
-      <div className="inline-flex rounded-full border border-cyan-400/20 bg-cyan-400/8 px-4 py-1 text-[10px] font-bold tracking-[0.35em] text-cyan-300 uppercase">
+      <div className="inline-flex rounded-full border border-[var(--flowdex-accent-border)] bg-[var(--flowdex-accent-bg)] px-4 py-1 text-[10px] font-bold tracking-[0.35em] text-[var(--flowdex-cyan)] uppercase">
         {props.eyebrow}
       </div>
       <h2 className="font-heading text-balance text-3xl font-bold tracking-tight text-[var(--flowdex-text)] md:text-5xl">
@@ -58,7 +58,7 @@ export function DataKicker(props: {
 }) {
   return (
     <div className={cn('space-y-2', props.className)}>
-      <div className="text-[10px] font-semibold tracking-[0.32em] text-slate-400 uppercase">
+      <div className="text-[10px] font-semibold tracking-[0.32em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
         {props.label}
       </div>
       <div className="font-data text-xl font-semibold text-[var(--flowdex-text)] md:text-2xl">{props.value}</div>

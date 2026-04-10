@@ -39,7 +39,7 @@ const NavigationMenuTrigger = React.forwardRef<
   <NavigationMenuPrimitive.Trigger
     ref={ref}
     className={cn(
-      'group inline-flex h-10 w-max items-center justify-center rounded-full border border-white/8 bg-white/4 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:border-cyan-400/35 hover:text-white focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=open]:border-cyan-400/35 data-[state=open]:bg-white/8',
+      'group inline-flex h-10 w-max items-center justify-center rounded-full border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] px-4 py-2 text-sm font-semibold text-[var(--flowdex-text)] transition-colors hover:border-[var(--flowdex-cyan)] hover:text-[var(--flowdex-cyan)] focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=open]:border-[var(--flowdex-cyan)] data-[state=open]:bg-[var(--flowdex-accent-bg)]',
       className,
     )}
     {...props}
@@ -75,7 +75,7 @@ const NavigationMenuViewport = React.forwardRef<
     <NavigationMenuPrimitive.Viewport
       ref={ref}
       className={cn(
-        'relative mt-3 h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07101b]/96 text-slate-100 shadow-[0_24px_90px_rgba(0,0,0,0.45)] backdrop-blur-2xl data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:zoom-in-95 md:w-[var(--radix-navigation-menu-viewport-width)]',
+        'relative mt-3 h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-[1.35rem] border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-bg)_92%,transparent)] text-[var(--flowdex-text)] shadow-[0_24px_90px_rgba(0,0,0,0.22)] backdrop-blur-2xl data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:zoom-in-95 md:w-[var(--radix-navigation-menu-viewport-width)]',
         className,
       )}
       {...props}

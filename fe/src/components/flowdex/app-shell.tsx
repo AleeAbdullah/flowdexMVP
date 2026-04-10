@@ -64,7 +64,7 @@ export function AppShell({
                   <Link
                     key={item.href}
                     href={href}
-                    className={`rounded-full px-4 py-2 text-sm font-semibold ${isActive ? 'bg-cyan-400 text-slate-950' : 'border border-white/8 bg-white/4 text-slate-300 hover:text-white'}`}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold ${isActive ? 'bg-cyan-400 text-slate-950' : 'border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-muted)] hover:text-[var(--flowdex-text)]'}`}
                   >
                     {item.label}
                   </Link>
@@ -72,11 +72,11 @@ export function AppShell({
               })}
             </nav>
             <div className="flex flex-wrap items-center gap-3">
-              <div className="rounded-full border border-white/8 bg-white/4 px-4 py-2 text-sm text-slate-300">
-                <span className="font-semibold text-white">{profile.email}</span>
-                <span className="mx-2 text-slate-500">•</span>
+              <div className="rounded-full border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] px-4 py-2 text-sm text-[var(--flowdex-muted)]">
+                <span className="font-semibold text-[var(--flowdex-text)]">{profile.email}</span>
+                <span className="mx-2 text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)]">•</span>
                 <span>{profile.role}</span>
-                <span className="mx-2 text-slate-500">•</span>
+                <span className="mx-2 text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)]">•</span>
                 <span>{profile.wallets.length} wallets</span>
               </div>
               <SignOutButton />
@@ -90,7 +90,7 @@ export function AppShell({
               <Coins className="h-5 w-5" />
               <span className="text-xs font-semibold tracking-[0.22em] uppercase">Presale Price</span>
             </div>
-            <div className="font-data mt-4 text-2xl text-white">
+            <div className="font-data mt-4 text-2xl text-[var(--flowdex-text)]">
               {stats ? formatCurrency(stats.currentTokenPriceUsd, 3) : '$0.001'}
             </div>
           </GlassPanel>
@@ -99,7 +99,7 @@ export function AppShell({
               <BarChart3 className="h-5 w-5" />
               <span className="text-xs font-semibold tracking-[0.22em] uppercase">Display Raise</span>
             </div>
-            <div className="font-data mt-4 text-2xl text-white">
+            <div className="font-data mt-4 text-2xl text-[var(--flowdex-text)]">
               {stats ? formatCurrency(stats.fundsRaisedDisplayUsd, 0) : '$0'}
             </div>
           </GlassPanel>
@@ -108,14 +108,14 @@ export function AppShell({
               <Layers3 className="h-5 w-5" />
               <span className="text-xs font-semibold tracking-[0.22em] uppercase">Accepted Assets</span>
             </div>
-            <div className="font-data mt-4 text-2xl text-white">{config?.supportedAssets.length ?? 0}</div>
+            <div className="font-data mt-4 text-2xl text-[var(--flowdex-text)]">{config?.supportedAssets.length ?? 0}</div>
           </GlassPanel>
           <GlassPanel className="p-5">
             <div className="flex items-center gap-3 text-cyan-200">
               <ShieldCheck className="h-5 w-5" />
               <span className="text-xs font-semibold tracking-[0.22em] uppercase">Flow Status</span>
             </div>
-            <div className="mt-4 text-lg font-bold text-white">
+            <div className="mt-4 text-lg font-bold text-[var(--flowdex-text)]">
               {profile.wallets.length > 0 ? 'Ready for protected flows' : 'Link a wallet to continue'}
             </div>
           </GlassPanel>

@@ -101,19 +101,19 @@ export function ProtectedBuyPage() {
                 : 'border border-cyan-400/20 bg-cyan-400/10'
           }`}
         >
-          <p className="text-sm leading-7 text-white">{feedback.text}</p>
+          <p className="text-sm leading-7 text-[var(--flowdex-text)]">{feedback.text}</p>
         </GlassPanel>
       ) : null}
 
       {isBootstrapping ? (
-        <GlassPanel className="p-6 text-sm text-slate-300">
+        <GlassPanel className="p-6 text-sm text-[var(--flowdex-muted)]">
           Loading protected buy rails, pricing, and linked wallet readiness...
         </GlassPanel>
       ) : null}
 
       {!isBootstrapping && bootError ? (
         <GlassPanel className="border border-rose-400/20 bg-rose-500/10 p-6">
-          <div className="text-lg font-bold text-white">Protected buy is unavailable right now</div>
+          <div className="text-lg font-bold text-[var(--flowdex-text)]">Protected buy is unavailable right now</div>
           <p className="mt-3 text-sm leading-7 text-rose-100">
             {bootError instanceof Error ? bootError.message : 'The app could not load the required backend data.'}
           </p>
@@ -123,12 +123,12 @@ export function ProtectedBuyPage() {
       {!isBootstrapping && !bootError && wallets.length === 0 ? (
         <GlassPanel className="p-6">
           <div className="flex items-start gap-4">
-            <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-3 text-cyan-200">
-              <Wallet className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="text-lg font-bold text-white">No linked wallet yet</div>
-              <p className="mt-3 text-sm leading-7 text-slate-300">
+              <div className="rounded-2xl border border-[var(--flowdex-accent-border)] bg-[var(--flowdex-accent-bg)] p-3 text-[var(--flowdex-cyan)]">
+                <Wallet className="h-5 w-5" />
+              </div>
+              <div>
+              <div className="text-lg font-bold text-[var(--flowdex-text)]">No linked wallet yet</div>
+              <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">
                 The protected buy flow depends on a verified wallet. Link one first, then return here to generate a purchase intent.
               </p>
               <Button className="mt-4" variant="brand" asChild>
@@ -141,14 +141,14 @@ export function ProtectedBuyPage() {
         <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
           <GlassPanel className="p-6">
             <div className="space-y-4">
-              <div className="text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">Create Purchase Intent</div>
+              <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Create Purchase Intent</div>
 
               <label className="block space-y-2">
-                <span className="text-xs font-semibold tracking-[0.24em] text-slate-500 uppercase">Wallet</span>
+                <span className="text-xs font-semibold tracking-[0.24em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Wallet</span>
                 <select
                   value={walletId}
                   onChange={event => setWalletId(event.target.value)}
-                  className="h-12 w-full rounded-md border border-white/10 bg-white/5 px-3 text-white"
+                  className="h-12 w-full rounded-md border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] px-3 text-[var(--flowdex-text)]"
                 >
                   {wallets.map(wallet => (
                     <option key={wallet.id} value={wallet.id}>
@@ -159,14 +159,14 @@ export function ProtectedBuyPage() {
               </label>
 
               <label className="block space-y-2">
-                <span className="text-xs font-semibold tracking-[0.24em] text-slate-500 uppercase">Payment Asset</span>
+                <span className="text-xs font-semibold tracking-[0.24em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Payment Asset</span>
                 <div className="flex flex-wrap gap-2">
                   {supportedAssets.map(asset => (
                     <button
                       key={asset.assetCode}
                       type="button"
                       onClick={() => setAssetCode(asset.assetCode)}
-                      className={`rounded-full px-4 py-2 text-sm font-semibold ${assetCode === asset.assetCode ? 'bg-cyan-400 text-slate-950' : 'border border-white/8 bg-white/4 text-slate-300'}`}
+                      className={`rounded-full px-4 py-2 text-sm font-semibold ${assetCode === asset.assetCode ? 'bg-cyan-400 text-slate-950' : 'border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-muted)]'}`}
                     >
                       {asset.assetCode}
                     </button>
@@ -175,12 +175,12 @@ export function ProtectedBuyPage() {
               </label>
 
               <label className="block space-y-2">
-                <span className="text-xs font-semibold tracking-[0.24em] text-slate-500 uppercase">Amount</span>
+                <span className="text-xs font-semibold tracking-[0.24em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Amount</span>
                 <Input
                   value={paymentAmount}
                   onChange={event => setPaymentAmount(event.target.value)}
                   inputMode="decimal"
-                  className="h-12 border-white/10 bg-white/5 text-white"
+                  className="h-12 border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-text)]"
                 />
               </label>
 
@@ -201,7 +201,7 @@ export function ProtectedBuyPage() {
               </div>
 
               {amountValidationMessage ? (
-                <div className="rounded-[1rem] border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+                <div className="rounded-[1rem] border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-700">
                   {amountValidationMessage}
                 </div>
               ) : null}
@@ -260,7 +260,7 @@ export function ProtectedBuyPage() {
                   <DataKicker label="Intent ID" value={createIntentMutation.data.intentId.slice(0, 8)} />
                   <DataKicker label="Tier" value={`Tier ${createIntentMutation.data.currentTier}`} />
                   <div className="space-y-2">
-                    <div className="text-[10px] font-semibold tracking-[0.32em] text-slate-400 uppercase">Lifecycle</div>
+                    <div className="text-[10px] font-semibold tracking-[0.32em] text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)] uppercase">Lifecycle</div>
                     <StatusPill status={activeTransaction?.status ?? 'PENDING'} />
                   </div>
                   <DataKicker label="Confirmations" value={`${activeTransaction?.confirmations ?? 0}`} />
@@ -288,16 +288,16 @@ export function ProtectedBuyPage() {
                   </div>
                 ) : null}
 
-                <div className="rounded-[1.25rem] border border-white/8 bg-white/4 p-4">
-                  <div className="text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">Optional tx hint</div>
-                  <p className="mt-3 text-sm leading-7 text-slate-300">
+                <div className="rounded-[1.25rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] p-4">
+                  <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Optional tx hint</div>
+                  <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">
                     Once funds are sent, report the chain hash here to help the backend find and verify the transfer faster. Reporting a hash does not confirm the transaction by itself.
                   </p>
                   <Input
                     value={reportedTxHash}
                     onChange={event => setReportedTxHash(event.target.value)}
                     placeholder="Paste transaction hash"
-                    className="mt-4 h-12 border-white/10 bg-[#071423] text-white"
+                    className="mt-4 h-12 border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-bg)_32%,var(--flowdex-card-bg))] text-[var(--flowdex-text)]"
                   />
                   <Button
                     variant="glass"
@@ -348,11 +348,11 @@ export function ProtectedBuyPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-white">
+                <div className="flex items-center gap-2 text-[var(--flowdex-text)]">
                   <Coins className="h-5 w-5 text-cyan-300" />
                   <span className="font-semibold">Execution will appear here</span>
                 </div>
-                <p className="text-sm leading-7 text-slate-300">
+                <p className="text-sm leading-7 text-[var(--flowdex-muted)]">
                   Once a purchase intent is created, this panel will show the payment address, quoted prices, preview token allocation, and optional transaction reporting flow.
                 </p>
               </div>

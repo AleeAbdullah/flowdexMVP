@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { HeroDitheringCard } from '@/components/ui/hero-dithering-card';
 import { cn } from '@/lib/utils';
 import { GlassPanel, SectionHeading } from './primitives';
 
@@ -24,16 +25,16 @@ export function MarketingPageHero(props: {
       </div>
 
       {props.meta?.length ? (
-        <GlassPanel className="grid gap-4 p-6 md:grid-cols-2">
+        <HeroDitheringCard className="grid gap-4 p-6 md:grid-cols-2" contentClassName="grid gap-4 md:grid-cols-2">
           {props.meta.map(item => (
             <div key={item.label} className="space-y-2">
-              <div className="text-[10px] font-bold tracking-[0.3em] text-slate-500 uppercase">
+              <div className="text-[10px] font-bold tracking-[0.3em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
                 {item.label}
               </div>
-              <div className="font-data text-lg text-white">{item.value}</div>
+              <div className="font-data text-lg text-[var(--flowdex-text)]">{item.value}</div>
             </div>
           ))}
-        </GlassPanel>
+        </HeroDitheringCard>
       ) : null}
     </section>
   );
@@ -52,7 +53,7 @@ export function MarketingContentShell(props: {
       <div className="space-y-8">{props.children}</div>
       <div className="lg:block">
         <GlassPanel className="sticky top-24 hidden p-5 lg:block">
-          <div className="text-[10px] font-bold tracking-[0.32em] text-slate-500 uppercase">
+          <div className="text-[10px] font-bold tracking-[0.32em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
             On This Page
           </div>
           <div className="mt-4 space-y-3">
@@ -60,7 +61,7 @@ export function MarketingContentShell(props: {
               <Link
                 key={item.id}
                 href={`#${item.id}`}
-                className="block text-sm font-medium text-slate-300 hover:text-cyan-200"
+                className="block text-sm font-medium text-[var(--flowdex-muted)] hover:text-[var(--flowdex-cyan)]"
               >
                 {item.label}
               </Link>
@@ -96,7 +97,7 @@ export function MarketingBody(props: {
   className?: string;
 }) {
   return (
-    <div className={cn('space-y-4 text-sm leading-8 text-slate-300 md:text-[15px]', props.className)}>
+    <div className={cn('space-y-4 text-sm leading-8 text-[var(--flowdex-muted)] md:text-[15px]', props.className)}>
       {props.children}
     </div>
   );
@@ -111,7 +112,7 @@ export function MarketingBulletList(props: {
       {props.items.map(item => (
         <div
           key={item}
-          className="rounded-[1rem] border border-white/8 bg-white/4 px-4 py-3 text-sm leading-7 text-slate-200"
+          className="rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] px-4 py-3 text-sm leading-7 text-[var(--flowdex-text)]"
         >
           {item}
         </div>
@@ -128,13 +129,13 @@ export function MarketingStatsGrid(props: {
       {props.items.map(item => (
         <div
           key={item.label}
-          className="rounded-[1.15rem] border border-white/8 bg-white/4 p-5"
+          className="rounded-[1.15rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] p-5"
         >
-          <div className="text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">
+          <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
             {item.label}
           </div>
-          <div className="font-data mt-3 text-2xl text-white">{item.value}</div>
-          {item.note ? <p className="mt-3 text-sm leading-7 text-slate-300">{item.note}</p> : null}
+          <div className="font-data mt-3 text-2xl text-[var(--flowdex-text)]">{item.value}</div>
+          {item.note ? <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">{item.note}</p> : null}
         </div>
       ))}
     </div>
@@ -147,16 +148,16 @@ export function MarketingComparisonTable(props: {
 }) {
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full border-separate border-spacing-0 overflow-hidden rounded-[1.15rem] border border-white/8 bg-white/4">
+      <table className="min-w-full border-separate border-spacing-0 overflow-hidden rounded-[1.15rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)]">
         <thead>
-          <tr className="bg-white/5">
-            <th className="px-4 py-4 text-left text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase">
+          <tr className="bg-[var(--flowdex-accent-bg)]">
+            <th className="px-4 py-4 text-left text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
               Dimension
             </th>
             {props.columns.map(column => (
               <th
                 key={column}
-                className="px-4 py-4 text-left text-[10px] font-bold tracking-[0.28em] text-slate-500 uppercase"
+                className="px-4 py-4 text-left text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase"
               >
                 {column}
               </th>
@@ -165,10 +166,10 @@ export function MarketingComparisonTable(props: {
         </thead>
         <tbody>
           {props.rows.map(row => (
-            <tr key={row.label} className="border-t border-white/6">
-              <td className="px-4 py-4 text-sm font-semibold text-white">{row.label}</td>
+            <tr key={row.label} className="border-t border-[var(--flowdex-card-border)]">
+              <td className="px-4 py-4 text-sm font-semibold text-[var(--flowdex-text)]">{row.label}</td>
               {row.values.map((value, index) => (
-                <td key={`${row.label}-${props.columns[index]}`} className="px-4 py-4 text-sm leading-7 text-slate-300">
+                <td key={`${row.label}-${props.columns[index]}`} className="px-4 py-4 text-sm leading-7 text-[var(--flowdex-muted)]">
                   {value}
                 </td>
               ))}
@@ -192,11 +193,11 @@ export function MarketingCtaBand(props: {
     <GlassPanel className="section-shell mt-8 p-6 md:p-8">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-3xl">
-          <div className="text-[10px] font-bold tracking-[0.28em] text-cyan-300 uppercase">Next Step</div>
-          <div className="mt-3 text-2xl font-black tracking-tight text-white md:text-4xl">
+          <div className="text-[10px] font-bold tracking-[0.28em] text-[var(--flowdex-cyan)] uppercase">Next Step</div>
+          <div className="mt-3 text-2xl font-black tracking-tight text-[var(--flowdex-text)] md:text-4xl">
             {props.title}
           </div>
-          <p className="mt-4 text-sm leading-8 text-slate-300 md:text-base">
+          <p className="mt-4 text-sm leading-8 text-[var(--flowdex-muted)] md:text-base">
             {props.body}
           </p>
         </div>
@@ -224,9 +225,9 @@ export function LegalDocumentSection(props: {
   paragraphs: string[];
 }) {
   return (
-    <section id={props.id} className="scroll-mt-28 rounded-[1.15rem] border border-white/8 bg-white/4 p-6 md:p-8">
-      <h2 className="text-xl font-bold text-white md:text-2xl">{props.title}</h2>
-      <div className="mt-4 space-y-4 text-sm leading-8 text-slate-300">
+    <section id={props.id} className="scroll-mt-28 rounded-[1.15rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] p-6 md:p-8">
+      <h2 className="text-xl font-bold text-[var(--flowdex-text)] md:text-2xl">{props.title}</h2>
+      <div className="mt-4 space-y-4 text-sm leading-8 text-[var(--flowdex-muted)]">
         {props.paragraphs.map(paragraph => (
           <p key={paragraph}>{paragraph}</p>
         ))}
@@ -244,13 +245,13 @@ export function UpdateCard(props: {
   return (
     <GlassPanel className="h-full p-6">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[10px] font-bold tracking-[0.24em] text-cyan-200 uppercase">
+        <span className="rounded-full border border-[var(--flowdex-accent-border)] bg-[var(--flowdex-accent-bg)] px-3 py-1 text-[10px] font-bold tracking-[0.24em] text-[var(--flowdex-cyan)] uppercase">
           {props.category}
         </span>
-        <span className="text-xs text-slate-400">{props.date}</span>
+        <span className="text-xs text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)]">{props.date}</span>
       </div>
-      <h3 className="mt-5 text-xl font-bold text-white">{props.title}</h3>
-      <p className="mt-4 text-sm leading-8 text-slate-300">{props.summary}</p>
+      <h3 className="mt-5 text-xl font-bold text-[var(--flowdex-text)]">{props.title}</h3>
+      <p className="mt-4 text-sm leading-8 text-[var(--flowdex-muted)]">{props.summary}</p>
     </GlassPanel>
   );
 }
