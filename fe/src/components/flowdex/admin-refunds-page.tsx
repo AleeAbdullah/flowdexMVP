@@ -62,14 +62,14 @@ export function AdminRefundsPage() {
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <GlassPanel className="p-6">
           <div className="space-y-4">
-            <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Create Refund</div>
+            <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">Create Refund</div>
 
             <label className="block space-y-2">
-              <span className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Eligible Transaction</span>
+              <span className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">Eligible Transaction</span>
               <select
                 value={purchaseIntentId}
                 onChange={event => hydrateFromSelection(event.target.value)}
-                className="h-12 w-full rounded-md border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] px-3 text-[var(--flowdex-text)]"
+                className="h-12 w-full rounded-md border border-[var(--card-border)] bg-[var(--card-bg)] px-3 text-[var(--text)]"
               >
                 <option value="">Select a confirmed transaction</option>
                 {eligibleTransactions.map(transaction => (
@@ -81,29 +81,29 @@ export function AdminRefundsPage() {
             </label>
 
             <label className="block space-y-2">
-              <span className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Refund Amount</span>
+              <span className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">Refund Amount</span>
               <Input
                 value={refundAmount}
                 onChange={event => setRefundAmount(event.target.value)}
-                className="h-12 border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-text)]"
+                className="h-12 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
               />
             </label>
 
             <label className="block space-y-2">
-              <span className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Destination Address</span>
+              <span className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">Destination Address</span>
               <Input
                 value={destinationAddress}
                 onChange={event => setDestinationAddress(event.target.value)}
-                className="h-12 border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-text)]"
+                className="h-12 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
               />
             </label>
 
             <label className="block space-y-2">
-              <span className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Reason</span>
+              <span className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">Reason</span>
               <Input
                 value={reason}
                 onChange={event => setReason(event.target.value)}
-                className="h-12 border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-text)]"
+                className="h-12 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
               />
             </label>
 
@@ -131,12 +131,12 @@ export function AdminRefundsPage() {
         </GlassPanel>
 
         <GlassPanel className="overflow-hidden">
-          <div className="border-b border-[var(--flowdex-card-border)] px-6 py-4 text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
+          <div className="border-b border-[var(--card-border)] px-6 py-4 text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
             Refund Records
           </div>
           <div>
             {refundsQuery.isLoading ? (
-              <div className="px-6 py-5 text-sm text-[var(--flowdex-muted)]">Loading refund records...</div>
+              <div className="px-6 py-5 text-sm text-[var(--muted)]">Loading refund records...</div>
             ) : null}
             {refundsQuery.isError ? (
               <div className="px-6 py-5 text-sm text-rose-200">
@@ -144,22 +144,22 @@ export function AdminRefundsPage() {
               </div>
             ) : null}
             {!refundsQuery.isLoading && (refundsQuery.data?.items.length ?? 0) === 0 ? (
-              <div className="px-6 py-5 text-sm text-[var(--flowdex-muted)]">
+              <div className="px-6 py-5 text-sm text-[var(--muted)]">
                 No refund records exist yet.
               </div>
             ) : null}
             {(refundsQuery.data?.items ?? []).map(refund => (
               <div
                 key={refund.id}
-                className="flex flex-col gap-4 border-b border-[var(--flowdex-card-border)] px-6 py-5 last:border-b-0 xl:flex-row xl:items-center xl:justify-between"
+                className="flex flex-col gap-4 border-b border-[var(--card-border)] px-6 py-5 last:border-b-0 xl:flex-row xl:items-center xl:justify-between"
               >
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
-                    <div className="font-semibold text-[var(--flowdex-text)]">{truncateMiddle(refund.purchaseIntentId)}</div>
+                    <div className="font-semibold text-[var(--text)]">{truncateMiddle(refund.purchaseIntentId)}</div>
                     <StatusPill status={refund.status} />
                   </div>
-                  <div className="text-sm text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)]">Destination {truncateMiddle(refund.destinationAddress)}</div>
-                  <div className="text-sm text-[color-mix(in_srgb,var(--flowdex-text)_40%,transparent)]">{refund.reason}</div>
+                  <div className="text-sm text-[color-mix(in_srgb,var(--text)_45%,transparent)]">Destination {truncateMiddle(refund.destinationAddress)}</div>
+                  <div className="text-sm text-[color-mix(in_srgb,var(--text)_40%,transparent)]">{refund.reason}</div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-3 xl:min-w-[30rem]">
                   <Metric label="Amount" value={formatPlainNumber(refund.refundAmount, 6)} />
@@ -181,8 +181,8 @@ function Metric(props: {
 }) {
   return (
     <div className="space-y-2">
-      <div className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">{props.label}</div>
-      <div className="font-data text-base text-[var(--flowdex-text)]">{props.value}</div>
+      <div className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">{props.label}</div>
+      <div className="font-data text-base text-[var(--text)]">{props.value}</div>
     </div>
   );
 }

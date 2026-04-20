@@ -86,12 +86,12 @@ export function AdminTransactionsPage() {
       </GlassPanel>
 
       <GlassPanel className="overflow-hidden">
-        <div className="border-b border-[var(--flowdex-card-border)] px-6 py-4 text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
+        <div className="border-b border-[var(--card-border)] px-6 py-4 text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
           Operational Transaction List
         </div>
         <div>
           {query.isLoading ? (
-            <div className="px-6 py-5 text-sm text-[var(--flowdex-muted)]">Loading admin transactions...</div>
+            <div className="px-6 py-5 text-sm text-[var(--muted)]">Loading admin transactions...</div>
           ) : null}
           {query.isError ? (
             <div className="px-6 py-5 text-sm text-rose-200">
@@ -99,24 +99,24 @@ export function AdminTransactionsPage() {
             </div>
           ) : null}
           {!query.isLoading && items.length === 0 ? (
-            <div className="px-6 py-5 text-sm text-[var(--flowdex-muted)]">
+            <div className="px-6 py-5 text-sm text-[var(--muted)]">
               No transactions matched the current filter set.
             </div>
           ) : null}
           {items.map(item => (
             <div
               key={item.id}
-              className="flex flex-col gap-4 border-b border-[var(--flowdex-card-border)] px-6 py-5 last:border-b-0 xl:flex-row xl:items-center xl:justify-between"
+              className="flex flex-col gap-4 border-b border-[var(--card-border)] px-6 py-5 last:border-b-0 xl:flex-row xl:items-center xl:justify-between"
             >
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-3">
-                  <div className="font-semibold text-[var(--flowdex-text)]">{item.assetCode} on {item.chain}</div>
+                  <div className="font-semibold text-[var(--text)]">{item.assetCode} on {item.chain}</div>
                   <StatusPill status={item.status} />
                 </div>
-                <div className="text-sm text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)]">
+                <div className="text-sm text-[color-mix(in_srgb,var(--text)_45%,transparent)]">
                   User {item.userId} • Wallet {item.walletAddress ? truncateMiddle(item.walletAddress) : 'Unavailable'}
                 </div>
-                <div className="text-sm text-[color-mix(in_srgb,var(--flowdex-text)_40%,transparent)]">
+                <div className="text-sm text-[color-mix(in_srgb,var(--text)_40%,transparent)]">
                   {item.matchedTxHash
                     ? `Matched ${truncateMiddle(item.matchedTxHash)}`
                     : item.reportedTxHash
@@ -157,13 +157,13 @@ function InputField(props: {
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">{props.label}</span>
+      <span className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">{props.label}</span>
       <Input
         type={props.type}
         value={props.value}
         onChange={event => props.onChange(event.target.value)}
         placeholder={props.placeholder}
-        className="h-12 border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-text)]"
+        className="h-12 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
       />
     </label>
   );
@@ -175,8 +175,8 @@ function FilterMetric(props: {
 }) {
   return (
     <div className="space-y-2">
-      <div className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">{props.label}</div>
-      <div className="font-data text-base text-[var(--flowdex-text)]">{props.value}</div>
+      <div className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">{props.label}</div>
+      <div className="font-data text-base text-[var(--text)]">{props.value}</div>
     </div>
   );
 }

@@ -174,35 +174,35 @@ export function BuyPage() {
   return (
     <TooltipProvider delayDuration={120}>
       <div className="section-shell section-pad space-y-6 md:space-y-8">
-        <Card className="buy-page-hero overflow-hidden border-[color-mix(in_srgb,var(--flowdex-cyan)_20%,var(--flowdex-card-border))]">
+        <Card className="buy-page-hero overflow-hidden border-[color-mix(in_srgb,var(--cyan)_20%,var(--card-border))]">
           <CardContent className="space-y-6 p-5 md:p-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-3">
-                  <Badge variant="brand" className="gap-2 text-[var(--flowdex-cyan)]">
-                    <span className="h-2 w-2 rounded-full bg-[var(--flowdex-green)] shadow-[0_0_12px_var(--flowdex-green)]" />
+                  <Badge variant="brand" className="gap-2 text-[var(--cyan)]">
+                    <span className="h-2 w-2 rounded-full bg-[var(--green)] shadow-[0_0_12px_var(--green)]" />
                     Tier {PRESALE.currentTier} Live
                   </Badge>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        className="inline-flex items-center gap-2 rounded-full border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] px-3 py-1 text-[10px] font-bold tracking-[0.24em] uppercase text-[color-mix(in_srgb,var(--flowdex-text)_72%,transparent)]"
+                        className="inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] px-3 py-1 text-[10px] font-bold tracking-[0.24em] uppercase text-[color-mix(in_srgb,var(--text)_72%,transparent)]"
                       >
                         <Info className="h-3.5 w-3.5" />
                         sample allocation
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent className="border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] text-[var(--flowdex-text)]">
+                    <TooltipContent className="border-[var(--card-border)] bg-[var(--bg-2)] text-[var(--text)]">
                       Portfolio, leaderboard, staking, and referral values are shown as launch-page samples.
                     </TooltipContent>
                   </Tooltip>
                 </div>
                 <div className="space-y-2">
-                  <h1 className="font-heading text-3xl font-black tracking-tight text-[var(--flowdex-text)] md:text-5xl">
+                  <h1 className="font-heading text-3xl font-black tracking-tight text-[var(--text)] md:text-5xl">
                     Buy into the presale dashboard, not a placeholder landing page.
                   </h1>
-                  <p className="max-w-3xl text-sm leading-7 text-[color-mix(in_srgb,var(--flowdex-text)_72%,transparent)] md:text-base">
+                  <p className="max-w-3xl text-sm leading-7 text-[color-mix(in_srgb,var(--text)_72%,transparent)] md:text-base">
                     A sharper public buy experience with clearer hierarchy, stronger contrast, and a product-like
                     tabbed surface for demand, referrals, staking, and leaderboard framing.
                   </p>
@@ -219,24 +219,24 @@ export function BuyPage() {
               </Button>
             </div>
 
-            <div className="buy-page-stage rounded-[1.5rem] border border-[color-mix(in_srgb,var(--flowdex-cyan)_14%,var(--flowdex-card-border))] p-4 md:p-5">
+            <div className="buy-page-stage rounded-[1.5rem] border border-[color-mix(in_srgb,var(--cyan)_14%,var(--card-border))] p-4 md:p-5">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div className="space-y-1">
-                  <div className="text-[11px] font-bold tracking-[0.32em] text-[var(--flowdex-cyan)] uppercase">
+                  <div className="text-[11px] font-bold tracking-[0.32em] text-[var(--cyan)] uppercase">
                     Tier 1 - Live
                   </div>
-                  <div className="text-sm text-[color-mix(in_srgb,var(--flowdex-text)_72%,transparent)]">
+                  <div className="text-sm text-[color-mix(in_srgb,var(--text)_72%,transparent)]">
                     {formatCurrency(PRESALE.raisedUsd, 2)} / {formatCurrency(PRESALE.targetUsd, 2)} raised
                   </div>
                 </div>
-                <div className="text-sm font-semibold text-[color-mix(in_srgb,var(--flowdex-text)_70%,transparent)]">
+                <div className="text-sm font-semibold text-[color-mix(in_srgb,var(--text)_70%,transparent)]">
                   {PRESALE.fillPercent}% filled
                 </div>
               </div>
 
               <Progress
                 value={raisedProgress}
-                className="mt-4 h-3 bg-[color-mix(in_srgb,var(--flowdex-bg)_45%,var(--flowdex-card-bg))]"
+                className="mt-4 h-3 bg-[color-mix(in_srgb,var(--bg)_45%,var(--card-bg))]"
               />
 
               <div className="mt-4 grid gap-4 md:grid-cols-4">
@@ -247,14 +247,14 @@ export function BuyPage() {
               </div>
 
               <div className="mt-5 space-y-2">
-                <div className="text-[11px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
+                <div className="text-[11px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
                   Tier 1 Vesting
                 </div>
-                <div className="grid overflow-hidden rounded-full border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg)] md:grid-cols-4">
+                <div className="grid overflow-hidden rounded-full border border-[var(--card-border)] bg-[var(--bg)] md:grid-cols-4">
                   {PRESALE.vesting.map(item => (
                     <div
                       key={item.label}
-                      className="flex min-h-12 items-center justify-center border-b border-[var(--flowdex-card-border)] px-3 text-center text-[11px] font-semibold text-[color-mix(in_srgb,var(--flowdex-text)_74%,transparent)] last:border-b-0 md:border-r md:border-b-0 md:last:border-r-0"
+                      className="flex min-h-12 items-center justify-center border-b border-[var(--card-border)] px-3 text-center text-[11px] font-semibold text-[color-mix(in_srgb,var(--text)_74%,transparent)] last:border-b-0 md:border-r md:border-b-0 md:last:border-r-0"
                     >
                       {item.label}
                     </div>
@@ -276,7 +276,7 @@ export function BuyPage() {
 
           <Card className="buy-page-panel-soft">
             <CardHeader className="pb-4">
-              <CardTitle className="text-[11px] tracking-[0.32em] text-[var(--flowdex-cyan)] uppercase">
+              <CardTitle className="text-[11px] tracking-[0.32em] text-[var(--cyan)] uppercase">
                 How To Buy
               </CardTitle>
             </CardHeader>
@@ -289,13 +289,13 @@ export function BuyPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
-          <div className="overflow-x-auto rounded-[1.25rem] border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-bg)_65%,transparent)]">
+          <div className="overflow-x-auto rounded-[1.25rem] border border-[var(--card-border)] bg-[color-mix(in_srgb,var(--bg)_65%,transparent)]">
             <TabsList className="h-auto min-w-full justify-start gap-2 rounded-[1.25rem] bg-transparent p-2">
               {BUY_TABS.map(tab => (
                 <TabsTrigger
                   key={tab.value}
                   value={tab.value}
-                  className="min-w-[132px] rounded-[1rem] border border-transparent px-4 py-3 text-sm font-semibold text-[var(--flowdex-muted)] data-[state=active]:border-[var(--flowdex-cyan)] data-[state=active]:bg-[color-mix(in_srgb,var(--flowdex-cyan)_12%,transparent)] data-[state=active]:text-[var(--flowdex-text)] data-[state=active]:shadow-[0_0_0_1px_color-mix(in_srgb,var(--flowdex-cyan)_40%,transparent)]"
+                  className="min-w-[132px] rounded-[1rem] border border-transparent px-4 py-3 text-sm font-semibold text-[var(--muted)] data-[state=active]:border-[var(--cyan)] data-[state=active]:bg-[color-mix(in_srgb,var(--cyan)_12%,transparent)] data-[state=active]:text-[var(--text)] data-[state=active]:shadow-[0_0_0_1px_color-mix(in_srgb,var(--cyan)_40%,transparent)]"
                 >
                   {tab.label}
                 </TabsTrigger>
@@ -335,21 +335,21 @@ export function BuyPage() {
                     <ToggleGroupItem
                       value="buy"
                       variant="outline"
-                      className="h-14 rounded-[1rem] border-[var(--flowdex-card-border)] bg-[var(--flowdex-accent-bg)] font-semibold text-[var(--flowdex-text)] data-[state=on]:border-[var(--flowdex-cyan)] data-[state=on]:bg-[linear-gradient(135deg,#69D3F2,#43B8E3)] data-[state=on]:text-[#04111d]"
+                      className="h-14 rounded-[1rem] border-[var(--card-border)] bg-[var(--accent-bg)] font-semibold text-[var(--text)] data-[state=on]:border-[var(--cyan)] data-[state=on]:bg-[linear-gradient(135deg,#69D3F2,#43B8E3)] data-[state=on]:text-[#04111d]"
                     >
                       Buy $FDN
                     </ToggleGroupItem>
                     <ToggleGroupItem
                       value="stake"
                       variant="outline"
-                      className="h-14 rounded-[1rem] border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] font-semibold text-[var(--flowdex-text)] data-[state=on]:border-[var(--flowdex-cyan)] data-[state=on]:bg-[linear-gradient(135deg,#69D3F2,#43B8E3)] data-[state=on]:text-[#04111d]"
+                      className="h-14 rounded-[1rem] border-[var(--card-border)] bg-[var(--card-bg)] font-semibold text-[var(--text)] data-[state=on]:border-[var(--cyan)] data-[state=on]:bg-[linear-gradient(135deg,#69D3F2,#43B8E3)] data-[state=on]:text-[#04111d]"
                     >
                       Buy & Stake (≈15% APY)
                     </ToggleGroupItem>
                   </ToggleGroup>
 
                   <div className="space-y-3">
-                    <Label className="text-[11px] font-bold tracking-[0.32em] text-[var(--flowdex-cyan)] uppercase">
+                    <Label className="text-[11px] font-bold tracking-[0.32em] text-[var(--cyan)] uppercase">
                       Payment Method
                     </Label>
                     <ToggleGroup
@@ -361,7 +361,7 @@ export function BuyPage() {
                       <ToggleGroupItem
                         value="crypto"
                         variant="outline"
-                        className="h-16 rounded-[1rem] border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-base font-semibold text-[var(--flowdex-text)] data-[state=on]:border-[var(--flowdex-cyan)] data-[state=on]:bg-[color-mix(in_srgb,var(--flowdex-cyan)_10%,transparent)]"
+                        className="h-16 rounded-[1rem] border-[var(--card-border)] bg-[var(--card-bg)] text-base font-semibold text-[var(--text)] data-[state=on]:border-[var(--cyan)] data-[state=on]:bg-[color-mix(in_srgb,var(--cyan)_10%,transparent)]"
                       >
                         <Wallet className="h-4 w-4" />
                         Crypto
@@ -369,7 +369,7 @@ export function BuyPage() {
                       <ToggleGroupItem
                         value="card"
                         variant="outline"
-                        className="h-16 rounded-[1rem] border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-base font-semibold text-[var(--flowdex-text)] data-[state=on]:border-[var(--flowdex-cyan)] data-[state=on]:bg-[color-mix(in_srgb,var(--flowdex-cyan)_10%,transparent)]"
+                        className="h-16 rounded-[1rem] border-[var(--card-border)] bg-[var(--card-bg)] text-base font-semibold text-[var(--text)] data-[state=on]:border-[var(--cyan)] data-[state=on]:bg-[color-mix(in_srgb,var(--cyan)_10%,transparent)]"
                       >
                         <CreditCard className="h-4 w-4" />
                         Card
@@ -379,12 +379,12 @@ export function BuyPage() {
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-3">
-                      <Label className="text-sm font-semibold text-[var(--flowdex-text)]">Select Currency</Label>
+                      <Label className="text-sm font-semibold text-[var(--text)]">Select Currency</Label>
                       <Select value={selectedAssetCode} onValueChange={setSelectedAssetCode}>
-                        <SelectTrigger className="h-14 rounded-[1rem] border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-text)]">
+                        <SelectTrigger className="h-14 rounded-[1rem] border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]">
                           <SelectValue placeholder="Choose a currency" />
                         </SelectTrigger>
-                        <SelectContent className="border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] text-[var(--flowdex-text)]">
+                        <SelectContent className="border-[var(--card-border)] bg-[var(--bg-2)] text-[var(--text)]">
                           {PAYMENT_ASSETS.map(asset => (
                             <SelectItem key={asset.code} value={asset.code}>
                               {asset.code} · {asset.label}
@@ -395,7 +395,7 @@ export function BuyPage() {
                     </div>
 
                     <div className="space-y-3">
-                      <Label className="text-sm font-semibold text-[var(--flowdex-text)]">Quick Buy</Label>
+                      <Label className="text-sm font-semibold text-[var(--text)]">Quick Buy</Label>
                       <ToggleGroup
                         type="single"
                         value={activeQuickAmount}
@@ -407,7 +407,7 @@ export function BuyPage() {
                             key={amount}
                             value={`${amount}`}
                             variant="outline"
-                            className="h-14 rounded-[1rem] border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] font-semibold text-[var(--flowdex-text)] data-[state=on]:border-[var(--flowdex-cyan)] data-[state=on]:bg-[color-mix(in_srgb,var(--flowdex-cyan)_12%,transparent)]"
+                            className="h-14 rounded-[1rem] border-[var(--card-border)] bg-[var(--card-bg)] font-semibold text-[var(--text)] data-[state=on]:border-[var(--cyan)] data-[state=on]:bg-[color-mix(in_srgb,var(--cyan)_12%,transparent)]"
                           >
                             ${formatPlainNumber(amount, 0)}
                           </ToggleGroupItem>
@@ -417,15 +417,15 @@ export function BuyPage() {
                   </div>
 
                   <div className="space-y-3">
-                    <Label className="text-sm font-semibold text-[var(--flowdex-text)]">Custom Amount</Label>
-                    <div className="rounded-[1.2rem] border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-bg)_42%,var(--flowdex-card-bg))] p-3">
+                    <Label className="text-sm font-semibold text-[var(--text)]">Custom Amount</Label>
+                    <div className="rounded-[1.2rem] border border-[var(--card-border)] bg-[color-mix(in_srgb,var(--bg)_42%,var(--card-bg))] p-3">
                       <Input
                         value={customAmount}
                         onChange={event => setCustomAmount(event.target.value)}
                         inputMode="decimal"
                         className="h-16 border-0 bg-transparent px-2 text-4xl font-semibold tracking-tight shadow-none ring-0 focus-visible:ring-0"
                       />
-                      <div className="flex items-center justify-between px-2 pb-1 text-sm text-[var(--flowdex-muted)]">
+                      <div className="flex items-center justify-between px-2 pb-1 text-sm text-[var(--muted)]">
                         <span>≈ {formatPlainNumber(assetUnits, 4)} {selectedAsset.symbol}</span>
                         <span>{selectedAsset.code}</span>
                       </div>
@@ -433,24 +433,24 @@ export function BuyPage() {
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
-                    <Card className="border-[color-mix(in_srgb,var(--flowdex-cyan)_20%,var(--flowdex-card-border))] bg-[color-mix(in_srgb,var(--flowdex-cyan)_10%,transparent)]">
+                    <Card className="border-[color-mix(in_srgb,var(--cyan)_20%,var(--card-border))] bg-[color-mix(in_srgb,var(--cyan)_10%,transparent)]">
                       <CardContent className="space-y-2 p-5">
-                        <div className="text-[11px] font-bold tracking-[0.28em] text-[var(--flowdex-cyan)] uppercase">
+                        <div className="text-[11px] font-bold tracking-[0.28em] text-[var(--cyan)] uppercase">
                           You Receive
                         </div>
-                        <div className="font-data text-3xl font-bold text-[var(--flowdex-text)]">
+                        <div className="font-data text-3xl font-bold text-[var(--text)]">
                           {formatCompact(estimatedTokens + stakeBoostTokens, 2)} $FDN
                         </div>
-                        <div className="text-sm text-[color-mix(in_srgb,var(--flowdex-text)_72%,transparent)]">
+                        <div className="text-sm text-[color-mix(in_srgb,var(--text)_72%,transparent)]">
                           {orderMode === 'stake'
                             ? `${formatCompact(stakeBoostTokens, 2)} token bonus preview`
                             : `${formatCurrency(listingValue, 0)} listing value at launch framing`}
                         </div>
                       </CardContent>
                     </Card>
-                    <Card className="border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)]">
+                    <Card className="border-[var(--card-border)] bg-[var(--card-bg)]">
                       <CardContent className="space-y-3 p-5">
-                        <div className="text-[11px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_58%,transparent)] uppercase">
+                        <div className="text-[11px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_58%,transparent)] uppercase">
                           Buy Summary
                         </div>
                         <SummaryRow label="Payment rail" value={paymentRail === 'crypto' ? 'Crypto' : 'Card'} />
@@ -474,7 +474,7 @@ export function BuyPage() {
               <div className="space-y-5">
                 <Card className="buy-page-panel">
                   <CardHeader>
-                    <CardTitle className="text-[11px] tracking-[0.32em] text-[var(--flowdex-cyan)] uppercase">
+                    <CardTitle className="text-[11px] tracking-[0.32em] text-[var(--cyan)] uppercase">
                       Market Cap Scenarios
                     </CardTitle>
                     <CardDescription>
@@ -487,13 +487,13 @@ export function BuyPage() {
                       const value = estimatedTokens * price;
 
                       return (
-                        <Card key={scenario.label} className="border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] shadow-none hover:translate-y-0">
+                        <Card key={scenario.label} className="border-[var(--card-border)] bg-[var(--bg-2)] shadow-none hover:translate-y-0">
                           <CardContent className="space-y-2 p-4">
-                            <div className="font-data text-2xl font-bold text-[var(--flowdex-cyan)]">{scenario.label}</div>
-                            <div className="text-sm text-[color-mix(in_srgb,var(--flowdex-text)_76%,transparent)]">
+                            <div className="font-data text-2xl font-bold text-[var(--cyan)]">{scenario.label}</div>
+                            <div className="text-sm text-[color-mix(in_srgb,var(--text)_76%,transparent)]">
                               {formatCurrency(price, 2)} / FDN
                             </div>
-                            <div className="text-sm text-[var(--flowdex-green)]">
+                            <div className="text-sm text-[var(--green)]">
                               {value > 0 ? formatCurrency(value, 0) : '$0'}
                             </div>
                           </CardContent>
@@ -505,7 +505,7 @@ export function BuyPage() {
 
                 <Card className="buy-page-panel">
                   <CardHeader>
-                    <CardTitle className="text-[11px] tracking-[0.32em] text-[var(--flowdex-cyan)] uppercase">
+                    <CardTitle className="text-[11px] tracking-[0.32em] text-[var(--cyan)] uppercase">
                       Live Activity
                     </CardTitle>
                     <CardDescription>Static tape for the leaderboard and social proof panel.</CardDescription>
@@ -514,20 +514,20 @@ export function BuyPage() {
                     {LIVE_ACTIVITY.map((entry, index) => (
                       <div
                         key={`${entry.wallet}-${index}`}
-                        className="flex items-center justify-between gap-3 rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] px-4 py-3"
+                        className="flex items-center justify-between gap-3 rounded-[1rem] border border-[var(--card-border)] bg-[var(--bg-2)] px-4 py-3"
                       >
                         <div className="min-w-0">
-                          <div className="truncate font-data text-sm text-[color-mix(in_srgb,var(--flowdex-text)_80%,transparent)]">
+                          <div className="truncate font-data text-sm text-[color-mix(in_srgb,var(--text)_80%,transparent)]">
                             {entry.wallet}
                           </div>
-                          <div className="mt-1 text-xs text-[var(--flowdex-muted)]">now</div>
+                          <div className="mt-1 text-xs text-[var(--muted)]">now</div>
                         </div>
-                        <div className="text-sm font-semibold text-[var(--flowdex-cyan)]">{entry.asset}</div>
+                        <div className="text-sm font-semibold text-[var(--cyan)]">{entry.asset}</div>
                         <div className="text-right">
-                          <div className="font-data text-sm font-semibold text-[var(--flowdex-green)]">
+                          <div className="font-data text-sm font-semibold text-[var(--green)]">
                             +{formatCurrency(entry.amountUsd, 0)}
                           </div>
-                          <div className="text-xs text-[var(--flowdex-muted)]">{entry.volume}</div>
+                          <div className="text-xs text-[var(--muted)]">{entry.volume}</div>
                         </div>
                       </div>
                     ))}
@@ -536,7 +536,7 @@ export function BuyPage() {
 
                 <Card className="buy-page-panel">
                   <CardHeader>
-                    <CardTitle className="text-[11px] tracking-[0.32em] text-[var(--flowdex-cyan)] uppercase">
+                    <CardTitle className="text-[11px] tracking-[0.32em] text-[var(--cyan)] uppercase">
                       How To Buy
                     </CardTitle>
                   </CardHeader>
@@ -570,10 +570,10 @@ export function BuyPage() {
                   <CardDescription>Connect your wallet to view your $FDN portfolio snapshot.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center gap-5 py-12 text-center">
-                  <Wallet className="h-14 w-14 text-[var(--flowdex-cyan)]" />
+                  <Wallet className="h-14 w-14 text-[var(--cyan)]" />
                   <div className="space-y-2">
-                    <div className="text-2xl font-bold text-[var(--flowdex-text)]">Connect wallet to view your $FDN</div>
-                    <p className="max-w-xl text-sm leading-7 text-[var(--flowdex-muted)]">
+                    <div className="text-2xl font-bold text-[var(--text)]">Connect wallet to view your $FDN</div>
+                    <p className="max-w-xl text-sm leading-7 text-[var(--muted)]">
                       Track your allocation, listing value, and reward posture from the same dashboard.
                     </p>
                   </div>
@@ -586,7 +586,7 @@ export function BuyPage() {
               <>
                 <Card className="buy-page-panel">
                   <CardHeader>
-                    <CardTitle className="text-[11px] tracking-[0.32em] text-[var(--flowdex-cyan)] uppercase">
+                    <CardTitle className="text-[11px] tracking-[0.32em] text-[var(--cyan)] uppercase">
                       My Portfolio
                     </CardTitle>
                   </CardHeader>
@@ -618,14 +618,14 @@ export function BuyPage() {
                       {PORTFOLIO_HOLDINGS.map(item => (
                         <div
                           key={item.label}
-                          className="rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] p-4"
+                          className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--bg-2)] p-4"
                         >
                           <div className="flex items-center justify-between gap-3">
                             <div>
-                              <div className="text-sm font-semibold text-[var(--flowdex-text)]">{item.label}</div>
-                              <div className="mt-1 text-sm text-[var(--flowdex-muted)]">{item.note}</div>
+                              <div className="text-sm font-semibold text-[var(--text)]">{item.label}</div>
+                              <div className="mt-1 text-sm text-[var(--muted)]">{item.note}</div>
                             </div>
-                            <div className="font-data text-lg font-semibold text-[var(--flowdex-cyan)]">
+                            <div className="font-data text-lg font-semibold text-[var(--cyan)]">
                               {formatPlainNumber(item.tokens, 0)}
                             </div>
                           </div>
@@ -662,7 +662,7 @@ export function BuyPage() {
             <Card className="buy-page-panel">
               <CardHeader>
                 <CardTitle className="flex items-center gap-3">
-                  <Trophy className="h-5 w-5 text-[var(--flowdex-cyan)]" />
+                  <Trophy className="h-5 w-5 text-[var(--cyan)]" />
                   Top Buyers
                 </CardTitle>
                 <CardDescription>
@@ -670,34 +670,34 @@ export function BuyPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="max-h-[560px] rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)]">
+                <ScrollArea className="max-h-[560px] rounded-[1rem] border border-[var(--card-border)] bg-[var(--bg-2)]">
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-[var(--flowdex-card-border)] hover:bg-transparent">
-                        <TableHead className="text-[var(--flowdex-muted)]">Rank</TableHead>
-                        <TableHead className="text-[var(--flowdex-muted)]">Wallet</TableHead>
-                        <TableHead className="text-[var(--flowdex-muted)]">Tier</TableHead>
-                        <TableHead className="text-right text-[var(--flowdex-muted)]">Allocation</TableHead>
+                      <TableRow className="border-[var(--card-border)] hover:bg-transparent">
+                        <TableHead className="text-[var(--muted)]">Rank</TableHead>
+                        <TableHead className="text-[var(--muted)]">Wallet</TableHead>
+                        <TableHead className="text-[var(--muted)]">Tier</TableHead>
+                        <TableHead className="text-right text-[var(--muted)]">Allocation</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {LEADERBOARD.map(entry => (
-                        <TableRow key={entry.rank} className="border-[var(--flowdex-card-border)] hover:bg-[color-mix(in_srgb,var(--flowdex-cyan)_5%,transparent)]">
-                          <TableCell className="font-data text-[var(--flowdex-cyan)]">#{entry.rank}</TableCell>
+                        <TableRow key={entry.rank} className="border-[var(--card-border)] hover:bg-[color-mix(in_srgb,var(--cyan)_5%,transparent)]">
+                          <TableCell className="font-data text-[var(--cyan)]">#{entry.rank}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <Avatar className="border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-cyan)_8%,transparent)]">
-                                <AvatarFallback className="bg-transparent text-xs font-bold text-[var(--flowdex-cyan)]">
+                              <Avatar className="border border-[var(--card-border)] bg-[color-mix(in_srgb,var(--cyan)_8%,transparent)]">
+                                <AvatarFallback className="bg-transparent text-xs font-bold text-[var(--cyan)]">
                                   {entry.alias.slice(0, 1)}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="font-data text-sm text-[var(--flowdex-text)]">{entry.wallet}</span>
+                              <span className="font-data text-sm text-[var(--text)]">{entry.wallet}</span>
                             </div>
                           </TableCell>
                           <TableCell>
                             <Badge variant="subtle">{entry.alias}</Badge>
                           </TableCell>
-                          <TableCell className="text-right font-data text-[var(--flowdex-green)]">
+                          <TableCell className="text-right font-data text-[var(--green)]">
                             {formatCurrency(entry.amountUsd, 0)}
                           </TableCell>
                         </TableRow>
@@ -712,7 +712,7 @@ export function BuyPage() {
           <TabsContent value="staking">
             <Card className="buy-page-panel">
               <CardHeader className="items-center text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-cyan)_8%,transparent)] text-[var(--flowdex-cyan)]">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[var(--card-border)] bg-[color-mix(in_srgb,var(--cyan)_8%,transparent)] text-[var(--cyan)]">
                   <Lock className="h-8 w-8" />
                 </div>
                 <CardTitle className="text-3xl">Staking Coming Soon</CardTitle>
@@ -733,7 +733,7 @@ export function BuyPage() {
             <Card className="buy-page-panel">
               <CardHeader>
                 <CardTitle className="flex items-center gap-3">
-                  <Sparkles className="h-5 w-5 text-[var(--flowdex-cyan)]" />
+                  <Sparkles className="h-5 w-5 text-[var(--cyan)]" />
                   Refer & Earn
                 </CardTitle>
                 <CardDescription>
@@ -742,7 +742,7 @@ export function BuyPage() {
               </CardHeader>
               <CardContent className="space-y-5">
                 <div className="flex flex-col gap-3 lg:flex-row">
-                  <div className="flex-1 rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] px-4 py-4 font-data text-base text-[var(--flowdex-cyan)]">
+                  <div className="flex-1 rounded-[1rem] border border-[var(--card-border)] bg-[var(--bg-2)] px-4 py-4 font-data text-base text-[var(--cyan)]">
                     {REFERRAL_LINK}
                   </div>
                   <Button variant="brand" size="lg" className="min-w-[180px]" onClick={handleCopyReferral}>
@@ -761,16 +761,16 @@ export function BuyPage() {
           </TabsContent>
         </Tabs>
 
-        <Card className="buy-page-footer border-[var(--flowdex-card-border)]">
+        <Card className="buy-page-footer border-[var(--card-border)]">
           <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between md:p-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Gem className="h-5 w-5 text-[var(--flowdex-cyan)]" />
-                <span className="text-[11px] font-bold tracking-[0.32em] text-[var(--flowdex-cyan)] uppercase">
+                <Gem className="h-5 w-5 text-[var(--cyan)]" />
+                <span className="text-[11px] font-bold tracking-[0.32em] text-[var(--cyan)] uppercase">
                   Universal Exchange Presale
                 </span>
               </div>
-              <p className="max-w-3xl text-sm leading-7 text-[color-mix(in_srgb,var(--flowdex-text)_72%,transparent)]">
+              <p className="max-w-3xl text-sm leading-7 text-[color-mix(in_srgb,var(--text)_72%,transparent)]">
                 Built to frame one entry point for crypto, tokenized equities, FX, commodities, ETFs, and broader
                 market access as the FlowDex ecosystem expands.
               </p>
@@ -791,18 +791,17 @@ function MetricDisplay(props: {
   accent?: 'cyan' | 'green';
 }) {
   return (
-    <div className="space-y-1 rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-bg)_34%,var(--flowdex-card-bg))] px-4 py-3">
-      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--flowdex-muted)]">
+    <div className="space-y-1 rounded-[1rem] border border-[var(--card-border)] bg-[color-mix(in_srgb,var(--bg)_34%,var(--card-bg))] px-4 py-3">
+      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
         {props.label}
       </div>
       <div
-        className={`font-data text-lg font-bold ${
-          props.accent === 'cyan'
-            ? 'text-[var(--flowdex-cyan)]'
+        className={`font-data text-lg font-bold ${props.accent === 'cyan'
+            ? 'text-[var(--cyan)]'
             : props.accent === 'green'
-              ? 'text-[var(--flowdex-green)]'
-              : 'text-[var(--flowdex-text)]'
-        }`}
+              ? 'text-[var(--green)]'
+              : 'text-[var(--text)]'
+          }`}
       >
         {props.value}
       </div>
@@ -818,25 +817,23 @@ function MetricBlock(props: {
   compact?: boolean;
 }) {
   return (
-    <div className="rounded-[1.2rem] border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-bg)_32%,var(--flowdex-card-bg))] p-5">
-      <div className="text-[11px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
+    <div className="rounded-[1.2rem] border border-[var(--card-border)] bg-[color-mix(in_srgb,var(--bg)_32%,var(--card-bg))] p-5">
+      <div className="text-[11px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
         {props.label}
       </div>
       <div
-        className={`mt-3 font-data font-bold ${
-          props.compact ? 'text-3xl md:text-4xl' : 'text-3xl'
-        } ${
-          props.accent === 'cyan'
-            ? 'text-[var(--flowdex-cyan)]'
+        className={`mt-3 font-data font-bold ${props.compact ? 'text-3xl md:text-4xl' : 'text-3xl'
+          } ${props.accent === 'cyan'
+            ? 'text-[var(--cyan)]'
             : props.accent === 'green'
-              ? 'text-[var(--flowdex-green)]'
-              : 'text-[var(--flowdex-text)]'
-        }`}
+              ? 'text-[var(--green)]'
+              : 'text-[var(--text)]'
+          }`}
       >
         {props.value}
       </div>
       {props.note ? (
-        <div className={`mt-3 text-sm ${props.accent === 'green' ? 'text-[var(--flowdex-green)]' : 'text-[var(--flowdex-muted)]'}`}>
+        <div className={`mt-3 text-sm ${props.accent === 'green' ? 'text-[var(--green)]' : 'text-[var(--muted)]'}`}>
           {props.note}
         </div>
       ) : null}
@@ -853,19 +850,19 @@ function StepCard(props: {
   const Icon = props.icon;
 
   return (
-    <div className="rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] p-4">
+    <div className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--bg-2)] p-4">
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-cyan)_10%,transparent)] text-[var(--flowdex-cyan)]">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--card-border)] bg-[color-mix(in_srgb,var(--cyan)_10%,transparent)] text-[var(--cyan)]">
           <Icon className="h-4 w-4" />
         </div>
         <div>
-          <div className="text-[11px] font-bold tracking-[0.28em] text-[var(--flowdex-cyan)] uppercase">
+          <div className="text-[11px] font-bold tracking-[0.28em] text-[var(--cyan)] uppercase">
             Step {props.step}
           </div>
-          <div className="mt-1 text-sm font-semibold text-[var(--flowdex-text)]">{props.title}</div>
+          <div className="mt-1 text-sm font-semibold text-[var(--text)]">{props.title}</div>
         </div>
       </div>
-      <div className="mt-3 text-sm text-[var(--flowdex-muted)]">{props.description}</div>
+      <div className="mt-3 text-sm text-[var(--muted)]">{props.description}</div>
     </div>
   );
 }
@@ -878,12 +875,12 @@ function StepTile(props: {
   const Icon = props.icon;
 
   return (
-    <div className="rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] p-5 text-center">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-cyan)_10%,transparent)] text-[var(--flowdex-cyan)]">
+    <div className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--bg-2)] p-5 text-center">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[var(--card-border)] bg-[color-mix(in_srgb,var(--cyan)_10%,transparent)] text-[var(--cyan)]">
         <Icon className="h-5 w-5" />
       </div>
-      <div className="mt-4 text-lg font-bold text-[var(--flowdex-text)]">{props.title}</div>
-      <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">{props.description}</p>
+      <div className="mt-4 text-lg font-bold text-[var(--text)]">{props.title}</div>
+      <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{props.description}</p>
     </div>
   );
 }
@@ -894,8 +891,8 @@ function SummaryRow(props: {
 }) {
   return (
     <div className="flex items-center justify-between gap-3 text-sm">
-      <span className="text-[var(--flowdex-muted)]">{props.label}</span>
-      <span className="font-semibold text-[var(--flowdex-text)]">{props.value}</span>
+      <span className="text-[var(--muted)]">{props.label}</span>
+      <span className="font-semibold text-[var(--text)]">{props.value}</span>
     </div>
   );
 }
@@ -906,11 +903,11 @@ function MiniStat(props: {
   accent?: 'green';
 }) {
   return (
-    <div className="rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] p-4">
-      <div className="text-[11px] font-bold tracking-[0.26em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
+    <div className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--bg-2)] p-4">
+      <div className="text-[11px] font-bold tracking-[0.26em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
         {props.label}
       </div>
-      <div className={`font-data mt-3 text-2xl font-bold ${props.accent === 'green' ? 'text-[var(--flowdex-green)]' : 'text-[var(--flowdex-text)]'}`}>
+      <div className={`font-data mt-3 text-2xl font-bold ${props.accent === 'green' ? 'text-[var(--green)]' : 'text-[var(--text)]'}`}>
         {props.value}
       </div>
     </div>
@@ -922,14 +919,14 @@ function PortfolioChecklistItem(props: {
   description: string;
 }) {
   return (
-    <div className="rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] p-4">
+    <div className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--bg-2)] p-4">
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 rounded-full border border-[color-mix(in_srgb,var(--flowdex-green)_30%,transparent)] bg-[color-mix(in_srgb,var(--flowdex-green)_12%,transparent)] p-1 text-[var(--flowdex-green)]">
+        <div className="mt-0.5 rounded-full border border-[color-mix(in_srgb,var(--green)_30%,transparent)] bg-[color-mix(in_srgb,var(--green)_12%,transparent)] p-1 text-[var(--green)]">
           <CheckCircle2 className="h-3.5 w-3.5" />
         </div>
         <div>
-          <div className="text-sm font-semibold text-[var(--flowdex-text)]">{props.title}</div>
-          <div className="mt-1 text-sm text-[var(--flowdex-muted)]">{props.description}</div>
+          <div className="text-sm font-semibold text-[var(--text)]">{props.title}</div>
+          <div className="mt-1 text-sm text-[var(--muted)]">{props.description}</div>
         </div>
       </div>
     </div>

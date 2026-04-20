@@ -38,7 +38,7 @@ export function MarketingNav({ isAuthenticated = false }: { isAuthenticated?: bo
         className={cn(
           'mx-auto mt-2 max-w-6xl rounded-2xl px-4 transition-all duration-300 md:px-8 lg:px-12',
           isScrolled &&
-          'max-w-5xl  border border-[var(--flowdex-card-border)] bg-[var(--flowdex-nav)] px-4 shadow-[0_20px_70px_rgba(0,0,0,0.22)] backdrop-blur-lg md:px-5',
+          'max-w-5xl  border border-[var(--card-border)] bg-[var(--nav)] px-4 shadow-[0_20px_70px_rgba(0,0,0,0.22)] backdrop-blur-lg md:px-5',
         )}
       >
         <div className="relative flex flex-wrap items-center justify-between gap-6 py-3 lg:gap-8 lg:py-4">
@@ -59,7 +59,7 @@ export function MarketingNav({ isAuthenticated = false }: { isAuthenticated?: bo
               onClick={() => setMenuState(current => !current)}
               aria-label={menuState ? 'Close navigation menu' : 'Open navigation menu'}
               aria-expanded={menuState}
-              className="relative z-20 -m-2.5 -mr-3 block cursor-pointer p-2.5 text-[var(--flowdex-text)] lg:hidden"
+              className="relative z-20 -m-2.5 -mr-3 block cursor-pointer p-2.5 text-[var(--text)] lg:hidden"
             >
               <Menu className="m-auto h-6 w-6 duration-200 group-data-[state=active]:scale-0 group-data-[state=active]:rotate-180 group-data-[state=active]:opacity-0" />
               <X className="absolute inset-0 m-auto h-6 w-6 -rotate-180 scale-0 opacity-0 duration-200 group-data-[state=active]:scale-100 group-data-[state=active]:rotate-0 group-data-[state=active]:opacity-100" />
@@ -78,14 +78,14 @@ export function MarketingNav({ isAuthenticated = false }: { isAuthenticated?: bo
                       className={cn(
                         'block font-medium duration-150',
                         isActive
-                          ? 'text-[var(--flowdex-text)]'
-                          : 'text-[var(--flowdex-muted)] hover:text-[var(--flowdex-cyan)]',
+                          ? 'text-[var(--text)]'
+                          : 'text-[var(--muted)] hover:text-[var(--cyan)]',
                       )}
                     >
                       {item.label}
                     </Link>
                     {isActive ? (
-                      <span className="absolute -bottom-[1.15rem] left-0 right-0 h-0.5 rounded-full bg-[var(--flowdex-cyan)]" />
+                      <span className="absolute -bottom-[1.15rem] left-0 right-0 h-0.5 rounded-full bg-[var(--cyan)]" />
                     ) : null}
                   </li>
                 );
@@ -102,7 +102,7 @@ export function MarketingNav({ isAuthenticated = false }: { isAuthenticated?: bo
             ) : null}
           </div>
 
-          <div className="mb-5 hidden w-full flex-wrap items-center justify-end space-y-6 rounded-3xl border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg)]/95 p-6 shadow-2xl shadow-slate-950/20 backdrop-blur-xl group-data-[state=active]:block md:flex-nowrap lg:m-0 lg:hidden lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none">
+          <div className="mb-5 hidden w-full flex-wrap items-center justify-end space-y-6 rounded-3xl border border-[var(--card-border)] bg-[var(--bg)]/95 p-6 shadow-2xl shadow-slate-950/20 backdrop-blur-xl group-data-[state=active]:block md:flex-nowrap lg:m-0 lg:hidden lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none">
             <ul className="space-y-5 text-base">
               {MARKETING_NAV_ITEMS.map(item => {
                 const isActive = activeHref === item.href;
@@ -115,8 +115,8 @@ export function MarketingNav({ isAuthenticated = false }: { isAuthenticated?: bo
                       className={cn(
                         'block font-semibold duration-150',
                         isActive
-                          ? 'text-[var(--flowdex-text)]'
-                          : 'text-[var(--flowdex-muted)] hover:text-[var(--flowdex-cyan)]',
+                          ? 'text-[var(--text)]'
+                          : 'text-[var(--muted)] hover:text-[var(--cyan)]',
                       )}
                     >
                       {item.label}

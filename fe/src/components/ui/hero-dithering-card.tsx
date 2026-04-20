@@ -25,15 +25,15 @@ export function HeroDitheringCard({
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-xl border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-text)] shadow-[0_12px_50px_rgba(2,8,23,0.20)] backdrop-blur-xl transition-all hover:-translate-y-1 hover:border-[var(--flowdex-cyan)]',
+        'relative overflow-hidden rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)] shadow-[0_12px_50px_rgba(2,8,23,0.20)] backdrop-blur-xl transition-all hover:-translate-y-1 hover:border-[var(--cyan)]',
         className,
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       {...props}
     >
-      <Suspense fallback={<div className="absolute inset-0 bg-[var(--flowdex-accent-bg)]" />}>
-        <div className="pointer-events-none absolute inset-0 z-0 opacity-[var(--flowdex-dither-opacity)] [mix-blend-mode:var(--flowdex-dither-blend)]">
+      <Suspense fallback={<div className="absolute inset-0 bg-[var(--accent-bg)]" />}>
+        <div className="pointer-events-none absolute inset-0 z-0 opacity-[var(--dither-opacity)] [mix-blend-mode:var(--dither-blend)]">
           <Dithering
             colorBack="#00000000"
             colorFront={colorFront}
@@ -45,7 +45,7 @@ export function HeroDitheringCard({
           />
         </div>
       </Suspense>
-      <div className="absolute inset-0 z-[1] bg-[radial-gradient(circle_at_18%_16%,color-mix(in_srgb,var(--flowdex-cyan)_12%,transparent),transparent_34%),var(--flowdex-dither-overlay)]" />
+      <div className="absolute inset-0 z-[1] bg-[radial-gradient(circle_at_18%_16%,color-mix(in_srgb,var(--cyan)_12%,transparent),transparent_34%),var(--dither-overlay)]" />
       <div className={cn('relative z-10', contentClassName)}>{children}</div>
     </div>
   );

@@ -14,7 +14,7 @@ export function AdminDashboardPage() {
 
   if (statsQuery.isLoading) {
     return (
-      <GlassPanel className="p-6 text-sm text-[var(--flowdex-muted)]">
+      <GlassPanel className="p-6 text-sm text-[var(--muted)]">
         Loading admin operational summary...
       </GlassPanel>
     );
@@ -23,7 +23,7 @@ export function AdminDashboardPage() {
   if (statsQuery.isError || !stats) {
     return (
       <GlassPanel className="border border-rose-400/20 bg-rose-500/10 p-6">
-        <div className="text-lg font-bold text-[var(--flowdex-text)]">Admin summary unavailable</div>
+        <div className="text-lg font-bold text-[var(--text)]">Admin summary unavailable</div>
         <p className="mt-3 text-sm leading-7 text-rose-100">
           {statsQuery.error instanceof Error
             ? statsQuery.error.message
@@ -52,19 +52,19 @@ export function AdminDashboardPage() {
       <div className="grid gap-4 xl:grid-cols-4">
         <GlassPanel className="p-5">
           <DataKicker label="Confirmed Volume (Real)" value={formatPlainNumber(stats.totalConfirmedVolumeReal, 2)} />
-          <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">Confirmed presale volume from finalized on-chain lifecycle state.</p>
+          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">Confirmed presale volume from finalized on-chain lifecycle state.</p>
         </GlassPanel>
         <GlassPanel className="p-5">
           <DataKicker label="Confirmed Volume (Display)" value={formatCurrency(stats.totalConfirmedVolumeDisplay, 0)} />
-          <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">Display-layer marketing multiplier applied on the backend response.</p>
+          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">Display-layer marketing multiplier applied on the backend response.</p>
         </GlassPanel>
         <GlassPanel className="p-5">
           <DataKicker label="Unmatched Events" value={`${stats.unmatchedCount}`} />
-          <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">Chain events that still need operational review or reconciliation context.</p>
+          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">Chain events that still need operational review or reconciliation context.</p>
         </GlassPanel>
         <GlassPanel className="p-5">
           <DataKicker label="Refund Queue" value={`${stats.refundCount}`} />
-          <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">Refund records currently tracked by the backend admin lifecycle.</p>
+          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">Refund records currently tracked by the backend admin lifecycle.</p>
         </GlassPanel>
       </div>
 
@@ -90,12 +90,12 @@ export function AdminDashboardPage() {
       </div>
 
       <GlassPanel className="p-6">
-        <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Lifecycle Status Mix</div>
+        <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">Lifecycle Status Mix</div>
         <div className="mt-5 grid gap-4 md:grid-cols-3 xl:grid-cols-6">
           {Object.entries(stats.transactionCountsByStatus).map(([status, count]) => (
-            <div key={status} className="rounded-[1.2rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] p-4">
-              <div className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">{status}</div>
-              <div className="font-data mt-3 text-2xl text-[var(--flowdex-text)]">{count}</div>
+            <div key={status} className="rounded-[1.2rem] border border-[var(--card-border)] bg-[var(--card-bg)] p-4">
+              <div className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">{status}</div>
+              <div className="font-data mt-3 text-2xl text-[var(--text)]">{count}</div>
             </div>
           ))}
         </div>
@@ -112,11 +112,11 @@ function ActionCard(props: {
 }) {
   return (
     <GlassPanel className="p-5">
-      <div className="flex items-center gap-3 text-[var(--flowdex-cyan)]">
+      <div className="flex items-center gap-3 text-[var(--cyan)]">
         {props.icon}
-        <div className="text-lg font-bold text-[var(--flowdex-text)]">{props.title}</div>
+        <div className="text-lg font-bold text-[var(--text)]">{props.title}</div>
       </div>
-      <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">{props.description}</p>
+      <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{props.description}</p>
       <div className="mt-4">
         <Button variant="glass" asChild>
           <Link href={props.href}>Open {props.title.toLowerCase()}</Link>

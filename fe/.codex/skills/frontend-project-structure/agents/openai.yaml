@@ -1,0 +1,3 @@
+display_name: Frontend Project Structure
+short_description: Frontend-only file placement and TypeScript conventions for the Next.js app.
+default_prompt: Use this skill when organizing or moving frontend code in the `fe/` workspace. Follow the frontend project structure rules, keep domain types in `src/types/`, place services and hooks next to each other when needed, and choose the correct component location based on scope.

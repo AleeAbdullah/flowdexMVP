@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 
 export type ThemeMode = 'dark' | 'light';
 
-const STORAGE_KEY = 'flowdex-theme';
+const STORAGE_KEY = 'theme';
 
 function resolveInitialTheme(): ThemeMode {
   if (typeof window === 'undefined') {

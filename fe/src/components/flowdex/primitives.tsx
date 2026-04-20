@@ -9,8 +9,8 @@ export function FlowdexWordmark({ compact = false }: { compact?: boolean }) {
       </div>
       {!compact ? (
         <div className="leading-none">
-          <div className="font-heading text-lg font-bold tracking-tight text-[var(--flowdex-text)]">FlowDex</div>
-          <div className="text-[10px] font-semibold tracking-[0.28em] text-[var(--flowdex-cyan)] uppercase">
+          <div className="font-heading text-lg font-bold tracking-tight text-[var(--text)]">FlowDex</div>
+          <div className="text-[10px] font-semibold tracking-[0.28em] text-[var(--cyan)] uppercase">
             Universal Exchange
           </div>
         </div>
@@ -38,13 +38,13 @@ export function SectionHeading(props: {
 }) {
   return (
     <div className={cn('max-w-3xl space-y-4', props.align === 'center' && 'mx-auto text-center')}>
-      <div className="inline-flex rounded-full border border-[var(--flowdex-accent-border)] bg-[var(--flowdex-accent-bg)] px-4 py-1 text-[10px] font-bold tracking-[0.35em] text-[var(--flowdex-cyan)] uppercase">
+      <div className="inline-flex rounded-full border border-[var(--accent-border)] bg-[var(--accent-bg)] px-4 py-1 text-[10px] font-bold tracking-[0.35em] text-[var(--cyan)] uppercase">
         {props.eyebrow}
       </div>
-      <h2 className="font-heading text-balance text-3xl font-bold tracking-tight text-[var(--flowdex-text)] md:text-5xl">
+      <h2 className="font-heading text-balance text-3xl font-bold tracking-tight text-[var(--text)] md:text-5xl">
         {props.title}
       </h2>
-      <p className="text-balance text-sm leading-7 text-[var(--flowdex-muted)] md:text-base">
+      <p className="text-balance text-sm leading-7 text-[var(--muted)] md:text-base">
         {props.description}
       </p>
     </div>
@@ -58,10 +58,10 @@ export function DataKicker(props: {
 }) {
   return (
     <div className={cn('space-y-2', props.className)}>
-      <div className="text-[10px] font-semibold tracking-[0.32em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
+      <div className="text-[10px] font-semibold tracking-[0.32em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
         {props.label}
       </div>
-      <div className="font-data text-xl font-semibold text-[var(--flowdex-text)] md:text-2xl">{props.value}</div>
+      <div className="font-data text-xl font-semibold text-[var(--text)] md:text-2xl">{props.value}</div>
     </div>
   );
 }

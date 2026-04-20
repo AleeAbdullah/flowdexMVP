@@ -3,14 +3,14 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const alertVariants = cva(
-  'relative w-full rounded-2xl border px-5 py-4 text-[var(--flowdex-text)] shadow-[0_12px_36px_rgba(2,8,23,0.18)] transition-colors [&>svg~*]:pl-8 [&>svg+div]:translate-y-[-1px] [&>svg]:absolute [&>svg]:left-5 [&>svg]:top-4 [&>svg]:h-4.5 [&>svg]:w-4.5',
+  'relative w-full rounded-2xl border px-5 py-4 text-[var(--text)] shadow-[0_12px_36px_rgba(2,8,23,0.18)] transition-colors [&>svg~*]:pl-8 [&>svg+div]:translate-y-[-1px] [&>svg]:absolute [&>svg]:left-5 [&>svg]:top-4 [&>svg]:h-4.5 [&>svg]:w-4.5',
   {
     variants: {
       variant: {
         default:
-          'border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-text)] [&>svg]:text-[var(--flowdex-muted)]',
+          'border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)] [&>svg]:text-[var(--muted)]',
         brand:
-          'border-[var(--flowdex-accent-border)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--flowdex-accent-bg)_92%,transparent),color-mix(in_srgb,var(--flowdex-card-bg)_88%,transparent))] text-[color-mix(in_srgb,var(--flowdex-text)_94%,transparent)] [&>svg]:text-[var(--flowdex-cyan)]',
+          'border-[var(--accent-border)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--accent-bg)_92%,transparent),color-mix(in_srgb,var(--card-bg)_88%,transparent))] text-[color-mix(in_srgb,var(--text)_94%,transparent)] [&>svg]:text-[var(--cyan)]',
         destructive:
           'border-red-500/30 bg-red-500/10 text-red-100 [&>svg]:text-red-300',
       },
@@ -52,7 +52,7 @@ const AlertDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn('text-sm leading-7 text-[color-mix(in_srgb,var(--flowdex-text)_72%,transparent)] [&_p]:leading-7', className)}
+    className={cn('text-sm leading-7 text-[color-mix(in_srgb,var(--text)_72%,transparent)] [&_p]:leading-7', className)}
     {...props}
   />
 ));

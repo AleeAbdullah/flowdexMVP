@@ -14,7 +14,7 @@ const buttonVariants = cva(
         destructive:
           'bg-destructive text-destructive-foreground hover:bg-destructive/90',
         glass:
-          'border border-[var(--flowdex-card-border)] bg-transparent text-[var(--flowdex-text)] backdrop-blur-xl hover:border-[var(--flowdex-cyan)] hover:text-[var(--flowdex-cyan)]',
+          'border border-[var(--card-border)] bg-transparent text-[var(--text)] backdrop-blur-xl hover:border-[var(--cyan)] hover:text-[var(--cyan)]',
         outline:
           'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
         secondary:
@@ -38,7 +38,7 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  VariantProps<typeof buttonVariants> {
   asChild?: boolean;
 }
 

@@ -27,7 +27,7 @@ export function TransactionsPage() {
       </GlassPanel>
 
       <GlassPanel className="overflow-hidden">
-        <div className="border-b border-[var(--flowdex-card-border)] px-6 py-4 text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
+        <div className="border-b border-[var(--card-border)] px-6 py-4 text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
           Transaction History
         </div>
         <div>
@@ -38,12 +38,12 @@ export function TransactionsPage() {
           ) : null}
 
           {transactionsQuery.isLoading ? (
-            <div className="px-6 py-5 text-sm text-[var(--flowdex-muted)]">Loading transactions...</div>
+            <div className="px-6 py-5 text-sm text-[var(--muted)]">Loading transactions...</div>
           ) : null}
 
           {!transactionsQuery.isLoading && items.length === 0 ? (
             <div className="space-y-4 px-6 py-5">
-              <p className="text-sm text-[var(--flowdex-muted)]">
+              <p className="text-sm text-[var(--muted)]">
                 No protected transactions yet. Create a purchase intent from the app buy flow when you are ready.
               </p>
               <Button variant="brand" asChild>
@@ -55,15 +55,15 @@ export function TransactionsPage() {
           {items.map(item => (
             <div
               key={item.id}
-              className="flex flex-col gap-4 border-b border-[var(--flowdex-card-border)] px-6 py-5 last:border-b-0 xl:flex-row xl:items-center xl:justify-between"
+              className="flex flex-col gap-4 border-b border-[var(--card-border)] px-6 py-5 last:border-b-0 xl:flex-row xl:items-center xl:justify-between"
             >
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-3">
-                  <div className="font-semibold text-[var(--flowdex-text)]">{item.assetCode} on {item.chain}</div>
+                  <div className="font-semibold text-[var(--text)]">{item.assetCode} on {item.chain}</div>
                   <StatusPill status={item.status} />
                 </div>
-                <div className="text-sm text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)]">Intent {item.id}</div>
-                <div className="text-sm text-[color-mix(in_srgb,var(--flowdex-text)_40%,transparent)]">
+                <div className="text-sm text-[color-mix(in_srgb,var(--text)_45%,transparent)]">Intent {item.id}</div>
+                <div className="text-sm text-[color-mix(in_srgb,var(--text)_40%,transparent)]">
                   {item.matchedTxHash
                     ? `Matched hash: ${truncateMiddle(item.matchedTxHash)}`
                     : item.reportedTxHash
@@ -99,8 +99,8 @@ function Metric(props: {
 }) {
   return (
     <div className="space-y-2">
-      <div className="text-[10px] font-semibold tracking-[0.3em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">{props.label}</div>
-      <div className="font-data text-base text-[var(--flowdex-text)]">{props.value}</div>
+      <div className="text-[10px] font-semibold tracking-[0.3em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">{props.label}</div>
+      <div className="font-data text-base text-[var(--text)]">{props.value}</div>
     </div>
   );
 }
