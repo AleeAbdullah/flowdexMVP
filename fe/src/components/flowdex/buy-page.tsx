@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Banknote,
   CheckCircle2,
@@ -129,7 +130,8 @@ const BUY_TABS = [
   { value: 'referrals', label: 'Referrals' },
 ] as const;
 
-export function BuyPage() {
+export function BuyPage(props: { isAuthenticated: boolean }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>('buy');
   const [walletConnected, setWalletConnected] = useState(false);
   const [orderMode, setOrderMode] = useState<string>('buy');
@@ -147,13 +149,25 @@ export function BuyPage() {
   const activeQuickAmount = QUICK_BUY_AMOUNTS.find(value => value === amountUsd)?.toString() ?? '';
 
   const handleConnectWallet = () => {
-    // Future reference: replace this sample wallet-connect state with a redirect to `/login`
-    // once the real dashboard/auth flow is live and users should enter through the app login.
+    if (!props.isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
     setWalletConnected(true);
     toast.success('Wallet connected');
   };
 
+  const handleDisconnectWallet = () => {
+    setWalletConnected(false);
+  };
+
   const handlePrimaryAction = () => {
+    if (!props.isAuthenticated) {
+      handleConnectWallet();
+      return;
+    }
+
     if (!walletConnected) {
       handleConnectWallet();
       return;
@@ -213,7 +227,7 @@ export function BuyPage() {
                 variant={walletConnected ? 'glass' : 'brand'}
                 size="lg"
                 className="min-w-[220px] self-start"
-                onClick={walletConnected ? () => setWalletConnected(false) : handleConnectWallet}
+                onClick={walletConnected ? handleDisconnectWallet : handleConnectWallet}
               >
                 {walletConnected ? 'Wallet Connected' : 'Connect Wallet'}
               </Button>

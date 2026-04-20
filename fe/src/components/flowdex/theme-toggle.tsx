@@ -2,39 +2,24 @@
 
 import { useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 
 export type ThemeMode = 'dark' | 'light';
 
-const STORAGE_KEY = 'theme';
-
-function resolveInitialTheme(): ThemeMode {
-  if (typeof window === 'undefined') {
-    return 'dark';
-  }
-
-  const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (stored === 'dark' || stored === 'light') {
-    return stored;
-  }
-
-  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-}
-
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<ThemeMode>('dark');
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const initialTheme = resolveInitialTheme();
-    setTheme(initialTheme);
-    document.documentElement.dataset.theme = initialTheme;
+    setMounted(true);
   }, []);
 
+  const resolvedTheme: ThemeMode = theme === 'light' ? 'light' : 'dark';
+
   function toggleTheme() {
-    const nextTheme: ThemeMode = theme === 'dark' ? 'light' : 'dark';
+    const nextTheme: ThemeMode = resolvedTheme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
-    document.documentElement.dataset.theme = nextTheme;
-    window.localStorage.setItem(STORAGE_KEY, nextTheme);
   }
 
   return (
@@ -43,10 +28,11 @@ export function ThemeToggle() {
       variant="glass"
       size="icon"
       onClick={toggleTheme}
-      aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+      aria-label={`Switch to ${resolvedTheme === 'dark' ? 'light' : 'dark'} theme`}
+      disabled={!mounted}
       className="h-[38px] w-[38px] rounded-[10px]"
     >
-      {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      {resolvedTheme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
     </Button>
   );
 }

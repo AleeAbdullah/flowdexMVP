@@ -6,11 +6,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, Mail, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { sanitizeAppRedirectPath } from '@/lib/auth-redirect';
 import { authClient } from '@/lib/auth-client';
 import { FlowdexWordmark, GlassPanel } from './primitives';
 
 export function AuthForm(props: {
   mode: 'login' | 'signup';
+  nextPath?: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -19,7 +21,7 @@ export function AuthForm(props: {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const nextPath = searchParams.get('next') || '/app';
+  const nextPath = sanitizeAppRedirectPath(props.nextPath ?? searchParams.get('next'));
 
   const isSignup = props.mode === 'signup';
 
