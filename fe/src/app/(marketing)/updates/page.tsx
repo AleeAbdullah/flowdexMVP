@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import { BlogsPage } from '@/components/flowdex/blogs-page';
 
 export default function UpdatesRoute() {
-  redirect('/blogs');
+  return <BlogsPage />;
 }

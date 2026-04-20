@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { Send } from 'lucide-react';
+import { CircleAlert, Send } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { getOptionalSession } from '@/lib/auth-server';
 import { MarketingNav } from './marketing-nav';
 import { FlowdexWordmark } from './primitives';
 
@@ -12,7 +12,13 @@ export async function MarketingShell({
 }: {
   children: ReactNode;
 }) {
-  const session = await getOptionalSession();
+  let isAuthenticated = false;
+
+  if (process.env.NEXT_PUBLIC_STATIC_EXPORT !== 'true') {
+    const { getOptionalSession } = await import('@/lib/auth-server');
+    const session = await getOptionalSession();
+    isAuthenticated = Boolean(session);
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[var(--flowdex-bg)] text-[var(--flowdex-text)]">
@@ -42,7 +48,7 @@ export async function MarketingShell({
             </a>
           </div>
         </div>
-        <MarketingNav isAuthenticated={Boolean(session)} />
+        <MarketingNav isAuthenticated={isAuthenticated} />
       </header>
 
       <main className="pt-40 md:pt-32">{children}</main>
@@ -83,9 +89,18 @@ export async function MarketingShell({
             ]}
           />
         </div>
+        <div className="section-shell pb-6">
+          <Alert variant="brand">
+            <CircleAlert />
+            <AlertTitle>Presale Notice</AlertTitle>
+            <AlertDescription>
+              This website is for informational and promotional purposes only. Participation in any presale involves risk and should not be treated as legal, tax, or financial advice.
+            </AlertDescription>
+          </Alert>
+        </div>
         <Separator className="bg-[color-mix(in_srgb,var(--flowdex-muted)_25%,transparent)]" />
         <div className="section-shell flex flex-col gap-2 py-4 text-xs text-[color-mix(in_srgb,var(--flowdex-text)_54%,transparent)] md:flex-row md:items-center md:justify-between">
-          <span>© 2026 FlowDex Network. All rights reserved.</span>
+          <span>© 2026 Crypto Presale. All rights reserved.</span>
           <div className="flex items-center gap-4">
             <span>$FDN tokens are utility tokens. Not financial advice.</span>
           </div>

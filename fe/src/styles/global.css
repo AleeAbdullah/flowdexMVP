@@ -22,6 +22,11 @@
     --flowdex-nav: rgba(6, 13, 24, 0.92);
     --flowdex-track: rgba(61, 90, 128, 0.2);
     --flowdex-footer: #040A14;
+    --flowdex-buy-hero: linear-gradient(180deg, rgba(6, 13, 24, 0.96), rgba(8, 18, 34, 0.94));
+    --flowdex-buy-stage: linear-gradient(180deg, rgba(10, 24, 46, 0.96), rgba(8, 19, 37, 0.96));
+    --flowdex-buy-panel: linear-gradient(180deg, rgba(7, 16, 30, 0.98), rgba(5, 11, 21, 0.98));
+    --flowdex-buy-panel-soft: linear-gradient(180deg, rgba(8, 18, 34, 0.96), rgba(6, 13, 24, 0.92));
+    --flowdex-buy-footer: linear-gradient(135deg, rgba(7, 16, 30, 0.8), rgba(7, 16, 30, 0.94), rgba(0, 180, 216, 0.08));
     --flowdex-dither-opacity: 0.3;
     --flowdex-dither-blend: screen;
     --flowdex-dither-overlay: linear-gradient(135deg, rgba(6, 13, 24, 0.62), rgba(6, 13, 24, 0.2));
@@ -62,6 +67,11 @@
     --flowdex-nav: rgba(247, 249, 252, 0.94);
     --flowdex-track: #E2E8F0;
     --flowdex-footer: #F1F5F9;
+    --flowdex-buy-hero: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 247, 255, 0.98));
+    --flowdex-buy-stage: linear-gradient(180deg, rgba(232, 244, 255, 0.92), rgba(246, 250, 255, 0.98));
+    --flowdex-buy-panel: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.98));
+    --flowdex-buy-panel-soft: linear-gradient(180deg, rgba(248, 251, 255, 0.98), rgba(241, 247, 252, 0.98));
+    --flowdex-buy-footer: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(243, 249, 255, 0.98), rgba(2, 132, 199, 0.08));
     --flowdex-dither-opacity: 0.72;
     --flowdex-dither-blend: multiply;
     --flowdex-dither-overlay: linear-gradient(135deg, rgba(255, 255, 255, 0.46), rgba(247, 249, 252, 0.08));
@@ -158,5 +168,25 @@
 
   .text-balance {
     text-wrap: balance;
+  }
+
+  .buy-page-hero {
+    background: var(--flowdex-buy-hero);
+  }
+
+  .buy-page-stage {
+    background: var(--flowdex-buy-stage);
+  }
+
+  .buy-page-panel {
+    background: var(--flowdex-buy-panel);
+  }
+
+  .buy-page-panel-soft {
+    background: var(--flowdex-buy-panel-soft);
+  }
+
+  .buy-page-footer {
+    background: var(--flowdex-buy-footer);
   }
 }

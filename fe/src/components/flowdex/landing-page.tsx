@@ -345,38 +345,28 @@ const faqs: FaqItem[] = [
 
 export function LandingPage() {
   const [activeSlide, setActiveSlide] = useState(0);
-  const [progress, setProgress] = useState(0);
   const [email, setEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) {
-      setProgress(0);
       return;
     }
 
-    const startedAt = Date.now();
     const interval = window.setInterval(() => {
-      const elapsed = Date.now() - startedAt;
-      setProgress(Math.min((elapsed / SLIDE_DURATION_MS) * 100, 100));
-
-      if (elapsed >= SLIDE_DURATION_MS) {
-        setActiveSlide(current => (current + 1) % heroSlides.length);
-      }
-    }, 100);
+      setActiveSlide(current => (current + 1) % heroSlides.length);
+    }, SLIDE_DURATION_MS);
 
     return () => window.clearInterval(interval);
   }, [activeSlide]);
 
   function goToSlide(index: number) {
     setActiveSlide(index);
-    setProgress(0);
   }
 
   function shiftSlide(direction: -1 | 1) {
     setActiveSlide(current => (current + direction + heroSlides.length) % heroSlides.length);
-    setProgress(0);
   }
 
   function handleSubscribe() {
@@ -542,19 +532,41 @@ export function LandingPage() {
           </div>
         </Card>
 
-        <Card className="p-6 md:p-8">
-          <div className="text-[10px] font-bold tracking-[0.3em] text-[var(--flowdex-muted)] uppercase">
-            Vesting Schedule
-          </div>
-          <div className="mt-6 flex h-9 overflow-hidden rounded-lg bg-[var(--flowdex-track)] text-[10px] font-bold">
-            <div className="flex w-[14%] min-w-16 items-center justify-center bg-[var(--flowdex-cyan)] text-white">5% TGE</div>
-            <div className="flex w-[33%] items-center justify-center border-l border-white/10 text-[var(--flowdex-muted)]">12mo cliff</div>
-            <div className="flex flex-1 items-center justify-center border-l border-white/10 bg-[linear-gradient(90deg,var(--flowdex-cyan-deep),var(--flowdex-cyan))] text-white">24mo linear vest</div>
-          </div>
-          <div className="font-data mt-4 text-sm text-[var(--flowdex-text)]">
-            Full unlock: 36 months
-          </div>
-        </Card>
+        <div className="grid gap-4">
+          <Card className="p-6 md:p-8">
+            <div className="text-[10px] font-bold tracking-[0.3em] text-[var(--flowdex-muted)] uppercase">
+              Presale Schedule
+            </div>
+            <div className="mt-5 grid gap-3 text-sm">
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] px-4 py-3">
+                <span className="text-[var(--flowdex-muted)]">Tier 1</span>
+                <span className="font-data text-[var(--flowdex-text)]">$0.001</span>
+              </div>
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] px-4 py-3">
+                <span className="text-[var(--flowdex-muted)]">Tier 2</span>
+                <span className="font-data text-[var(--flowdex-text)]">$0.005</span>
+              </div>
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] px-4 py-3">
+                <span className="text-[var(--flowdex-muted)]">Tier 8</span>
+                <span className="font-data text-[var(--flowdex-text)]">$0.050</span>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6 md:p-8">
+            <div className="text-[10px] font-bold tracking-[0.3em] text-[var(--flowdex-muted)] uppercase">
+              Vesting Schedule
+            </div>
+            <div className="mt-6 flex h-9 overflow-hidden rounded-lg bg-[var(--flowdex-track)] text-[10px] font-bold">
+              <div className="flex w-[14%] min-w-16 items-center justify-center bg-[var(--flowdex-cyan)] text-white">5% TGE</div>
+              <div className="flex w-[33%] items-center justify-center border-l border-white/10 text-[var(--flowdex-muted)]">12mo cliff</div>
+              <div className="flex flex-1 items-center justify-center border-l border-white/10 bg-[linear-gradient(90deg,var(--flowdex-cyan-deep),var(--flowdex-cyan))] text-white">24mo linear vest</div>
+            </div>
+            <div className="font-data mt-4 text-sm text-[var(--flowdex-text)]">
+              Full unlock: 36 months
+            </div>
+          </Card>
+        </div>
       </section>
 
       <section className="section-shell section-pad">

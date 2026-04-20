@@ -1,274 +1,935 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { ArrowRightLeft, Coins, CreditCard, Layers3, ShieldCheck, Wallet } from 'lucide-react';
-import { usePresaleConfig, usePresaleStats, usePresaleTiers, usePricing } from '@/dal/market/hooks';
+import { useState } from 'react';
+import {
+  Banknote,
+  CheckCircle2,
+  Coins,
+  Copy,
+  CreditCard,
+  Gem,
+  Info,
+  Lock,
+  Sparkles,
+  Trophy,
+  Wallet,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { HeroDitheringCard } from '@/components/ui/hero-dithering-card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { DataKicker, GlassPanel, SectionHeading } from './primitives';
-import { formatCompact, formatCurrency, formatPercent, parseDecimal } from './utils';
+import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  formatCompact,
+  formatCurrency,
+  formatPercent,
+  formatPlainNumber,
+  parseDecimal,
+} from './utils';
 
-const showcaseAssets = ['Bitcoin', 'Tesla', 'Gold', 'EUR/USD', 'S&P 500', 'Nvidia', 'ETFs', '500+ more'];
+const PRESALE = {
+  currentTier: 1,
+  raisedUsd: 1_850_000,
+  targetUsd: 5_000_000,
+  tokenPriceUsd: 0.001,
+  listingPriceUsd: 0.05,
+  discountPercent: 98,
+  fillPercent: 36.9,
+  stakingApy: '12-18%',
+  vesting: [
+    { label: '5% TGE', share: 12 },
+    { label: '12mo cliff', share: 23 },
+    { label: '24mo vest', share: 42 },
+    { label: 'Full unlock 36 months', share: 23 },
+  ],
+} as const;
+
+const ASSET_SHOWCASE = [
+  'Bitcoin',
+  'Ethereum',
+  'Tesla',
+  'Apple',
+  'Gold',
+  'EUR/USD',
+  'S&P 500',
+  'Oil',
+  'Nvidia',
+  'ETFs',
+  '500+ more',
+];
+
+const PAYMENT_ASSETS = [
+  { code: 'ETH', label: 'Ethereum', usdPrice: 2850, symbol: 'ETH' },
+  { code: 'USDT', label: 'Tether', usdPrice: 1, symbol: 'USDT' },
+  { code: 'USDC', label: 'USD Coin', usdPrice: 1, symbol: 'USDC' },
+  { code: 'BNB', label: 'BNB', usdPrice: 610, symbol: 'BNB' },
+  { code: 'SOL', label: 'Solana', usdPrice: 190, symbol: 'SOL' },
+] as const;
+
+const QUICK_BUY_AMOUNTS = [100, 500, 1000, 5000];
+
+const SCENARIOS = [
+  { label: 'Listing', multiplier: 50 },
+  { label: '5x', multiplier: 250 },
+  { label: '10x', multiplier: 500 },
+  { label: '50x', multiplier: 2500 },
+];
+
+const LIVE_ACTIVITY = [
+  { wallet: '0x6086...ae434', asset: 'ETH', amountUsd: 8859, volume: '8.86M' },
+  { wallet: '0x930f...a918B', asset: 'USDT', amountUsd: 5554, volume: '5.55M' },
+  { wallet: '0x930f...a918B', asset: 'SOL', amountUsd: 8631, volume: '8.63M' },
+];
+
+const LEADERBOARD = [
+  { rank: 1, alias: 'Whale', wallet: '0xD91c...eC34a', amountUsd: 48500 },
+  { rank: 2, alias: 'Shark', wallet: '0x82bC...43e5C', amountUsd: 36200 },
+  { rank: 3, alias: 'Shark', wallet: '0xAa19...d92F1', amountUsd: 27800 },
+  { rank: 4, alias: 'Dolphin', wallet: '0x4b2A...7F12B', amountUsd: 22100 },
+  { rank: 5, alias: 'Dolphin', wallet: '0xe8Dc...2239a', amountUsd: 18400 },
+  { rank: 6, alias: 'Fish', wallet: '0x3fE7...1bA08', amountUsd: 14200 },
+  { rank: 7, alias: 'Fish', wallet: '0x930f...a918B', amountUsd: 10800 },
+  { rank: 8, alias: 'Fish', wallet: '0x6086...ae434', amountUsd: 9200 },
+];
+
+const PORTFOLIO_METRICS = {
+  tokens: 320_832,
+  investedUsd: 9625,
+  listingValueUsd: 16_042,
+  roiPercent: 66.7,
+};
+
+const PORTFOLIO_HOLDINGS = [
+  { label: 'Presale Allocation', tokens: 210_000, note: 'Tier 1 locked' },
+  { label: 'Bonus Tokens', tokens: 10_832, note: 'Referral rewards' },
+  { label: 'Staking Queue', tokens: 100_000, note: 'Ready on launch' },
+];
+
+const REFERRAL_LINK = 'flowdex.network/buy?ref=FDX-A3B7K9';
+const BUY_TABS = [
+  { value: 'buy', label: 'Buy $FDN' },
+  { value: 'portfolio', label: 'Portfolio' },
+  { value: 'leaders', label: 'Leaders' },
+  { value: 'staking', label: 'Staking' },
+  { value: 'referrals', label: 'Referrals' },
+] as const;
 
 export function BuyPage() {
-  const [mode, setMode] = useState<'buy' | 'stake'>('buy');
-  const [paymentRail, setPaymentRail] = useState<'crypto' | 'card'>('crypto');
-  const [selectedAssetCode, setSelectedAssetCode] = useState('');
-  const [paymentAmount, setPaymentAmount] = useState('100');
+  const [activeTab, setActiveTab] = useState<string>('buy');
+  const [walletConnected, setWalletConnected] = useState(false);
+  const [orderMode, setOrderMode] = useState<string>('buy');
+  const [paymentRail, setPaymentRail] = useState<string>('crypto');
+  const [selectedAssetCode, setSelectedAssetCode] = useState<string>(PAYMENT_ASSETS[0].code);
+  const [customAmount, setCustomAmount] = useState(`${QUICK_BUY_AMOUNTS[0]}`);
 
-  const pricingQuery = usePricing();
-  const statsQuery = usePresaleStats();
-  const tiersQuery = usePresaleTiers();
-  const configQuery = usePresaleConfig();
+  const selectedAsset = PAYMENT_ASSETS.find(asset => asset.code === selectedAssetCode) ?? PAYMENT_ASSETS[0];
+  const amountUsd = parseDecimal(customAmount);
+  const estimatedTokens = amountUsd > 0 ? amountUsd / PRESALE.tokenPriceUsd : 0;
+  const assetUnits = selectedAsset.usdPrice > 0 ? amountUsd / selectedAsset.usdPrice : 0;
+  const stakeBoostTokens = orderMode === 'stake' ? estimatedTokens * 0.15 : 0;
+  const listingValue = estimatedTokens * PRESALE.listingPriceUsd;
+  const raisedProgress = (PRESALE.raisedUsd / PRESALE.targetUsd) * 100;
+  const activeQuickAmount = QUICK_BUY_AMOUNTS.find(value => value === amountUsd)?.toString() ?? '';
 
-  const assets = configQuery.data?.supportedAssets ?? [];
-  const pricing = pricingQuery.data?.items ?? [];
-  const stats = statsQuery.data;
-  const tiers = tiersQuery.data?.items ?? [];
+  const handleConnectWallet = () => {
+    // Future reference: replace this sample wallet-connect state with a redirect to `/login`
+    // once the real dashboard/auth flow is live and users should enter through the app login.
+    setWalletConnected(true);
+    toast.success('Wallet connected');
+  };
 
-  useEffect(() => {
-    if (!selectedAssetCode && assets[0]) {
-      setSelectedAssetCode(assets[0].assetCode);
+  const handlePrimaryAction = () => {
+    if (!walletConnected) {
+      handleConnectWallet();
+      return;
     }
-  }, [assets, selectedAssetCode]);
 
-  const selectedAsset = assets.find(asset => asset.assetCode === selectedAssetCode) ?? assets[0];
-  const selectedPricing = pricing.find(item => item.assetCode === selectedAsset?.assetCode);
+    toast.success(orderMode === 'stake' ? 'Buy & stake flow ready' : 'Buy flow ready');
+  };
 
-  const paymentAmountNumber = parseDecimal(paymentAmount);
-  const assetPriceUsd = parseDecimal(selectedPricing?.priceUsd);
-  const tokenPriceUsd = parseDecimal(stats?.currentTokenPriceUsd);
-  const estimatedTokens = tokenPriceUsd > 0 ? (paymentAmountNumber * assetPriceUsd) / tokenPriceUsd : 0;
-
-  const currentTierCap = tiers.find(tier => tier.order === stats?.currentTier)?.tokenCapReal;
-  const tierProgress = currentTierCap
-    ? Math.min(100, (parseDecimal(stats?.tokensSoldReal) / parseDecimal(currentTierCap)) * 100)
-    : 0;
-
-  const scenarioMultipliers = [1, 5, 10, 50];
-  const supply = 10_000_000_000;
+  const handleCopyReferral = async () => {
+    try {
+      await navigator.clipboard.writeText(REFERRAL_LINK);
+      toast.success('Referral link copied');
+    } catch {
+      toast.success(`Referral link: ${REFERRAL_LINK}`);
+    }
+  };
 
   return (
-    <div className="section-shell section-pad space-y-10">
-      <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="space-y-6">
-          <SectionHeading
-            eyebrow="Buy Flow"
-            title="A presale screen that already speaks the backend contract."
-            description="This first milestone stays read-only for protected actions, but the pricing, supported assets, and tier state all come from the live backend. That makes this page a real integration surface, not a static mock."
-          />
+    <TooltipProvider delayDuration={120}>
+      <div className="section-shell section-pad space-y-6 md:space-y-8">
+        <Card className="buy-page-hero overflow-hidden border-[color-mix(in_srgb,var(--flowdex-cyan)_20%,var(--flowdex-card-border))]">
+          <CardContent className="space-y-6 p-5 md:p-8">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Badge variant="brand" className="gap-2 text-[var(--flowdex-cyan)]">
+                    <span className="h-2 w-2 rounded-full bg-[var(--flowdex-green)] shadow-[0_0_12px_var(--flowdex-green)]" />
+                    Tier {PRESALE.currentTier} Live
+                  </Badge>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-2 rounded-full border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] px-3 py-1 text-[10px] font-bold tracking-[0.24em] uppercase text-[color-mix(in_srgb,var(--flowdex-text)_72%,transparent)]"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                        sample allocation
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] text-[var(--flowdex-text)]">
+                      Portfolio, leaderboard, staking, and referral values are shown as launch-page samples.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="space-y-2">
+                  <h1 className="font-heading text-3xl font-black tracking-tight text-[var(--flowdex-text)] md:text-5xl">
+                    Buy into the presale dashboard, not a placeholder landing page.
+                  </h1>
+                  <p className="max-w-3xl text-sm leading-7 text-[color-mix(in_srgb,var(--flowdex-text)_72%,transparent)] md:text-base">
+                    A sharper public buy experience with clearer hierarchy, stronger contrast, and a product-like
+                    tabbed surface for demand, referrals, staking, and leaderboard framing.
+                  </p>
+                </div>
+              </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <GlassPanel className="p-5">
-              <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Current Price</div>
-              <div className="font-data mt-4 text-3xl text-[var(--flowdex-text)]">
-                {stats ? formatCurrency(stats.currentTokenPriceUsd, 3) : '$0.001'}
-              </div>
-              <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">
-                Tier {stats?.currentTier ?? 1} is live and reflected directly from the backend presale stats.
-              </p>
-            </GlassPanel>
-            <GlassPanel className="p-5">
-              <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Display Raise</div>
-              <div className="font-data mt-4 text-3xl text-[var(--flowdex-text)]">
-                {stats ? formatCurrency(stats.fundsRaisedDisplayUsd, 0) : '$0'}
-              </div>
-              <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">
-                The 10x presentation multiplier is handled in the response layer, not the stored backend values.
-              </p>
-            </GlassPanel>
-          </div>
-
-          <GlassPanel className="p-6">
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl border border-[var(--flowdex-accent-border)] bg-[var(--flowdex-accent-bg)] p-3 text-[var(--flowdex-cyan)]">
-                <Layers3 className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-lg font-bold text-[var(--flowdex-text)]">Asset Showcase</div>
-                <p className="text-sm text-[var(--flowdex-muted)]">Universal exchange positioning across crypto and TradFi-native surfaces.</p>
-              </div>
+              <Button
+                variant={walletConnected ? 'glass' : 'brand'}
+                size="lg"
+                className="min-w-[220px] self-start"
+                onClick={walletConnected ? () => setWalletConnected(false) : handleConnectWallet}
+              >
+                {walletConnected ? 'Wallet Connected' : 'Connect Wallet'}
+              </Button>
             </div>
-            <div className="mt-5 flex flex-wrap gap-3">
-              {showcaseAssets.map(asset => (
-                <span
-                  key={asset}
-                  className="rounded-full border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] px-4 py-2 text-sm font-semibold text-[var(--flowdex-text)]"
-                >
-                  {asset}
-                </span>
-              ))}
-            </div>
-          </GlassPanel>
-        </div>
 
-        <HeroDitheringCard className="h-fit p-6 md:p-7" contentClassName="space-y-0">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Tier Progress</div>
-              <div className="mt-2 text-2xl font-black text-[var(--flowdex-text)]">Tier {stats?.currentTier ?? 1}</div>
-            </div>
-            <div className="font-data text-cyan-200">{formatPercent(tierProgress || 0)}</div>
-          </div>
-
-          <div className="mt-6 h-3 overflow-hidden rounded-full bg-[var(--flowdex-track)]">
-            <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-sky-500" style={{ width: `${tierProgress}%` }} />
-          </div>
-
-          <div className="mt-6 grid gap-3">
-            {tiers.map(tier => {
-              const isActive = tier.order === stats?.currentTier;
-              return (
-                <div key={tier.id} className={`rounded-2xl border px-4 py-3 ${isActive ? 'border-[var(--flowdex-cyan)] bg-[var(--flowdex-accent-bg)]' : 'border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)]'}`}>
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <div className="text-sm font-bold text-[var(--flowdex-text)]">Tier {tier.order}</div>
-                      <div className="font-data mt-1 text-sm text-[var(--flowdex-muted)]">{formatCurrency(tier.tokenPriceUsd, 3)}</div>
-                    </div>
-                    <div className="font-data text-xs text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)]">{formatCompact(tier.tokenCapReal, 1)}</div>
+            <div className="buy-page-stage rounded-[1.5rem] border border-[color-mix(in_srgb,var(--flowdex-cyan)_14%,var(--flowdex-card-border))] p-4 md:p-5">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="space-y-1">
+                  <div className="text-[11px] font-bold tracking-[0.32em] text-[var(--flowdex-cyan)] uppercase">
+                    Tier 1 - Live
+                  </div>
+                  <div className="text-sm text-[color-mix(in_srgb,var(--flowdex-text)_72%,transparent)]">
+                    {formatCurrency(PRESALE.raisedUsd, 2)} / {formatCurrency(PRESALE.targetUsd, 2)} raised
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </HeroDitheringCard>
-      </div>
+                <div className="text-sm font-semibold text-[color-mix(in_srgb,var(--flowdex-text)_70%,transparent)]">
+                  {PRESALE.fillPercent}% filled
+                </div>
+              </div>
 
-      <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-        <GlassPanel className="p-6 md:p-7">
-          <div className="flex flex-wrap gap-3">
-            {(['buy', 'stake'] as const).map(option => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setMode(option)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold capitalize ${mode === option ? 'bg-cyan-400 text-slate-950' : 'border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-muted)]'}`}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
+              <Progress
+                value={raisedProgress}
+                className="mt-4 h-3 bg-[color-mix(in_srgb,var(--flowdex-bg)_45%,var(--flowdex-card-bg))]"
+              />
 
-          <div className="mt-6 flex flex-wrap gap-3">
-            {([
-              { key: 'crypto', label: 'Crypto', icon: Wallet },
-              { key: 'card', label: 'Card', icon: CreditCard },
-            ] as const).map(option => {
-              const Icon = option.icon;
-              return (
-                <button
-                  key={option.key}
-                  type="button"
-                  onClick={() => setPaymentRail(option.key)}
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${paymentRail === option.key ? 'bg-[var(--flowdex-text)] text-[var(--flowdex-bg)]' : 'border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-muted)]'}`}
+              <div className="mt-4 grid gap-4 md:grid-cols-4">
+                <MetricDisplay label="Price" value={formatCurrency(PRESALE.tokenPriceUsd, 3)} accent="cyan" />
+                <MetricDisplay label="Discount" value={`-${PRESALE.discountPercent}%`} accent="green" />
+                <MetricDisplay label="Listing" value={formatCurrency(PRESALE.listingPriceUsd, 2)} />
+                <MetricDisplay label="Filled" value={formatPercent(PRESALE.fillPercent)} />
+              </div>
+
+              <div className="mt-5 space-y-2">
+                <div className="text-[11px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
+                  Tier 1 Vesting
+                </div>
+                <div className="grid overflow-hidden rounded-full border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg)] md:grid-cols-4">
+                  {PRESALE.vesting.map(item => (
+                    <div
+                      key={item.label}
+                      className="flex min-h-12 items-center justify-center border-b border-[var(--flowdex-card-border)] px-3 text-center text-[11px] font-semibold text-[color-mix(in_srgb,var(--flowdex-text)_74%,transparent)] last:border-b-0 md:border-r md:border-b-0 md:last:border-r-0"
+                    >
+                      {item.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <Card className="buy-page-panel-soft">
+            <CardContent className="grid gap-4 p-5 md:grid-cols-[1fr_1fr_auto] md:p-6">
+              <MetricBlock label="Current Price" value={formatCurrency(PRESALE.tokenPriceUsd, 3)} accent="cyan" />
+              <MetricBlock label="Listing Price" value={formatCurrency(PRESALE.listingPriceUsd, 2)} />
+              <MetricBlock label="Discount" value={`${PRESALE.discountPercent}%`} accent="green" compact />
+            </CardContent>
+          </Card>
+
+          <Card className="buy-page-panel-soft">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-[11px] tracking-[0.32em] text-[var(--flowdex-cyan)] uppercase">
+                How To Buy
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 pb-5 md:grid-cols-3">
+              <StepCard icon={Wallet} step="1" title="Choose payment" description="Crypto or card" />
+              <StepCard icon={Banknote} step="2" title="Enter amount" description="Quick-buy or custom" />
+              <StepCard icon={CheckCircle2} step="3" title="Confirm" description="Tokens in 30 min" />
+            </CardContent>
+          </Card>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
+          <div className="overflow-x-auto rounded-[1.25rem] border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-bg)_65%,transparent)]">
+            <TabsList className="h-auto min-w-full justify-start gap-2 rounded-[1.25rem] bg-transparent p-2">
+              {BUY_TABS.map(tab => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="min-w-[132px] rounded-[1rem] border border-transparent px-4 py-3 text-sm font-semibold text-[var(--flowdex-muted)] data-[state=active]:border-[var(--flowdex-cyan)] data-[state=active]:bg-[color-mix(in_srgb,var(--flowdex-cyan)_12%,transparent)] data-[state=active]:text-[var(--flowdex-text)] data-[state=active]:shadow-[0_0_0_1px_color-mix(in_srgb,var(--flowdex-cyan)_40%,transparent)]"
                 >
-                  <Icon className="h-4 w-4" />
-                  {option.label}
-                </button>
-              );
-            })}
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
           </div>
 
-          <div className="mt-8 space-y-4">
-            <div>
-              <div className="mb-2 text-xs font-semibold tracking-[0.24em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">Accepted Assets</div>
-              <div className="flex flex-wrap gap-2">
-                {assets.map(asset => (
-                  <button
-                    key={asset.assetCode}
-                    type="button"
-                    onClick={() => setSelectedAssetCode(asset.assetCode)}
-                    className={`rounded-full px-4 py-2 text-sm font-semibold ${selectedAssetCode === asset.assetCode ? 'bg-cyan-400 text-slate-950' : 'border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-muted)]'}`}
+          <TabsContent value="buy" className="space-y-5">
+            <Card className="buy-page-panel">
+              <CardContent className="space-y-5 p-5 md:p-6">
+                <div className="flex flex-wrap gap-2">
+                  {ASSET_SHOWCASE.map(asset => (
+                    <Badge key={asset} variant={asset === '500+ more' ? 'brand' : 'subtle'} className="px-4 py-2 tracking-[0.2em]">
+                      {asset}
+                    </Badge>
+                  ))}
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-4">
+                  <MiniStat label="Price" value={formatCurrency(PRESALE.tokenPriceUsd, 3)} />
+                  <MiniStat label="Listing" value={formatCurrency(PRESALE.listingPriceUsd, 2)} />
+                  <MiniStat label="Discount" value={`-${PRESALE.discountPercent}%`} accent="green" />
+                  <MiniStat label="Staking APY" value={PRESALE.stakingApy} accent="green" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+              <Card className="buy-page-panel">
+                <CardContent className="space-y-6 p-5 md:p-6">
+                  <ToggleGroup
+                    type="single"
+                    value={orderMode}
+                    onValueChange={(value) => value && setOrderMode(value)}
+                    className="grid w-full grid-cols-2 gap-3"
                   >
-                    {asset.assetCode}
-                  </button>
-                ))}
-              </div>
-            </div>
+                    <ToggleGroupItem
+                      value="buy"
+                      variant="outline"
+                      className="h-14 rounded-[1rem] border-[var(--flowdex-card-border)] bg-[var(--flowdex-accent-bg)] font-semibold text-[var(--flowdex-text)] data-[state=on]:border-[var(--flowdex-cyan)] data-[state=on]:bg-[linear-gradient(135deg,#69D3F2,#43B8E3)] data-[state=on]:text-[#04111d]"
+                    >
+                      Buy $FDN
+                    </ToggleGroupItem>
+                    <ToggleGroupItem
+                      value="stake"
+                      variant="outline"
+                      className="h-14 rounded-[1rem] border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] font-semibold text-[var(--flowdex-text)] data-[state=on]:border-[var(--flowdex-cyan)] data-[state=on]:bg-[linear-gradient(135deg,#69D3F2,#43B8E3)] data-[state=on]:text-[#04111d]"
+                    >
+                      Buy & Stake (≈15% APY)
+                    </ToggleGroupItem>
+                  </ToggleGroup>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-[1.25rem] border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-bg)_32%,var(--flowdex-card-bg))] p-4">
-                <div className="text-[10px] font-bold tracking-[0.24em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">You Pay</div>
-                <Input
-                  value={paymentAmount}
-                  onChange={event => setPaymentAmount(event.target.value)}
-                  inputMode="decimal"
-                  className="mt-4 h-14 border-0 bg-transparent px-0 text-3xl font-semibold text-[var(--flowdex-text)] placeholder:text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)]"
-                />
-                <div className="mt-3 text-sm text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)]">{selectedAsset?.assetCode ?? 'Select asset'}</div>
-              </div>
+                  <div className="space-y-3">
+                    <Label className="text-[11px] font-bold tracking-[0.32em] text-[var(--flowdex-cyan)] uppercase">
+                      Payment Method
+                    </Label>
+                    <ToggleGroup
+                      type="single"
+                      value={paymentRail}
+                      onValueChange={(value) => value && setPaymentRail(value)}
+                      className="grid w-full grid-cols-2 gap-3"
+                    >
+                      <ToggleGroupItem
+                        value="crypto"
+                        variant="outline"
+                        className="h-16 rounded-[1rem] border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-base font-semibold text-[var(--flowdex-text)] data-[state=on]:border-[var(--flowdex-cyan)] data-[state=on]:bg-[color-mix(in_srgb,var(--flowdex-cyan)_10%,transparent)]"
+                      >
+                        <Wallet className="h-4 w-4" />
+                        Crypto
+                      </ToggleGroupItem>
+                      <ToggleGroupItem
+                        value="card"
+                        variant="outline"
+                        className="h-16 rounded-[1rem] border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-base font-semibold text-[var(--flowdex-text)] data-[state=on]:border-[var(--flowdex-cyan)] data-[state=on]:bg-[color-mix(in_srgb,var(--flowdex-cyan)_10%,transparent)]"
+                      >
+                        <CreditCard className="h-4 w-4" />
+                        Card
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
 
-              <div className="rounded-[1.25rem] border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-bg)_32%,var(--flowdex-card-bg))] p-4">
-                <div className="text-[10px] font-bold tracking-[0.24em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">You Receive</div>
-                <div className="font-data mt-4 text-3xl text-[var(--flowdex-text)]">{formatCompact(estimatedTokens, 2)}</div>
-                <div className="mt-3 text-sm text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)]">$FDN preview at current tier pricing</div>
-              </div>
-            </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-3">
+                      <Label className="text-sm font-semibold text-[var(--flowdex-text)]">Select Currency</Label>
+                      <Select value={selectedAssetCode} onValueChange={setSelectedAssetCode}>
+                        <SelectTrigger className="h-14 rounded-[1rem] border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-text)]">
+                          <SelectValue placeholder="Choose a currency" />
+                        </SelectTrigger>
+                        <SelectContent className="border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] text-[var(--flowdex-text)]">
+                          {PAYMENT_ASSETS.map(asset => (
+                            <SelectItem key={asset.code} value={asset.code}>
+                              {asset.code} · {asset.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-            <div className="rounded-[1.25rem] border border-cyan-400/12 bg-cyan-400/6 p-5">
-              <div className="flex items-center gap-2 text-sm font-semibold text-cyan-200">
-                <ArrowRightLeft className="h-4 w-4" />
-                Buy Widget Summary
-              </div>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <DataKicker label="Asset USD Price" value={formatCurrency(selectedPricing?.priceUsd ?? 0, 2)} />
-                <DataKicker label="Token Price" value={formatCurrency(stats?.currentTokenPriceUsd ?? 0, 3)} />
-                <DataKicker label="Min Amount" value={selectedAsset?.minAmount ?? '0'} />
-                <DataKicker label="Confirmations" value={`${selectedAsset?.minConfirmations ?? 0}`} />
-              </div>
-            </div>
-
-            <Button variant="brand" size="lg" className="w-full" asChild>
-              <Link href="/app/buy">Continue to protected buy</Link>
-            </Button>
-          </div>
-        </GlassPanel>
-
-        <div className="space-y-6">
-          <SectionHeading
-            eyebrow="Market Cap Scenarios"
-            title="Let the ROI framing sit next to real tier data."
-            description="These cards turn the current backend price into scenario planning. They are intentionally framed as directional upside references, not guarantees."
-          />
-          <div className="grid gap-4 md:grid-cols-2">
-            {scenarioMultipliers.map(multiplier => {
-              const scenarioPrice = (tokenPriceUsd || 0.001) * multiplier;
-              const fdv = scenarioPrice * supply;
-              const roi = tokenPriceUsd > 0 ? ((scenarioPrice - tokenPriceUsd) / tokenPriceUsd) * 100 : 0;
-
-              return (
-                <GlassPanel key={multiplier} className="p-5">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="text-lg font-bold text-[var(--flowdex-text)]">{multiplier === 1 ? 'Listing' : `${multiplier}x Scenario`}</div>
-                    <div className="rounded-full border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] px-3 py-1 text-xs font-semibold text-[var(--flowdex-muted)]">
-                      {formatPercent(roi)}
+                    <div className="space-y-3">
+                      <Label className="text-sm font-semibold text-[var(--flowdex-text)]">Quick Buy</Label>
+                      <ToggleGroup
+                        type="single"
+                        value={activeQuickAmount}
+                        onValueChange={(value) => value && setCustomAmount(value)}
+                        className="grid grid-cols-2 gap-3"
+                      >
+                        {QUICK_BUY_AMOUNTS.map(amount => (
+                          <ToggleGroupItem
+                            key={amount}
+                            value={`${amount}`}
+                            variant="outline"
+                            className="h-14 rounded-[1rem] border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] font-semibold text-[var(--flowdex-text)] data-[state=on]:border-[var(--flowdex-cyan)] data-[state=on]:bg-[color-mix(in_srgb,var(--flowdex-cyan)_12%,transparent)]"
+                          >
+                            ${formatPlainNumber(amount, 0)}
+                          </ToggleGroupItem>
+                        ))}
+                      </ToggleGroup>
                     </div>
                   </div>
-                  <div className="font-data mt-4 text-2xl text-cyan-200">{formatCurrency(scenarioPrice, 3)}</div>
-                  <div className="mt-4 flex items-center gap-2 text-sm text-[var(--flowdex-muted)]">
-                    <Coins className="h-4 w-4 text-cyan-300" />
-                    Implied FDV {formatCurrency(fdv, 0)}
-                  </div>
-                </GlassPanel>
-              );
-            })}
-          </div>
 
-          <GlassPanel className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-emerald-300">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-lg font-bold text-[var(--flowdex-text)]">Read-only by design for phase one</div>
-                <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">
-                  This page already consumes live pricing and presale config from the backend, but protected purchase actions stay deferred until the Better Auth BFF bridge is in place.
-                </p>
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-[var(--flowdex-text)]">Custom Amount</Label>
+                    <div className="rounded-[1.2rem] border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-bg)_42%,var(--flowdex-card-bg))] p-3">
+                      <Input
+                        value={customAmount}
+                        onChange={event => setCustomAmount(event.target.value)}
+                        inputMode="decimal"
+                        className="h-16 border-0 bg-transparent px-2 text-4xl font-semibold tracking-tight shadow-none ring-0 focus-visible:ring-0"
+                      />
+                      <div className="flex items-center justify-between px-2 pb-1 text-sm text-[var(--flowdex-muted)]">
+                        <span>≈ {formatPlainNumber(assetUnits, 4)} {selectedAsset.symbol}</span>
+                        <span>{selectedAsset.code}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Card className="border-[color-mix(in_srgb,var(--flowdex-cyan)_20%,var(--flowdex-card-border))] bg-[color-mix(in_srgb,var(--flowdex-cyan)_10%,transparent)]">
+                      <CardContent className="space-y-2 p-5">
+                        <div className="text-[11px] font-bold tracking-[0.28em] text-[var(--flowdex-cyan)] uppercase">
+                          You Receive
+                        </div>
+                        <div className="font-data text-3xl font-bold text-[var(--flowdex-text)]">
+                          {formatCompact(estimatedTokens + stakeBoostTokens, 2)} $FDN
+                        </div>
+                        <div className="text-sm text-[color-mix(in_srgb,var(--flowdex-text)_72%,transparent)]">
+                          {orderMode === 'stake'
+                            ? `${formatCompact(stakeBoostTokens, 2)} token bonus preview`
+                            : `${formatCurrency(listingValue, 0)} listing value at launch framing`}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)]">
+                      <CardContent className="space-y-3 p-5">
+                        <div className="text-[11px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_58%,transparent)] uppercase">
+                          Buy Summary
+                        </div>
+                        <SummaryRow label="Payment rail" value={paymentRail === 'crypto' ? 'Crypto' : 'Card'} />
+                        <SummaryRow label="Settlement asset" value={selectedAsset.code} />
+                        <SummaryRow label="Presale price" value={formatCurrency(PRESALE.tokenPriceUsd, 3)} />
+                        <SummaryRow label="Listing target" value={formatCurrency(PRESALE.listingPriceUsd, 2)} />
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Button variant="brand" size="lg" className="h-14 w-full text-base" onClick={handlePrimaryAction}>
+                    {walletConnected
+                      ? orderMode === 'stake'
+                        ? 'Preview Static Buy & Stake'
+                        : 'Preview Static Buy'
+                      : 'Connect Wallet to Buy'}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <div className="space-y-5">
+                <Card className="buy-page-panel">
+                  <CardHeader>
+                    <CardTitle className="text-[11px] tracking-[0.32em] text-[var(--flowdex-cyan)] uppercase">
+                      Market Cap Scenarios
+                    </CardTitle>
+                    <CardDescription>
+                      What your $FDN could be worth at different market-cap narratives based on the amount above.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid gap-3 sm:grid-cols-2">
+                    {SCENARIOS.map(scenario => {
+                      const price = PRESALE.tokenPriceUsd * scenario.multiplier;
+                      const value = estimatedTokens * price;
+
+                      return (
+                        <Card key={scenario.label} className="border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] shadow-none hover:translate-y-0">
+                          <CardContent className="space-y-2 p-4">
+                            <div className="font-data text-2xl font-bold text-[var(--flowdex-cyan)]">{scenario.label}</div>
+                            <div className="text-sm text-[color-mix(in_srgb,var(--flowdex-text)_76%,transparent)]">
+                              {formatCurrency(price, 2)} / FDN
+                            </div>
+                            <div className="text-sm text-[var(--flowdex-green)]">
+                              {value > 0 ? formatCurrency(value, 0) : '$0'}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+
+                <Card className="buy-page-panel">
+                  <CardHeader>
+                    <CardTitle className="text-[11px] tracking-[0.32em] text-[var(--flowdex-cyan)] uppercase">
+                      Live Activity
+                    </CardTitle>
+                    <CardDescription>Static tape for the leaderboard and social proof panel.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {LIVE_ACTIVITY.map((entry, index) => (
+                      <div
+                        key={`${entry.wallet}-${index}`}
+                        className="flex items-center justify-between gap-3 rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] px-4 py-3"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate font-data text-sm text-[color-mix(in_srgb,var(--flowdex-text)_80%,transparent)]">
+                            {entry.wallet}
+                          </div>
+                          <div className="mt-1 text-xs text-[var(--flowdex-muted)]">now</div>
+                        </div>
+                        <div className="text-sm font-semibold text-[var(--flowdex-cyan)]">{entry.asset}</div>
+                        <div className="text-right">
+                          <div className="font-data text-sm font-semibold text-[var(--flowdex-green)]">
+                            +{formatCurrency(entry.amountUsd, 0)}
+                          </div>
+                          <div className="text-xs text-[var(--flowdex-muted)]">{entry.volume}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                <Card className="buy-page-panel">
+                  <CardHeader>
+                    <CardTitle className="text-[11px] tracking-[0.32em] text-[var(--flowdex-cyan)] uppercase">
+                      How To Buy
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid gap-3 md:grid-cols-3">
+                    <StepTile
+                      icon={Wallet}
+                      title="Connect Wallet"
+                      description="MetaMask, Trust Wallet, Coinbase, or Phantom. Or pay by card."
+                    />
+                    <StepTile
+                      icon={Coins}
+                      title="Choose Amount"
+                      description="Pick a quick preset ($100-$5K) or enter a custom amount."
+                    />
+                    <StepTile
+                      icon={CheckCircle2}
+                      title="Confirm & Receive"
+                      description="Send crypto or pay by card. Tokens allocated in 30 minutes."
+                    />
+                  </CardContent>
+                </Card>
               </div>
             </div>
-          </GlassPanel>
+          </TabsContent>
+
+          <TabsContent value="portfolio" className="space-y-5">
+            {!walletConnected ? (
+              <Card className="buy-page-panel">
+                <CardHeader>
+                  <CardTitle>My Portfolio</CardTitle>
+                  <CardDescription>Connect your wallet to view your $FDN portfolio snapshot.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center gap-5 py-12 text-center">
+                  <Wallet className="h-14 w-14 text-[var(--flowdex-cyan)]" />
+                  <div className="space-y-2">
+                    <div className="text-2xl font-bold text-[var(--flowdex-text)]">Connect wallet to view your $FDN</div>
+                    <p className="max-w-xl text-sm leading-7 text-[var(--flowdex-muted)]">
+                      Track your allocation, listing value, and reward posture from the same dashboard.
+                    </p>
+                  </div>
+                  <Button variant="brand" size="lg" className="min-w-[220px]" onClick={handleConnectWallet}>
+                    Connect Wallet
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <Card className="buy-page-panel">
+                  <CardHeader>
+                    <CardTitle className="text-[11px] tracking-[0.32em] text-[var(--flowdex-cyan)] uppercase">
+                      My Portfolio
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid gap-4 md:grid-cols-3">
+                    <MetricBlock
+                      label="Total $FDN"
+                      value={`${formatPlainNumber(PORTFOLIO_METRICS.tokens, 0)} tokens`}
+                    />
+                    <MetricBlock
+                      label="Invested"
+                      value={formatCurrency(PORTFOLIO_METRICS.investedUsd, 0)}
+                      note="3 transactions"
+                    />
+                    <MetricBlock
+                      label="At Listing"
+                      value={formatCurrency(PORTFOLIO_METRICS.listingValueUsd, 0)}
+                      note={`+${PORTFOLIO_METRICS.roiPercent}% ROI`}
+                      accent="green"
+                    />
+                  </CardContent>
+                </Card>
+
+                <div className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
+                  <Card className="buy-page-panel">
+                    <CardHeader>
+                      <CardTitle>Holdings Breakdown</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {PORTFOLIO_HOLDINGS.map(item => (
+                        <div
+                          key={item.label}
+                          className="rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] p-4"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="text-sm font-semibold text-[var(--flowdex-text)]">{item.label}</div>
+                              <div className="mt-1 text-sm text-[var(--flowdex-muted)]">{item.note}</div>
+                            </div>
+                            <div className="font-data text-lg font-semibold text-[var(--flowdex-cyan)]">
+                              {formatPlainNumber(item.tokens, 0)}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+
+                  <Card className="buy-page-panel">
+                    <CardHeader>
+                      <CardTitle>Launch Readiness</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <PortfolioChecklistItem
+                        title="Presale confirmed"
+                        description="Allocation overview aligned with listing-price framing."
+                      />
+                      <PortfolioChecklistItem
+                        title="Referral bonuses applied"
+                        description="Bonus allocation already represented in the portfolio split."
+                      />
+                      <PortfolioChecklistItem
+                        title="Staking queue prepared"
+                        description="Buy & Stake mode is already represented in the portfolio outlook."
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="leaders">
+            <Card className="buy-page-panel">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <Trophy className="h-5 w-5 text-[var(--flowdex-cyan)]" />
+                  Top Buyers
+                </CardTitle>
+                <CardDescription>
+                  A ranked buyer board that adds momentum and social proof to the presale surface.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="max-h-[560px] rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-[var(--flowdex-card-border)] hover:bg-transparent">
+                        <TableHead className="text-[var(--flowdex-muted)]">Rank</TableHead>
+                        <TableHead className="text-[var(--flowdex-muted)]">Wallet</TableHead>
+                        <TableHead className="text-[var(--flowdex-muted)]">Tier</TableHead>
+                        <TableHead className="text-right text-[var(--flowdex-muted)]">Allocation</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {LEADERBOARD.map(entry => (
+                        <TableRow key={entry.rank} className="border-[var(--flowdex-card-border)] hover:bg-[color-mix(in_srgb,var(--flowdex-cyan)_5%,transparent)]">
+                          <TableCell className="font-data text-[var(--flowdex-cyan)]">#{entry.rank}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-cyan)_8%,transparent)]">
+                                <AvatarFallback className="bg-transparent text-xs font-bold text-[var(--flowdex-cyan)]">
+                                  {entry.alias.slice(0, 1)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-data text-sm text-[var(--flowdex-text)]">{entry.wallet}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="subtle">{entry.alias}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-data text-[var(--flowdex-green)]">
+                            {formatCurrency(entry.amountUsd, 0)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="staking">
+            <Card className="buy-page-panel">
+              <CardHeader className="items-center text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-cyan)_8%,transparent)] text-[var(--flowdex-cyan)]">
+                  <Lock className="h-8 w-8" />
+                </div>
+                <CardTitle className="text-3xl">Staking Coming Soon</CardTitle>
+                <CardDescription className="max-w-2xl">
+                  Stake $FDN to earn protocol fee share from crypto, stocks, forex, commodities, and more.
+                  Governance routing priority is part of the broader staking product direction.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-3">
+                <MetricBlock label="Est. APY (Y1)" value={PRESALE.stakingApy} accent="green" />
+                <MetricBlock label="Fee Share" value="40%" accent="green" />
+                <MetricBlock label="Rewards" value="Weekly" />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="referrals">
+            <Card className="buy-page-panel">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <Sparkles className="h-5 w-5 text-[var(--flowdex-cyan)]" />
+                  Refer & Earn
+                </CardTitle>
+                <CardDescription>
+                  Earn 5% bonus on every referral. Share your link and keep the social loop on the same page.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="flex flex-col gap-3 lg:flex-row">
+                  <div className="flex-1 rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] px-4 py-4 font-data text-base text-[var(--flowdex-cyan)]">
+                    {REFERRAL_LINK}
+                  </div>
+                  <Button variant="brand" size="lg" className="min-w-[180px]" onClick={handleCopyReferral}>
+                    <Copy className="h-4 w-4" />
+                    Copy Link
+                  </Button>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  <MetricBlock label="Referrals" value="0" />
+                  <MetricBlock label="Bonus Earned" value="0 $FDN" />
+                  <MetricBlock label="Volume" value="$0" />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        <Card className="buy-page-footer border-[var(--flowdex-card-border)]">
+          <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between md:p-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Gem className="h-5 w-5 text-[var(--flowdex-cyan)]" />
+                <span className="text-[11px] font-bold tracking-[0.32em] text-[var(--flowdex-cyan)] uppercase">
+                  Universal Exchange Presale
+                </span>
+              </div>
+              <p className="max-w-3xl text-sm leading-7 text-[color-mix(in_srgb,var(--flowdex-text)_72%,transparent)]">
+                Built to frame one entry point for crypto, tokenized equities, FX, commodities, ETFs, and broader
+                market access as the FlowDex ecosystem expands.
+              </p>
+            </div>
+            <Badge variant="success" className="self-start md:self-center">
+              500+ assets ahead
+            </Badge>
+          </CardContent>
+        </Card>
+      </div>
+    </TooltipProvider>
+  );
+}
+
+function MetricDisplay(props: {
+  label: string;
+  value: string;
+  accent?: 'cyan' | 'green';
+}) {
+  return (
+    <div className="space-y-1 rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-bg)_34%,var(--flowdex-card-bg))] px-4 py-3">
+      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--flowdex-muted)]">
+        {props.label}
+      </div>
+      <div
+        className={`font-data text-lg font-bold ${
+          props.accent === 'cyan'
+            ? 'text-[var(--flowdex-cyan)]'
+            : props.accent === 'green'
+              ? 'text-[var(--flowdex-green)]'
+              : 'text-[var(--flowdex-text)]'
+        }`}
+      >
+        {props.value}
+      </div>
+    </div>
+  );
+}
+
+function MetricBlock(props: {
+  label: string;
+  value: string;
+  note?: string;
+  accent?: 'cyan' | 'green';
+  compact?: boolean;
+}) {
+  return (
+    <div className="rounded-[1.2rem] border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-bg)_32%,var(--flowdex-card-bg))] p-5">
+      <div className="text-[11px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
+        {props.label}
+      </div>
+      <div
+        className={`mt-3 font-data font-bold ${
+          props.compact ? 'text-3xl md:text-4xl' : 'text-3xl'
+        } ${
+          props.accent === 'cyan'
+            ? 'text-[var(--flowdex-cyan)]'
+            : props.accent === 'green'
+              ? 'text-[var(--flowdex-green)]'
+              : 'text-[var(--flowdex-text)]'
+        }`}
+      >
+        {props.value}
+      </div>
+      {props.note ? (
+        <div className={`mt-3 text-sm ${props.accent === 'green' ? 'text-[var(--flowdex-green)]' : 'text-[var(--flowdex-muted)]'}`}>
+          {props.note}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function StepCard(props: {
+  icon: typeof Wallet;
+  step: string;
+  title: string;
+  description: string;
+}) {
+  const Icon = props.icon;
+
+  return (
+    <div className="rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] p-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-cyan)_10%,transparent)] text-[var(--flowdex-cyan)]">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div>
+          <div className="text-[11px] font-bold tracking-[0.28em] text-[var(--flowdex-cyan)] uppercase">
+            Step {props.step}
+          </div>
+          <div className="mt-1 text-sm font-semibold text-[var(--flowdex-text)]">{props.title}</div>
+        </div>
+      </div>
+      <div className="mt-3 text-sm text-[var(--flowdex-muted)]">{props.description}</div>
+    </div>
+  );
+}
+
+function StepTile(props: {
+  icon: typeof Wallet;
+  title: string;
+  description: string;
+}) {
+  const Icon = props.icon;
+
+  return (
+    <div className="rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] p-5 text-center">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[var(--flowdex-card-border)] bg-[color-mix(in_srgb,var(--flowdex-cyan)_10%,transparent)] text-[var(--flowdex-cyan)]">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="mt-4 text-lg font-bold text-[var(--flowdex-text)]">{props.title}</div>
+      <p className="mt-3 text-sm leading-7 text-[var(--flowdex-muted)]">{props.description}</p>
+    </div>
+  );
+}
+
+function SummaryRow(props: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 text-sm">
+      <span className="text-[var(--flowdex-muted)]">{props.label}</span>
+      <span className="font-semibold text-[var(--flowdex-text)]">{props.value}</span>
+    </div>
+  );
+}
+
+function MiniStat(props: {
+  label: string;
+  value: string;
+  accent?: 'green';
+}) {
+  return (
+    <div className="rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] p-4">
+      <div className="text-[11px] font-bold tracking-[0.26em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
+        {props.label}
+      </div>
+      <div className={`font-data mt-3 text-2xl font-bold ${props.accent === 'green' ? 'text-[var(--flowdex-green)]' : 'text-[var(--flowdex-text)]'}`}>
+        {props.value}
+      </div>
+    </div>
+  );
+}
+
+function PortfolioChecklistItem(props: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-[1rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-bg-2)] p-4">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 rounded-full border border-[color-mix(in_srgb,var(--flowdex-green)_30%,transparent)] bg-[color-mix(in_srgb,var(--flowdex-green)_12%,transparent)] p-1 text-[var(--flowdex-green)]">
+          <CheckCircle2 className="h-3.5 w-3.5" />
+        </div>
+        <div>
+          <div className="text-sm font-semibold text-[var(--flowdex-text)]">{props.title}</div>
+          <div className="mt-1 text-sm text-[var(--flowdex-muted)]">{props.description}</div>
         </div>
       </div>
     </div>

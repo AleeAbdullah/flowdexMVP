@@ -25,7 +25,7 @@ export function MarketingPageHero(props: {
       </div>
 
       {props.meta?.length ? (
-        <HeroDitheringCard className="grid gap-4 p-6 md:grid-cols-2" contentClassName="grid gap-4 md:grid-cols-2">
+        <HeroDitheringCard className="grid gap-4 p-6 min-h-36" contentClassName="grid gap-4 md:grid-cols-2">
           {props.meta.map(item => (
             <div key={item.label} className="space-y-2">
               <div className="text-[10px] font-bold tracking-[0.3em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
