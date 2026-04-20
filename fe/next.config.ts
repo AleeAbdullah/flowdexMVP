@@ -36,6 +36,15 @@ const baseConfig: NextConfig = {
     'pg',
     'require-in-the-middle',
   ],
+  webpack(config) {
+    config.resolve = config.resolve ?? {};
+    config.resolve.alias = {
+      ...(config.resolve.alias ?? {}),
+      '@': path.join(process.cwd(), 'src'),
+    };
+
+    return config;
+  },
 };
 
 let configWithPlugins = baseConfig;

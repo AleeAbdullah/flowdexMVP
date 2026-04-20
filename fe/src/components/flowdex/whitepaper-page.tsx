@@ -131,8 +131,10 @@ export function WhitepaperPage() {
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
-            <Button variant="glass" size="lg" disabled>
-              Download Full Whitepaper (Coming Soon)
+            <Button variant="glass" size="lg" asChild>
+              <a href="/assets/whitepaper/FlowDex_Whitepaper.docx" download>
+                Download Full Whitepaper
+              </a>
             </Button>
           </>
         )}
