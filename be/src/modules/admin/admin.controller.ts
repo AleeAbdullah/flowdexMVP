@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { AuthContext, CurrentAuth } from '../../common/decorators/current-auth.decorator';
@@ -7,8 +7,7 @@ import { UserRole } from '../../common/enums/domain.enums';
 import { InternalJwtGuard } from '../../common/guards/internal-jwt.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { TransactionListItemDto } from '../transactions/dto/transactions.dto';
-import { AdminTransactionFiltersDto, AdminUnmatchedTransactionDto, CreateRefundDto } from './dto/admin.dto';
-import { RefundEntity } from './entities/refund.entity';
+import { AdminTransactionFiltersDto } from './dto/admin.dto';
 import { AdminService } from './admin.service';
 
 @ApiTags('admin')
@@ -39,39 +38,14 @@ export class AdminController {
   getStats(
     @CurrentAuth() auth: AuthContext,
   ): Promise<{
-    totalConfirmedVolumeReal: string;
-    totalConfirmedVolumeDisplay: string;
+    totalConfirmedVolume: string;
+    totalTransactionCount: number;
+    activeTransactionCount: number;
+    confirmedTransactionCount: number;
+    failedTransactionCount: number;
+    lastTransactionAt: Date | null;
     transactionCountsByStatus: Record<string, number>;
-    unmatchedCount: number;
-    refundCount: number;
-    currentTier: number;
   }> {
     return this.adminService.getStats(auth);
-  }
-
-  @Get('reconciliation/unmatched')
-  listUnmatched(
-    @CurrentAuth() auth: AuthContext,
-  ): Promise<{ items: AdminUnmatchedTransactionDto[] }> {
-    return this.adminService.listUnmatched(auth);
-  }
-
-  @Post('refunds')
-  createRefund(
-    @CurrentAuth() auth: AuthContext,
-    @Body() body: CreateRefundDto,
-  ): Promise<{ refundId: string; status: string }> {
-    return this.adminService.createRefund(
-      auth,
-      body.purchaseIntentId,
-      body.refundAmount,
-      body.destinationAddress,
-      body.reason,
-    );
-  }
-
-  @Get('refunds')
-  listRefunds(@CurrentAuth() auth: AuthContext): Promise<{ items: RefundEntity[] }> {
-    return this.adminService.listRefunds(auth);
   }
 }

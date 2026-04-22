@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { NuqsProvider } from '@/components/providers/nuqs-adapter';
 import { QueryProvider } from '@/components/providers/query-provider';
+import { AlchemyProvider } from '@/components/providers/alchemy-provider';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { Toaster } from '@/components/providers/toaster';
 import { AppConfig } from '@/utils/app-config';
@@ -48,10 +49,12 @@ export default function RootLayout(props: {
           storageKey="theme"
         >
           <QueryProvider>
-            <NuqsProvider>
-              {props.children}
-              <Toaster />
-            </NuqsProvider>
+            <AlchemyProvider>
+              <NuqsProvider>
+                {props.children}
+                <Toaster />
+              </NuqsProvider>
+            </AlchemyProvider>
           </QueryProvider>
         </ThemeProvider>
       </body>

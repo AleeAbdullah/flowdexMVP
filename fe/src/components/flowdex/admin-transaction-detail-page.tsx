@@ -1,5 +1,3 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import type { TransactionListItem } from '@/dal/app/types';
 import { DataKicker, GlassPanel, SectionHeading, StatusPill } from './primitives';
 import { formatDateTime, formatPlainNumber, truncateMiddle } from './utils';
@@ -15,7 +13,7 @@ export function AdminTransactionDetailPage(props: {
         <SectionHeading
           eyebrow="Admin Transaction Detail"
           title={`${transaction.assetCode} operational lifecycle`}
-          description="This detail view is the admin counterpart to the user receipt screen. It adds user, wallet, verification, and refund-operability context without changing the underlying backend transaction contract."
+          description="This detail view is the admin counterpart to the user receipt screen with user, wallet, and lifecycle context."
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
@@ -24,37 +22,37 @@ export function AdminTransactionDetailPage(props: {
           </div>
           <DataKicker label="User ID" value={transaction.userId} />
           <DataKicker label="Wallet" value={transaction.walletAddress ? truncateMiddle(transaction.walletAddress) : 'Unavailable'} />
-          <DataKicker label="Refund Eligible" value={transaction.refundEligible ? 'Yes' : 'No'} />
+          <DataKicker label="Network" value={transaction.network} />
         </div>
       </GlassPanel>
 
       <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <GlassPanel className="p-6">
           <div className="grid gap-4 md:grid-cols-2">
-            <DataKicker label="Intent ID" value={transaction.id} />
+            <DataKicker label="Transaction ID" value={transaction.id} />
             <DataKicker label="Wallet ID" value={transaction.walletId} />
-            <DataKicker label="Asset" value={`${transaction.assetCode} on ${transaction.chain}`} />
-            <DataKicker label="Amount" value={`${formatPlainNumber(transaction.amountPaid, 6)} ${transaction.assetCode}`} />
-            <DataKicker label="Reported Hash" value={transaction.reportedTxHash ? truncateMiddle(transaction.reportedTxHash) : 'Not reported'} />
-            <DataKicker label="Matched Hash" value={transaction.matchedTxHash ? truncateMiddle(transaction.matchedTxHash) : 'Not matched'} />
-            <DataKicker label="Confirmations" value={`${transaction.confirmations}`} />
+            <DataKicker label="Asset" value={`${transaction.assetCode} on ${transaction.network}`} />
+            <DataKicker label="Amount" value={`${formatPlainNumber(transaction.amount, 6)} ${transaction.assetCode}`} />
+            <DataKicker label="Operation" value={transaction.operationId ?? 'Not set'} />
+            <DataKicker label="Tx Hash" value={transaction.txHash ? truncateMiddle(transaction.txHash) : 'Pending'} />
+            <DataKicker label="Block Number" value={transaction.blockNumber ?? 'Pending'} />
             <DataKicker label="Confirmed At" value={formatDateTime(transaction.confirmedAt)} />
           </div>
         </GlassPanel>
 
         <GlassPanel className="p-6">
-          {transaction.verificationFailureReason ? (
+          {transaction.failureReason ? (
             <div className="space-y-3">
-              <div className="text-lg font-bold text-[var(--text)]">Verification issue</div>
+              <div className="text-lg font-bold text-[var(--text)]">Failure reason</div>
               <p className="text-sm leading-7 text-rose-100">
-                {transaction.verificationFailureReason}
+                {transaction.failureReason}
               </p>
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="text-lg font-bold text-[var(--text)]">Verification posture</div>
+              <div className="text-lg font-bold text-[var(--text)]">Lifecycle posture</div>
               <p className="text-sm leading-7 text-[var(--muted)]">
-                No machine-readable verification failure is currently attached to this lifecycle.
+                No machine-readable failure reason is currently attached to this ledger transaction.
               </p>
             </div>
           )}
@@ -62,32 +60,9 @@ export function AdminTransactionDetailPage(props: {
           <div className="mt-5 space-y-4">
             <DataKicker label="Block Time" value={formatDateTime(transaction.blockTime)} />
             <DataKicker label="Last Updated" value={formatDateTime(transaction.updatedAt)} />
-            <DataKicker label="Tokens Allocated" value={transaction.tokensAllocated ? formatPlainNumber(transaction.tokensAllocated, 2) : 'Pending'} />
           </div>
         </GlassPanel>
       </div>
-
-      <GlassPanel className="p-6">
-        {transaction.refund ? (
-          <div className="grid gap-4 md:grid-cols-3">
-            <DataKicker label="Refund Status" value={transaction.refund.status} />
-            <DataKicker label="Refund Amount" value={transaction.refund.refundAmount} />
-            <DataKicker label="Outbound Hash" value={transaction.refund.outboundTxHash ? truncateMiddle(transaction.refund.outboundTxHash) : 'Pending'} />
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="text-lg font-bold text-[var(--text)]">No refund record yet</div>
-            <p className="text-sm leading-7 text-[var(--muted)]">
-              If this confirmed transaction remains eligible, the refund operations screen can create one from the admin flow.
-            </p>
-          </div>
-        )}
-        <div className="mt-5">
-          <Button variant="glass" asChild>
-            <Link href="/app/admin/refunds">Open refunds panel</Link>
-          </Button>
-        </div>
-      </GlassPanel>
     </div>
   );
 }

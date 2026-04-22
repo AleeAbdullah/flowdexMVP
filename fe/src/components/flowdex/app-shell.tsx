@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import type { AuthMe } from '@/dal/app/types';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import LayoutKBar from '@/components/layout/kbar';
+import { useTransactions, useWallets } from '@/dal/app/hooks';
 import { SignOutButton } from './sign-out-button';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 
@@ -14,6 +15,14 @@ export function AppShell({
   children: ReactNode;
   profile: AuthMe;
 }) {
+  const walletsQuery = useWallets();
+  const transactionsQuery = useTransactions();
+  const linkedWallets = walletsQuery.data?.items ?? profile.wallets;
+  const activeTxCount = (transactionsQuery.data?.items ?? []).filter(
+    item => ['SUBMITTED', 'PENDING'].includes(item.status),
+  ).length;
+  const primaryWallet = linkedWallets.find(wallet => wallet.isPrimary) ?? linkedWallets[0] ?? null;
+
   return (
     <LayoutKBar mode="protected">
       <SidebarProvider
@@ -32,7 +41,7 @@ export function AppShell({
                       Authenticated Surface
                     </div>
                     <div className="truncate text-sm text-[color-mix(in_srgb,var(--text)_65%,transparent)]">
-                      Protected flows, wallet linking, and presale operations.
+                      Alchemy wallet linking, simulation gating, and ledger tracking.
                     </div>
                   </div>
                 </div>
@@ -41,7 +50,10 @@ export function AppShell({
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold text-[var(--text)]">{profile.email}</div>
                     <div className="text-[11px] font-semibold tracking-[0.22em] text-[var(--cyan)] uppercase">
-                      {profile.role} • {profile.wallets.length} wallets
+                      {profile.role} • {linkedWallets.length} wallets • {activeTxCount} active tx
+                    </div>
+                    <div className="truncate text-[11px] text-[color-mix(in_srgb,var(--text)_55%,transparent)]">
+                      {primaryWallet ? `${primaryWallet.network} • ${primaryWallet.address}` : 'No wallet linked'}
                     </div>
                   </div>
                   <SignOutButton />

@@ -11,7 +11,7 @@ import { formatDateTime, formatPlainNumber, truncateMiddle } from './utils';
 
 const defaultFilters: AdminTransactionFilters = {
   status: '',
-  chain: '',
+  network: '',
   assetCode: '',
   userId: '',
   from: '',
@@ -29,13 +29,13 @@ export function AdminTransactionsPage() {
         <SectionHeading
           eyebrow="Admin Transactions"
           title="Monitor the operational lifecycle behind user-visible transaction state."
-          description="This panel stays close to the backend filter contract. It is for status review, user lookup, lifecycle inspection, and refund triage rather than portfolio analytics."
+          description="This panel stays close to the backend filter contract for status review, user lookup, and lifecycle inspection."
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <FilterMetric label="Loaded" value={`${items.length}`} />
           <FilterMetric label="Confirmed" value={`${items.filter(item => item.status === 'CONFIRMED').length}`} />
           <FilterMetric label="Failed" value={`${items.filter(item => item.status === 'FAILED').length}`} />
-          <FilterMetric label="Refund Eligible" value={`${items.filter(item => item.refundEligible).length}`} />
+          <FilterMetric label="Pending" value={`${items.filter(item => ['SUBMITTED', 'PENDING'].includes(item.status)).length}`} />
         </div>
       </GlassPanel>
 
@@ -48,10 +48,10 @@ export function AdminTransactionsPage() {
             placeholder="CONFIRMED"
           />
           <InputField
-            label="Chain"
-            value={filters.chain ?? ''}
-            onChange={value => setFilters(current => ({ ...current, chain: value }))}
-            placeholder="ETH"
+            label="Network"
+            value={filters.network ?? ''}
+            onChange={value => setFilters(current => ({ ...current, network: value }))}
+            placeholder="BASE_SEPOLIA"
           />
           <InputField
             label="Asset Code"
@@ -110,31 +110,31 @@ export function AdminTransactionsPage() {
             >
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-3">
-                  <div className="font-semibold text-[var(--text)]">{item.assetCode} on {item.chain}</div>
+                  <div className="font-semibold text-[var(--text)]">{item.assetCode} on {item.network}</div>
                   <StatusPill status={item.status} />
                 </div>
                 <div className="text-sm text-[color-mix(in_srgb,var(--text)_45%,transparent)]">
                   User {item.userId} • Wallet {item.walletAddress ? truncateMiddle(item.walletAddress) : 'Unavailable'}
                 </div>
                 <div className="text-sm text-[color-mix(in_srgb,var(--text)_40%,transparent)]">
-                  {item.matchedTxHash
-                    ? `Matched ${truncateMiddle(item.matchedTxHash)}`
-                    : item.reportedTxHash
-                      ? `Reported ${truncateMiddle(item.reportedTxHash)}`
-                      : 'No chain hash attached yet'}
+                  {item.txHash
+                    ? `Tx ${truncateMiddle(item.txHash)}`
+                    : item.operationId
+                      ? `Operation ${item.operationId}`
+                      : 'No on-chain identifier attached yet'}
                 </div>
-                {item.verificationFailureReason ? (
+                {item.failureReason ? (
                   <div className="text-sm text-rose-200">
-                    Verification issue: {item.verificationFailureReason}
+                    Failure reason: {item.failureReason}
                   </div>
                 ) : null}
               </div>
 
               <div className="grid gap-4 sm:grid-cols-4 xl:min-w-[42rem]">
-                <FilterMetric label="Amount" value={`${formatPlainNumber(item.amountPaid, 6)} ${item.assetCode}`} />
-                <FilterMetric label="Confirmations" value={`${item.confirmations}`} />
+                <FilterMetric label="Amount" value={`${formatPlainNumber(item.amount, 6)} ${item.assetCode}`} />
+                <FilterMetric label="Block" value={item.blockNumber ?? 'Pending'} />
                 <FilterMetric label="Confirmed At" value={formatDateTime(item.confirmedAt)} />
-                <FilterMetric label="Refund" value={item.refundEligible ? 'Eligible' : item.refund ? item.refund.status : 'None'} />
+                <FilterMetric label="Updated" value={formatDateTime(item.updatedAt)} />
               </div>
 
               <Button variant="glass" asChild>

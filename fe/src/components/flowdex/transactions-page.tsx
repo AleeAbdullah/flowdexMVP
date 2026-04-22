@@ -15,14 +15,14 @@ export function TransactionsPage() {
       <GlassPanel className="grid gap-8 p-6 lg:grid-cols-[1.1fr_0.9fr] lg:p-8">
         <SectionHeading
           eyebrow="Transactions"
-          title="Track purchase intents, chain progress, and refund status."
-          description="This is the user-facing read model for the backend lifecycle. It now exposes reported versus matched hashes, machine-readable verification issues, refund posture, and confirmed timestamps in one place."
+          title="Ledger-backed execution history"
+          description="This view reads durable backend ledger records updated by simulation, tracking submissions, webhook ingestion, and transfer backfill."
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <Metric label="Transactions" value={`${items.length}`} />
           <Metric label="Confirmed" value={`${items.filter(item => item.status === 'CONFIRMED').length}`} />
-          <Metric label="Pending" value={`${items.filter(item => item.status === 'PENDING').length}`} />
-          <Metric label="Refunded" value={`${items.filter(item => item.status === 'REFUNDED').length}`} />
+          <Metric label="Pending" value={`${items.filter(item => ['SUBMITTED', 'PENDING'].includes(item.status)).length}`} />
+          <Metric label="Failed" value={`${items.filter(item => item.status === 'FAILED').length}`} />
         </div>
       </GlassPanel>
 
@@ -33,7 +33,7 @@ export function TransactionsPage() {
         <div>
           {transactionsQuery.isError ? (
             <div className="px-6 py-5 text-sm text-rose-200">
-              {transactionsQuery.error instanceof Error ? transactionsQuery.error.message : 'Could not load protected transactions.'}
+              {transactionsQuery.error instanceof Error ? transactionsQuery.error.message : 'Could not load transactions.'}
             </div>
           ) : null}
 
@@ -44,7 +44,7 @@ export function TransactionsPage() {
           {!transactionsQuery.isLoading && items.length === 0 ? (
             <div className="space-y-4 px-6 py-5">
               <p className="text-sm text-[var(--muted)]">
-                No protected transactions yet. Create a purchase intent from the app buy flow when you are ready.
+                No tracked transactions yet. Run a simulation and track a new operation from protected buy.
               </p>
               <Button variant="brand" asChild>
                 <Link href="/app/buy">Go to protected buy</Link>
@@ -59,28 +59,24 @@ export function TransactionsPage() {
             >
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-3">
-                  <div className="font-semibold text-[var(--text)]">{item.assetCode} on {item.chain}</div>
+                  <div className="font-semibold text-[var(--text)]">{item.assetCode} on {item.network}</div>
                   <StatusPill status={item.status} />
                 </div>
-                <div className="text-sm text-[color-mix(in_srgb,var(--text)_45%,transparent)]">Intent {item.id}</div>
+                <div className="text-sm text-[color-mix(in_srgb,var(--text)_45%,transparent)]">Ledger id {item.id}</div>
                 <div className="text-sm text-[color-mix(in_srgb,var(--text)_40%,transparent)]">
-                  {item.matchedTxHash
-                    ? `Matched hash: ${truncateMiddle(item.matchedTxHash)}`
-                    : item.reportedTxHash
-                      ? `Reported hash: ${truncateMiddle(item.reportedTxHash)}`
-                      : 'Waiting for a reported or matched chain hash'}
+                  {item.txHash ? `Tx hash: ${truncateMiddle(item.txHash)}` : item.operationId ? `Operation: ${item.operationId}` : 'Awaiting tx hash'}
                 </div>
-                {item.verificationFailureReason ? (
+                {item.failureReason ? (
                   <div className="text-sm text-rose-200">
-                    Verification issue: {item.verificationFailureReason}
+                    Failure: {item.failureReason}
                   </div>
                 ) : null}
               </div>
               <div className="grid gap-4 sm:grid-cols-4 xl:min-w-[42rem]">
-                <Metric label="Amount" value={`${formatPlainNumber(item.amountPaid, 6)} ${item.assetCode}`} />
-                <Metric label="Tokens" value={item.tokensAllocated ? formatPlainNumber(item.tokensAllocated, 6) : 'Pending'} />
-                <Metric label="Confirmations" value={`${item.confirmations}`} />
+                <Metric label="Amount" value={`${formatPlainNumber(item.amount, 6)} ${item.assetCode}`} />
+                <Metric label="Block" value={item.blockNumber ?? 'Pending'} />
                 <Metric label="Confirmed" value={formatDateTime(item.confirmedAt)} />
+                <Metric label="Updated" value={formatDateTime(item.updatedAt)} />
               </div>
               <Button variant="glass" asChild>
                 <Link href={`/app/transactions/${item.id}`}>View detail</Link>

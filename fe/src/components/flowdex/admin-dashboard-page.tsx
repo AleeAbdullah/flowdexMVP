@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { AlertTriangle, ArrowRightLeft, ShieldCheck } from 'lucide-react';
+import { BarChart3, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAdminStats } from '@/dal/app/hooks';
 import { DataKicker, GlassPanel, SectionHeading } from './primitives';
-import { formatCurrency, formatPlainNumber } from './utils';
+import { formatDateTime, formatPlainNumber } from './utils';
 
 export function AdminDashboardPage() {
   const statsQuery = useAdminStats();
@@ -38,54 +38,44 @@ export function AdminDashboardPage() {
       <GlassPanel className="grid gap-8 p-6 lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
         <SectionHeading
           eyebrow="Admin"
-          title="Operate the presale through an operational control surface."
-          description="This panel stays intentionally narrow in Phase 2: transaction monitoring, reconciliation visibility, refund management, and top-level stats. It is not a full back-office suite."
+          title="Operate ledger-backed transaction state from a single surface."
+          description="This panel is focused on ledger throughput, status health, and lifecycle visibility across tracked transactions."
         />
         <div className="grid gap-4 sm:grid-cols-2">
-          <DataKicker label="Current Tier" value={`Tier ${stats.currentTier}`} />
-          <DataKicker label="Refund Count" value={`${stats.refundCount}`} />
-          <DataKicker label="Unmatched" value={`${stats.unmatchedCount}`} />
+          <DataKicker label="Total Tracked" value={`${stats.totalTransactionCount}`} />
+          <DataKicker label="Active" value={`${stats.activeTransactionCount}`} />
+          <DataKicker label="Confirmed" value={`${stats.confirmedTransactionCount}`} />
           <DataKicker label="Statuses" value={`${Object.keys(stats.transactionCountsByStatus).length}`} />
         </div>
       </GlassPanel>
 
-      <div className="grid gap-4 xl:grid-cols-4">
+      <div className="grid gap-4 xl:grid-cols-3">
         <GlassPanel className="p-5">
-          <DataKicker label="Confirmed Volume (Real)" value={formatPlainNumber(stats.totalConfirmedVolumeReal, 2)} />
-          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">Confirmed presale volume from finalized on-chain lifecycle state.</p>
+          <DataKicker label="Confirmed Volume" value={formatPlainNumber(stats.totalConfirmedVolume, 2)} />
+          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">Finalized ledger volume from confirmed transactions.</p>
         </GlassPanel>
         <GlassPanel className="p-5">
-          <DataKicker label="Confirmed Volume (Display)" value={formatCurrency(stats.totalConfirmedVolumeDisplay, 0)} />
-          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">Display-layer marketing multiplier applied on the backend response.</p>
+          <DataKicker label="Failed or Dropped" value={`${stats.failedTransactionCount}`} />
+          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">Transactions that failed execution or were dropped before confirmation.</p>
         </GlassPanel>
         <GlassPanel className="p-5">
-          <DataKicker label="Unmatched Events" value={`${stats.unmatchedCount}`} />
-          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">Chain events that still need operational review or reconciliation context.</p>
-        </GlassPanel>
-        <GlassPanel className="p-5">
-          <DataKicker label="Refund Queue" value={`${stats.refundCount}`} />
-          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">Refund records currently tracked by the backend admin lifecycle.</p>
+          <DataKicker label="Last Update" value={formatDateTime(stats.lastTransactionAt)} />
+          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">Most recent ledger update time across all tracked transactions.</p>
         </GlassPanel>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid gap-4 xl:grid-cols-2">
         <ActionCard
           href="/app/admin/transactions"
           title="Transactions"
-          description="Filter operational transaction history by status, chain, asset, user, or date window."
+          description="Filter operational transaction history by status, network, asset, user, or date window."
           icon={<ShieldCheck className="h-5 w-5" />}
         />
         <ActionCard
-          href="/app/admin/reconciliation"
-          title="Reconciliation"
-          description="Inspect unmatched blockchain activity and the machine-readable reason the backend attached."
-          icon={<AlertTriangle className="h-5 w-5" />}
-        />
-        <ActionCard
-          href="/app/admin/refunds"
-          title="Refunds"
-          description="Review refund records and create a refund for eligible confirmed transactions."
-          icon={<ArrowRightLeft className="h-5 w-5" />}
+          href="/app/transactions"
+          title="User Surface"
+          description="Open the user-facing ledger view to compare admin and end-user transaction visibility."
+          icon={<BarChart3 className="h-5 w-5" />}
         />
       </div>
 

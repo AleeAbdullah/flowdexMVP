@@ -6,7 +6,7 @@ class DashboardPrimaryWalletDto {
   id!: string;
 
   @ApiProperty()
-  chain!: string;
+  network!: string;
 
   @ApiProperty()
   address!: string;
@@ -45,16 +45,13 @@ export class DashboardSummaryDto {
   walletSummary!: DashboardWalletSummaryDto;
 
   @ApiProperty()
-  activePurchaseIntentCount!: number;
+  activeTransactionCount!: number;
 
   @ApiProperty()
   confirmedTransactionCount!: number;
 
   @ApiProperty()
-  totalContributedAmount!: string;
-
-  @ApiProperty()
-  totalAllocatedTokens!: string;
+  totalTrackedVolume!: string;
 
   @ApiProperty({ type: [TransactionListItemDto] })
   recentTransactions!: TransactionListItemDto[];

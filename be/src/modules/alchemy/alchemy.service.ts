@@ -58,6 +58,7 @@ export class AlchemyService {
         value: input.value,
         data: input.data,
       },
+      'latest',
     ]);
 
     if (!response || typeof response !== 'object') {
@@ -68,14 +69,15 @@ export class AlchemyService {
       };
     }
 
-    const error = typeof response.error === 'object' && response.error
-      ? response.error
+    const simulationError = typeof (response as { error?: unknown }).error === 'object'
+      && (response as { error?: unknown }).error
+      ? (response as { error: unknown }).error
       : null;
 
-    if (error) {
+    if (simulationError) {
       return {
         allowed: false,
-        reason: 'SIMULATION_EXECUTION_ERROR',
+        reason: 'SIMULATION_REVERTED',
         raw: response,
       };
     }

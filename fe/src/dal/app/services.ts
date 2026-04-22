@@ -4,20 +4,16 @@ import type {
   AdminStats,
   AdminTransactionFilters,
   AdminTransactionsResponse,
-  AdminUnmatchedTransactionsResponse,
   AuthMe,
-  CreateRefundInput,
-  CreatePurchaseIntentInput,
-  CreateWalletChallengeInput,
   DashboardSummary,
-  PurchaseIntentResponse,
-  RefundListResponse,
-  ReportTransactionInput,
+  LinkWalletInput,
+  SimulateTransactionInput,
+  SimulateTransactionResult,
+  TrackTransactionInput,
+  TrackTransactionResult,
   TransactionListItem,
   TransactionsResponse,
-  VerifyWalletSignatureInput,
   Wallet,
-  WalletChallenge,
   WalletListResponse,
 } from './types';
 import { APP_API_ROUTES } from './routes';
@@ -63,14 +59,8 @@ export const appService = {
   getWallets() {
     return fetchAppApi<WalletListResponse>(APP_API_ROUTES.wallets, { cache: 'no-store' });
   },
-  createWalletChallenge(input: CreateWalletChallengeInput) {
-    return fetchAppApi<WalletChallenge>(APP_API_ROUTES.walletChallenge, {
-      method: 'POST',
-      body: JSON.stringify(input),
-    });
-  },
-  verifyWalletSignature(input: VerifyWalletSignatureInput) {
-    return fetchAppApi<Wallet>(APP_API_ROUTES.walletVerify, {
+  linkWallet(input: LinkWalletInput) {
+    return fetchAppApi<Wallet>(APP_API_ROUTES.walletLink, {
       method: 'POST',
       body: JSON.stringify(input),
     });
@@ -80,14 +70,14 @@ export const appService = {
       method: 'DELETE',
     });
   },
-  createPurchaseIntent(input: CreatePurchaseIntentInput) {
-    return fetchAppApi<PurchaseIntentResponse>(APP_API_ROUTES.purchaseIntents, {
+  simulateTransaction(input: SimulateTransactionInput) {
+    return fetchAppApi<SimulateTransactionResult>(APP_API_ROUTES.transactionSimulate, {
       method: 'POST',
       body: JSON.stringify(input),
     });
   },
-  reportPurchaseTransaction(intentId: string, input: ReportTransactionInput) {
-    return fetchAppApi<{ accepted: true }>(`${APP_API_ROUTES.purchaseIntents}/${intentId}/report-tx`, {
+  trackTransaction(input: TrackTransactionInput) {
+    return fetchAppApi<TrackTransactionResult>(APP_API_ROUTES.transactionTrack, {
       method: 'POST',
       body: JSON.stringify(input),
     });
@@ -123,22 +113,6 @@ export const appService = {
   getAdminTransaction(id: string) {
     return fetchAppApi<TransactionListItem>(`${APP_API_ROUTES.adminTransactions}/${id}`, {
       cache: 'no-store',
-    });
-  },
-  getAdminUnmatchedTransactions() {
-    return fetchAppApi<AdminUnmatchedTransactionsResponse>(APP_API_ROUTES.adminReconciliationUnmatched, {
-      cache: 'no-store',
-    });
-  },
-  getAdminRefunds() {
-    return fetchAppApi<RefundListResponse>(APP_API_ROUTES.adminRefunds, {
-      cache: 'no-store',
-    });
-  },
-  createAdminRefund(input: CreateRefundInput) {
-    return fetchAppApi<{ refundId: string; status: string }>(APP_API_ROUTES.adminRefunds, {
-      method: 'POST',
-      body: JSON.stringify(input),
     });
   },
 };

@@ -1,146 +1,96 @@
 import {
-  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { getAddress, verifyMessage } from 'ethers';
-import { TronWeb, utils as tronUtils } from 'tronweb';
+import { getAddress } from 'ethers';
 import { Repository } from 'typeorm';
-import { v4 as uuidv4 } from 'uuid';
 
 import { AuthContext } from '../../common/decorators/current-auth.decorator';
-import { Chain, IntentStatus } from '../../common/enums/domain.enums';
-import { PurchaseIntentEntity } from '../purchase-intents/entities/purchase-intent.entity';
+import { Chain } from '../../common/enums/domain.enums';
+import { LedgerTransactionEntity } from '../transactions/entities/ledger-transaction.entity';
 import { UsersService } from '../users/users.service';
-import { WalletDto } from './dto/wallets.dto';
-import { WalletChallengeEntity } from './entities/wallet-challenge.entity';
+import { LinkWalletDto, WalletDto } from './dto/wallets.dto';
 import { WalletEntity } from './entities/wallet.entity';
+
+const SUPPORTED_NETWORKS = new Set(['ETH_SEPOLIA', 'BASE_SEPOLIA']);
 
 @Injectable()
 export class WalletsService {
   private readonly logger = new Logger(WalletsService.name);
-  private readonly tronWeb = new TronWeb({
-    fullHost: 'https://api.trongrid.io',
-  });
 
   constructor(
     @InjectRepository(WalletEntity)
     private readonly walletsRepository: Repository<WalletEntity>,
-    @InjectRepository(WalletChallengeEntity)
-    private readonly walletChallengesRepository: Repository<WalletChallengeEntity>,
-    @InjectRepository(PurchaseIntentEntity)
-    private readonly purchaseIntentsRepository: Repository<PurchaseIntentEntity>,
+    @InjectRepository(LedgerTransactionEntity)
+    private readonly ledgerTransactionsRepository: Repository<LedgerTransactionEntity>,
     private readonly usersService: UsersService,
   ) {}
 
-  async createChallenge(auth: AuthContext, chain: Chain, address: string): Promise<{
-    challengeId: string;
-    message: string;
-    expiresAt: Date;
-  }> {
+  async link(auth: AuthContext, input: LinkWalletDto): Promise<WalletDto> {
     await this.usersService.syncAndRequireActive(auth);
 
-    const addressNormalized = this.normalizeAddress(chain, address);
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-    const nonce = uuidv4();
-    const message = [
-      'FlowDex wallet verification',
-      `Address: ${addressNormalized}`,
-      `Nonce: ${nonce}`,
-      `User: ${auth.sub}`,
-    ].join('\n');
+    if (!SUPPORTED_NETWORKS.has(input.network)) {
+      throw new ConflictException('Unsupported wallet network');
+    }
 
-    const challenge = this.walletChallengesRepository.create({
-      userId: auth.sub,
-      chain,
-      addressRaw: address,
-      addressNormalized,
-      message,
-      nonce,
-      expiresAt,
+    const mappedChain = this.mapChainForNetwork(input.network);
+    const addressNormalized = getAddress(input.address.trim());
+    const existingByProviderWallet = await this.walletsRepository.findOne({
+      where: { alchemyWalletId: input.alchemyWalletId },
     });
 
-    const saved = await this.walletChallengesRepository.save(challenge);
-    this.logger.log(`Created ${chain} wallet challenge ${saved.id} for user ${auth.sub}.`);
-
-    return {
-      challengeId: saved.id,
-      message: saved.message,
-      expiresAt: saved.expiresAt,
-    };
-  }
-
-  async verify(auth: AuthContext, challengeId: string, signature: string): Promise<WalletDto> {
-    await this.usersService.syncAndRequireActive(auth);
-
-    const challenge = await this.walletChallengesRepository.findOne({
-      where: { id: challengeId, userId: auth.sub },
-    });
-
-    if (!challenge) {
-      throw new NotFoundException('Wallet challenge not found');
+    if (existingByProviderWallet && existingByProviderWallet.userId !== auth.sub) {
+      throw new ConflictException('Alchemy wallet is already linked to another user');
     }
 
-    if (challenge.usedAt) {
-      throw new ConflictException('Wallet challenge already used');
-    }
-
-    if (challenge.expiresAt.getTime() < Date.now()) {
-      throw new BadRequestException('Wallet challenge has expired');
-    }
-
-    const recoveredAddress = await this.verifySignature(
-      challenge.chain,
-      challenge.message,
-      signature,
-    );
-    const normalizedRecovered = this.normalizeAddress(challenge.chain, recoveredAddress);
-
-    if (normalizedRecovered !== challenge.addressNormalized) {
-      throw new BadRequestException('Signature does not match the challenge address');
-    }
-
-    const existing = await this.walletsRepository.findOne({
+    const existingByAddress = await this.walletsRepository.findOne({
       where: {
-        chain: challenge.chain,
-        addressNormalized: challenge.addressNormalized,
+        chain: mappedChain,
+        addressNormalized,
       },
     });
 
-    if (existing && existing.userId !== auth.sub) {
-      throw new ConflictException('Wallet already linked to another user');
+    if (existingByAddress && existingByAddress.userId !== auth.sub) {
+      throw new ConflictException('Wallet address is already linked to another user');
     }
 
-    const isPrimary =
-      (await this.walletsRepository.count({
-        where: { userId: auth.sub, chain: challenge.chain, isPrimary: true },
-      })) === 0;
-
-    const wallet =
-      existing ??
-      this.walletsRepository.create({
+    const hasPrimaryInNetwork = (await this.walletsRepository.count({
+      where: {
         userId: auth.sub,
-        chain: challenge.chain,
-        addressRaw: challenge.addressRaw,
-        addressNormalized: challenge.addressNormalized,
-        isPrimary,
+        network: input.network,
+        isPrimary: true,
+      },
+    })) > 0;
+
+    const target = existingByProviderWallet
+      ?? existingByAddress
+      ?? this.walletsRepository.create({
+        userId: auth.sub,
+        chain: mappedChain,
+        addressRaw: addressNormalized,
+        addressNormalized,
+        isPrimary: !hasPrimaryInNetwork,
       });
 
-    wallet.addressRaw = challenge.addressRaw;
-    wallet.addressNormalized = challenge.addressNormalized;
-    wallet.verifiedAt = new Date();
-    if (isPrimary) {
-      wallet.isPrimary = true;
+    target.userId = auth.sub;
+    target.chain = mappedChain;
+    target.addressRaw = input.address.trim();
+    target.addressNormalized = addressNormalized;
+    target.network = input.network;
+    target.provider = input.provider?.trim() || 'ALCHEMY_EMBEDDED';
+    target.alchemyAccountId = input.alchemyAccountId.trim();
+    target.alchemyWalletId = input.alchemyWalletId.trim();
+    target.verifiedAt = new Date();
+
+    if (!hasPrimaryInNetwork) {
+      target.isPrimary = true;
     }
 
-    challenge.usedAt = new Date();
-    await this.walletChallengesRepository.save(challenge);
-
-    const saved = await this.walletsRepository.save(wallet);
-    this.logger.log(`Verified wallet ${saved.id} (${saved.chain}) for user ${auth.sub}.`);
+    const saved = await this.walletsRepository.save(target);
+    this.logger.log(`Linked wallet ${saved.id} (${saved.network}) for user ${auth.sub}.`);
     return this.toDto(saved);
   }
 
@@ -152,75 +102,55 @@ export class WalletsService {
   async listForUser(userId: string): Promise<WalletDto[]> {
     const wallets = await this.walletsRepository.find({
       where: { userId },
-      order: { createdAt: 'DESC' },
+      order: { isPrimary: 'DESC', createdAt: 'DESC' },
     });
 
-    return wallets.map((wallet) => this.toDto(wallet));
+    return wallets
+      .filter(wallet => wallet.network && SUPPORTED_NETWORKS.has(wallet.network))
+      .map(wallet => this.toDto(wallet));
   }
 
   async removeForAuth(auth: AuthContext, walletId: string): Promise<void> {
     await this.usersService.syncAndRequireActive(auth);
 
-    const userId = auth.sub;
     const wallet = await this.walletsRepository.findOne({
-      where: { id: walletId, userId },
+      where: { id: walletId, userId: auth.sub },
     });
 
     if (!wallet) {
       throw new NotFoundException('Wallet not found');
     }
 
-    const linkedIntents = await this.purchaseIntentsRepository.count({
-      where: [
-        { walletId, status: IntentStatus.PENDING },
-        { walletId, status: IntentStatus.MATCHED },
-        { walletId, status: IntentStatus.CONFIRMING },
-        { walletId, status: IntentStatus.CONFIRMED },
-        { walletId, status: IntentStatus.REFUNDED },
-      ],
+    const linkedTransactions = await this.ledgerTransactionsRepository.count({
+      where: { walletId: wallet.id },
     });
 
-    if (linkedIntents > 0) {
+    if (linkedTransactions > 0) {
       throw new ConflictException('Wallet cannot be removed after linked transaction activity');
     }
 
-    await this.walletsRepository.delete({ id: walletId, userId });
-    this.logger.log(`Removed wallet ${walletId} for user ${userId}.`);
+    await this.walletsRepository.delete({ id: wallet.id, userId: auth.sub });
+    this.logger.log(`Removed wallet ${wallet.id} for user ${auth.sub}.`);
   }
 
   private toDto(wallet: WalletEntity): WalletDto {
     return {
       id: wallet.id,
-      chain: wallet.chain,
       address: wallet.addressNormalized,
+      network: wallet.network ?? 'ETH_SEPOLIA',
+      provider: wallet.provider ?? 'ALCHEMY_EMBEDDED',
+      alchemyAccountId: wallet.alchemyAccountId ?? '',
+      alchemyWalletId: wallet.alchemyWalletId ?? '',
       isPrimary: wallet.isPrimary,
       verifiedAt: wallet.verifiedAt,
     };
   }
 
-  private normalizeAddress(chain: Chain, address: string): string {
-    const value = address.trim();
-
-    if (chain === Chain.ETH || chain === Chain.ERC20) {
-      return getAddress(value);
+  private mapChainForNetwork(network: string): Chain {
+    if (network === 'BASE_SEPOLIA') {
+      return Chain.BASE_SEPOLIA;
     }
 
-    if (!tronUtils.address.isAddress(value)) {
-      throw new BadRequestException('Invalid TRON address');
-    }
-
-    return tronUtils.address.fromHex(tronUtils.address.toHex(value));
-  }
-
-  private async verifySignature(
-    chain: Chain,
-    message: string,
-    signature: string,
-  ): Promise<string> {
-    if (chain === Chain.ETH || chain === Chain.ERC20) {
-      return verifyMessage(message, signature);
-    }
-
-    return this.tronWeb.trx.verifyMessageV2(message, signature);
+    return Chain.ETH_SEPOLIA;
   }
 }

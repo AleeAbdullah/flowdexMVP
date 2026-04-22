@@ -1,37 +1,49 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsString, IsUUID } from 'class-validator';
+import { IsIn, IsOptional, IsString } from 'class-validator';
 
-import { Chain } from '../../../common/enums/domain.enums';
+const SUPPORTED_NETWORKS = ['ETH_SEPOLIA', 'BASE_SEPOLIA'] as const;
 
-export class CreateWalletChallengeDto {
-  @ApiProperty({ enum: Chain })
-  @IsEnum(Chain)
-  chain!: Chain;
+export class LinkWalletDto {
+  @ApiProperty({ enum: SUPPORTED_NETWORKS })
+  @IsIn(SUPPORTED_NETWORKS)
+  network!: (typeof SUPPORTED_NETWORKS)[number];
 
   @ApiProperty()
   @IsString()
   address!: string;
-}
-
-export class VerifyWalletSignatureDto {
-  @ApiProperty()
-  @IsUUID()
-  challengeId!: string;
 
   @ApiProperty()
   @IsString()
-  signature!: string;
+  alchemyAccountId!: string;
+
+  @ApiProperty()
+  @IsString()
+  alchemyWalletId!: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  provider?: string;
 }
 
 export class WalletDto {
   @ApiProperty()
   id!: string;
 
-  @ApiProperty({ enum: Chain })
-  chain!: Chain;
-
   @ApiProperty()
   address!: string;
+
+  @ApiProperty({ enum: SUPPORTED_NETWORKS })
+  network!: string;
+
+  @ApiProperty()
+  provider!: string;
+
+  @ApiProperty()
+  alchemyAccountId!: string;
+
+  @ApiProperty()
+  alchemyWalletId!: string;
 
   @ApiProperty()
   isPrimary!: boolean;

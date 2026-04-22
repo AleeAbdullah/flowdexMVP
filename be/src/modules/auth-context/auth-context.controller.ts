@@ -20,8 +20,11 @@ export class AuthContextController {
     status: string;
     wallets: Array<{
       id: string;
-      chain: string;
+      network: string;
       address: string;
+      provider: string;
+      alchemyAccountId: string;
+      alchemyWalletId: string;
       isPrimary: boolean;
       verifiedAt: Date | null;
     }>;
