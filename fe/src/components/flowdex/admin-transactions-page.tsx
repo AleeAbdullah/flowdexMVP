@@ -11,7 +11,7 @@ import { formatDateTime, formatPlainNumber, truncateMiddle } from './utils';
 
 const defaultFilters: AdminTransactionFilters = {
   status: '',
-  chain: '',
+  network: '',
   assetCode: '',
   userId: '',
   from: '',
@@ -29,13 +29,13 @@ export function AdminTransactionsPage() {
         <SectionHeading
           eyebrow="Admin Transactions"
           title="Monitor the operational lifecycle behind user-visible transaction state."
-          description="This panel stays close to the backend filter contract. It is for status review, user lookup, lifecycle inspection, and refund triage rather than portfolio analytics."
+          description="This panel stays close to the backend filter contract for status review, user lookup, and lifecycle inspection."
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <FilterMetric label="Loaded" value={`${items.length}`} />
           <FilterMetric label="Confirmed" value={`${items.filter(item => item.status === 'CONFIRMED').length}`} />
           <FilterMetric label="Failed" value={`${items.filter(item => item.status === 'FAILED').length}`} />
-          <FilterMetric label="Refund Eligible" value={`${items.filter(item => item.refundEligible).length}`} />
+          <FilterMetric label="Pending" value={`${items.filter(item => ['SUBMITTED', 'PENDING'].includes(item.status)).length}`} />
         </div>
       </GlassPanel>
 
@@ -48,10 +48,10 @@ export function AdminTransactionsPage() {
             placeholder="CONFIRMED"
           />
           <InputField
-            label="Chain"
-            value={filters.chain ?? ''}
-            onChange={value => setFilters(current => ({ ...current, chain: value }))}
-            placeholder="ETH"
+            label="Network"
+            value={filters.network ?? ''}
+            onChange={value => setFilters(current => ({ ...current, network: value }))}
+            placeholder="BASE_SEPOLIA"
           />
           <InputField
             label="Asset Code"
@@ -86,12 +86,12 @@ export function AdminTransactionsPage() {
       </GlassPanel>
 
       <GlassPanel className="overflow-hidden">
-        <div className="border-b border-[var(--flowdex-card-border)] px-6 py-4 text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">
+        <div className="border-b border-[var(--card-border)] px-6 py-4 text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
           Operational Transaction List
         </div>
         <div>
           {query.isLoading ? (
-            <div className="px-6 py-5 text-sm text-[var(--flowdex-muted)]">Loading admin transactions...</div>
+            <div className="px-6 py-5 text-sm text-[var(--muted)]">Loading admin transactions...</div>
           ) : null}
           {query.isError ? (
             <div className="px-6 py-5 text-sm text-rose-200">
@@ -99,42 +99,47 @@ export function AdminTransactionsPage() {
             </div>
           ) : null}
           {!query.isLoading && items.length === 0 ? (
-            <div className="px-6 py-5 text-sm text-[var(--flowdex-muted)]">
+            <div className="px-6 py-5 text-sm text-[var(--muted)]">
               No transactions matched the current filter set.
             </div>
           ) : null}
           {items.map(item => (
             <div
               key={item.id}
-              className="flex flex-col gap-4 border-b border-[var(--flowdex-card-border)] px-6 py-5 last:border-b-0 xl:flex-row xl:items-center xl:justify-between"
+              className="flex flex-col gap-4 border-b border-[var(--card-border)] px-6 py-5 last:border-b-0 xl:flex-row xl:items-center xl:justify-between"
             >
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-3">
-                  <div className="font-semibold text-[var(--flowdex-text)]">{item.assetCode} on {item.chain}</div>
+                  <div className="font-semibold text-[var(--text)]">{item.assetCode} on {item.network}</div>
                   <StatusPill status={item.status} />
                 </div>
-                <div className="text-sm text-[color-mix(in_srgb,var(--flowdex-text)_45%,transparent)]">
+                <div className="text-sm text-[color-mix(in_srgb,var(--text)_45%,transparent)]">
                   User {item.userId} • Wallet {item.walletAddress ? truncateMiddle(item.walletAddress) : 'Unavailable'}
                 </div>
-                <div className="text-sm text-[color-mix(in_srgb,var(--flowdex-text)_40%,transparent)]">
-                  {item.matchedTxHash
-                    ? `Matched ${truncateMiddle(item.matchedTxHash)}`
-                    : item.reportedTxHash
-                      ? `Reported ${truncateMiddle(item.reportedTxHash)}`
-                      : 'No chain hash attached yet'}
+                <div className="text-sm text-[color-mix(in_srgb,var(--text)_40%,transparent)]">
+                  {item.txHash
+                    ? `Tx ${truncateMiddle(item.txHash)}`
+                    : item.operationId
+                      ? `Operation ${item.operationId}`
+                      : 'No on-chain identifier attached yet'}
                 </div>
-                {item.verificationFailureReason ? (
+                {item.failureReason ? (
                   <div className="text-sm text-rose-200">
-                    Verification issue: {item.verificationFailureReason}
+                    Failure reason: {item.failureReason}
+                  </div>
+                ) : null}
+                {item.settlementDiagnostic ? (
+                  <div className="text-sm text-amber-200">
+                    Settlement diagnostic: {item.settlementDiagnostic}
                   </div>
                 ) : null}
               </div>
 
               <div className="grid gap-4 sm:grid-cols-4 xl:min-w-[42rem]">
-                <FilterMetric label="Amount" value={`${formatPlainNumber(item.amountPaid, 6)} ${item.assetCode}`} />
-                <FilterMetric label="Confirmations" value={`${item.confirmations}`} />
+                <FilterMetric label="Amount" value={`${formatPlainNumber(item.amount, 6)} ${item.assetCode}`} />
+                <FilterMetric label="Block" value={item.blockNumber ?? 'Pending'} />
                 <FilterMetric label="Confirmed At" value={formatDateTime(item.confirmedAt)} />
-                <FilterMetric label="Refund" value={item.refundEligible ? 'Eligible' : item.refund ? item.refund.status : 'None'} />
+                <FilterMetric label="Updated" value={formatDateTime(item.updatedAt)} />
               </div>
 
               <Button variant="glass" asChild>
@@ -157,13 +162,13 @@ function InputField(props: {
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">{props.label}</span>
+      <span className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">{props.label}</span>
       <Input
         type={props.type}
         value={props.value}
         onChange={event => props.onChange(event.target.value)}
         placeholder={props.placeholder}
-        className="h-12 border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] text-[var(--flowdex-text)]"
+        className="h-12 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
       />
     </label>
   );
@@ -175,8 +180,8 @@ function FilterMetric(props: {
 }) {
   return (
     <div className="space-y-2">
-      <div className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--flowdex-text)_52%,transparent)] uppercase">{props.label}</div>
-      <div className="font-data text-base text-[var(--flowdex-text)]">{props.value}</div>
+      <div className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">{props.label}</div>
+      <div className="font-data text-base text-[var(--text)]">{props.value}</div>
     </div>
   );
 }

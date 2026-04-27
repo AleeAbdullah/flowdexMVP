@@ -12,7 +12,7 @@ const AccordionItem = React.forwardRef<
   <AccordionPrimitive.Item
     ref={ref}
     className={cn(
-      'rounded-[1.15rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] px-5 shadow-[0_10px_30px_rgba(2,8,23,0.08)] backdrop-blur-xl',
+      'rounded-[1.15rem] border border-[var(--card-border)] bg-[var(--card-bg)] px-5 shadow-[0_10px_30px_rgba(2,8,23,0.08)] backdrop-blur-xl',
       className,
     )}
     {...props}
@@ -28,7 +28,7 @@ const AccordionTrigger = React.forwardRef<
     <AccordionPrimitive.Trigger
       ref={ref}
       className={cn(
-        'flex flex-1 items-center justify-between py-5 text-left text-sm font-semibold text-[var(--flowdex-text)] transition-all hover:text-[var(--flowdex-cyan)] [&[data-state=open]>svg]:rotate-180',
+        'flex flex-1 items-center justify-between py-5 text-left text-sm font-semibold text-[var(--text)] transition-all hover:text-[var(--cyan)] [&[data-state=open]>svg]:rotate-180',
         className,
       )}
       {...props}
@@ -49,7 +49,7 @@ const AccordionContent = React.forwardRef<
     className={cn('overflow-hidden text-sm data-[state=closed]:animate-out data-[state=open]:animate-in', className)}
     {...props}
   >
-    <div className="pb-5 text-sm leading-8 text-[var(--flowdex-muted)]">{children}</div>
+    <div className="pb-5 text-sm leading-8 text-[var(--muted)]">{children}</div>
   </AccordionPrimitive.Content>
 ));
 AccordionContent.displayName = AccordionPrimitive.Content.displayName;

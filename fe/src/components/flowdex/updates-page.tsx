@@ -10,8 +10,8 @@ const updates = [
   {
     category: 'Product',
     date: 'April 2026',
-    title: 'Protected wallet and purchase-intent flows are active inside the app shell.',
-    summary: 'Authenticated users can now create wallet challenges, verify ownership, generate purchase intents, report transaction hashes, and track lifecycle state from the protected transaction views.',
+    title: 'Protected app shell now runs on embedded Alchemy wallet onboarding and ledger tracking.',
+    summary: 'Authenticated users can sign in with email, link embedded smart wallets, run simulation checks, and track transaction lifecycle state through the backend ledger.',
   },
   {
     category: 'Ecosystem',

@@ -1,17 +1,9 @@
-import { Controller, Delete, Get, Param, Post, Body, UseGuards } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOkResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Headers, Param, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
 import { AuthContext, CurrentAuth } from '../../common/decorators/current-auth.decorator';
 import { InternalJwtGuard } from '../../common/guards/internal-jwt.guard';
-import {
-  CreateWalletChallengeDto,
-  VerifyWalletSignatureDto,
-  WalletDto,
-} from './dto/wallets.dto';
+import { CreateWalletChallengeDto, LinkWalletDto, WalletChallengeDto, WalletDto } from './dto/wallets.dto';
 import { WalletsService } from './wallets.service';
 
 @ApiTags('wallets')
@@ -25,16 +17,17 @@ export class WalletsController {
   createChallenge(
     @CurrentAuth() auth: AuthContext,
     @Body() body: CreateWalletChallengeDto,
-  ): Promise<{ challengeId: string; message: string; expiresAt: Date }> {
-    return this.walletsService.createChallenge(auth, body.chain, body.address);
+    @Headers('origin') originHeader: string | undefined,
+  ): Promise<WalletChallengeDto> {
+    return this.walletsService.createChallenge(auth, body, originHeader);
   }
 
-  @Post('verify')
-  verify(
+  @Post('link')
+  link(
     @CurrentAuth() auth: AuthContext,
-    @Body() body: VerifyWalletSignatureDto,
+    @Body() body: LinkWalletDto,
   ): Promise<WalletDto> {
-    return this.walletsService.verify(auth, body.challengeId, body.signature);
+    return this.walletsService.link(auth, body);
   }
 
   @Get()

@@ -10,7 +10,9 @@ import { assertRequiredEnv, env } from './infrastructure/config/env';
 
 async function bootstrap(): Promise<void> {
   assertRequiredEnv();
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true,
+  });
 
   app.setGlobalPrefix(env.apiPrefix);
   app.useGlobalPipes(
@@ -25,7 +27,7 @@ async function bootstrap(): Promise<void> {
     app,
     new DocumentBuilder()
       .setTitle('FlowDex Backend API')
-      .setDescription('Backend MVP API for the FlowDex presale platform')
+      .setDescription('Backend API for Alchemy-managed wallets, transaction ledgering, and analytics')
       .setVersion('0.1.0')
       .addBearerAuth()
       .build(),

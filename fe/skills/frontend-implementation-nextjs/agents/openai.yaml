@@ -1,4 +1,0 @@
-interface:
-  display_name: "Frontend Implementation NextJS"
-  short_description: "Build Next.js frontend systems with DAL rules"
-  default_prompt: "Use $frontend-implementation-nextjs to implement FE work in the FE directory with Next.js architecture, DAL conventions, validation, clear SSR and client boundaries, responsive review, and accessibility checks. Load product or brand references only when the task explicitly requests them."

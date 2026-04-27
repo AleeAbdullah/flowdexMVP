@@ -16,11 +16,16 @@ export class AuthContextService {
     email: string;
     role: string;
     status: string;
-    wallets: Array<{
-      id: string;
-      chain: string;
-      address: string;
-      isPrimary: boolean;
+      wallets: Array<{
+        id: string;
+        network: string;
+        chainId: number;
+        address: string;
+        provider: string;
+        trustLevel: string;
+        alchemyAccountId: string;
+        alchemyWalletId: string;
+        isPrimary: boolean;
       verifiedAt: Date | null;
     }>;
   }> {

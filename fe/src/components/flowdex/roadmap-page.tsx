@@ -61,10 +61,10 @@ export function RoadmapPage() {
                     </div>
                     <CardTitle className="mt-3">{item.title}</CardTitle>
                   </div>
-                  <div className="font-data text-4xl text-[color-mix(in_srgb,var(--flowdex-text)_28%,transparent)]">0{index + 1}</div>
+                  <div className="font-data text-4xl text-[color-mix(in_srgb,var(--text)_28%,transparent)]">0{index + 1}</div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm leading-8 text-[var(--flowdex-muted)]">{item.body}</p>
+                  <p className="text-sm leading-8 text-[var(--muted)]">{item.body}</p>
                 </CardContent>
               </Card>
             ))}

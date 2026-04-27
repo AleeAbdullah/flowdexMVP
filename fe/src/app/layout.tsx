@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { PostHogProvider } from '@/components/analytics/post-hog-provider';
 import { NuqsProvider } from '@/components/providers/nuqs-adapter';
 import { QueryProvider } from '@/components/providers/query-provider';
+import { AlchemyProvider } from '@/components/providers/alchemy-provider';
+import { ThemeProvider } from '@/components/providers/theme-provider';
 import { Toaster } from '@/components/providers/toaster';
 import { AppConfig } from '@/utils/app-config';
 import '@/styles/global.css';
@@ -40,14 +41,22 @@ export default function RootLayout(props: {
   return (
     <html lang={AppConfig.language} data-theme="dark" suppressHydrationWarning>
       <body>
-        <QueryProvider>
-          <NuqsProvider>
-            <PostHogProvider>
-              {props.children}
-              <Toaster />
-            </PostHogProvider>
-          </NuqsProvider>
-        </QueryProvider>
+        <ThemeProvider
+          attribute="data-theme"
+          themes={['light', 'dark']}
+          defaultTheme="dark"
+          enableSystem={false}
+          storageKey="theme"
+        >
+          <QueryProvider>
+            <AlchemyProvider>
+              <NuqsProvider>
+                {props.children}
+                <Toaster />
+              </NuqsProvider>
+            </AlchemyProvider>
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

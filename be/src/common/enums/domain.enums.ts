@@ -2,6 +2,8 @@ export enum Chain {
   ETH = 'ETH',
   ERC20 = 'ERC20',
   TRC20 = 'TRC20',
+  ETH_SEPOLIA = 'ETH_SEPOLIA',
+  BASE_SEPOLIA = 'BASE_SEPOLIA',
 }
 
 export enum UserRole {
@@ -14,29 +16,21 @@ export enum UserStatus {
   SUSPENDED = 'SUSPENDED',
 }
 
-export enum IntentStatus {
+export enum LedgerTxStatus {
+  SUBMITTED = 'SUBMITTED',
   PENDING = 'PENDING',
-  MATCHED = 'MATCHED',
-  CONFIRMING = 'CONFIRMING',
-  CONFIRMED = 'CONFIRMED',
-  EXPIRED = 'EXPIRED',
-  FAILED = 'FAILED',
-  REFUNDED = 'REFUNDED',
-}
-
-export enum BlockchainTxStatus {
-  DETECTED = 'DETECTED',
-  CONFIRMING = 'CONFIRMING',
   CONFIRMED = 'CONFIRMED',
   FAILED = 'FAILED',
+  DROPPED = 'DROPPED',
   UNMATCHED = 'UNMATCHED',
 }
 
-export enum RefundStatus {
-  REQUESTED = 'REQUESTED',
-  APPROVED = 'APPROVED',
-  SENT = 'SENT',
-  CONFIRMED = 'CONFIRMED',
-  FAILED = 'FAILED',
-  REJECTED = 'REJECTED',
+export enum WalletProvider {
+  ALCHEMY_EMBEDDED = 'ALCHEMY_EMBEDDED',
+  METAMASK = 'METAMASK',
+}
+
+export enum WalletTrustLevel {
+  PROVIDER_ASSERTED = 'PROVIDER_ASSERTED',
+  SIGNED = 'SIGNED',
 }

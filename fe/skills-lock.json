@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "skills": {
+    "agentic-gateway": {
+      "source": "alchemyplatform/skills",
+      "sourceType": "github",
+      "computedHash": "ba73b928171ee1536d296de438987047e6e9af51b8d1a01f9abfe5a1ff94a08b"
+    },
+    "alchemy-api": {
+      "source": "alchemyplatform/skills",
+      "sourceType": "github",
+      "computedHash": "ad828c22da1cd3fba26cfbd7ef508050da28c0dabb4730fd0ede1632c2ab792c"
+    },
+    "alchemy-cli": {
+      "source": "alchemyplatform/skills",
+      "sourceType": "github",
+      "computedHash": "d9d6b6acfe651724143eb9507116dabef473f4ac6b7f863ca12c4db469388fda"
+    },
+    "alchemy-mcp": {
+      "source": "alchemyplatform/skills",
+      "sourceType": "github",
+      "computedHash": "f78fa7571e206467474a366cf292f4920bacf9df6896e2e7c7d711e7d40acbb3"
+    }
+  }
+}

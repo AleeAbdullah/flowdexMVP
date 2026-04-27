@@ -1,5 +1,9 @@
 export type AppUserRole = 'USER' | 'ADMIN';
 
+export type WalletNetwork = 'ETH_SEPOLIA' | 'BASE_SEPOLIA';
+export type WalletProvider = 'ALCHEMY_EMBEDDED' | 'METAMASK';
+export type WalletTrustLevel = 'PROVIDER_ASSERTED' | 'SIGNED';
+
 export type AuthMe = {
   userId: string;
   email: string;
@@ -10,10 +14,27 @@ export type AuthMe = {
 
 export type Wallet = {
   id: string;
-  chain: 'ETH' | 'ERC20' | 'TRC20';
   address: string;
+  network: WalletNetwork;
+  chainId: number;
+  provider: WalletProvider;
+  trustLevel: WalletTrustLevel;
+  alchemyAccountId: string;
+  alchemyWalletId: string;
   isPrimary: boolean;
   verifiedAt: string | null;
+};
+
+export type WalletListResponse = {
+  items: Wallet[];
+};
+
+export type CreateWalletChallengeInput = {
+  provider: 'METAMASK';
+  network: WalletNetwork;
+  chainId: number;
+  address: string;
+  origin?: string;
 };
 
 export type WalletChallenge = {
@@ -22,8 +43,15 @@ export type WalletChallenge = {
   expiresAt: string;
 };
 
-export type WalletListResponse = {
-  items: Wallet[];
+export type LinkWalletInput = {
+  provider?: WalletProvider;
+  network: WalletNetwork;
+  chainId: number;
+  address: string;
+  alchemyAccountId?: string;
+  alchemyWalletId?: string;
+  challengeId?: string;
+  signature?: string;
 };
 
 export type DashboardSummary = {
@@ -37,76 +65,68 @@ export type DashboardSummary = {
     linkedWalletCount: number;
     primaryWallet: {
       id: string;
-      chain: Wallet['chain'];
+      network: WalletNetwork;
       address: string;
       verifiedAt: string | null;
     } | null;
   };
-  activePurchaseIntentCount: number;
+  activeTransactionCount: number;
   confirmedTransactionCount: number;
-  totalContributedAmount: string;
-  totalAllocatedTokens: string;
+  totalTrackedVolume: string;
   recentTransactions: TransactionListItem[];
 };
 
-export type CreateWalletChallengeInput = {
-  chain: Wallet['chain'];
-  address: string;
-};
-
-export type VerifyWalletSignatureInput = {
-  challengeId: string;
-  signature: string;
-};
-
-export type CreatePurchaseIntentInput = {
+export type SimulateTransactionInput = {
   walletId: string;
+  network: WalletNetwork;
+  chainId: number;
+  to: string;
+  value?: string;
+  data?: string;
+};
+
+export type SimulateTransactionResult = {
+  allowed: boolean;
+  reason: string | null;
+  simulationId: string | null;
+};
+
+export type TrackTransactionInput = {
+  walletId: string;
+  network: WalletNetwork;
+  chainId: number;
   assetCode: string;
-  paymentAmount: string;
+  amount: string;
+  simulationId: string;
+  to: string;
+  value?: string;
+  data?: string;
+  operationId?: string;
+  txHash?: string;
 };
 
-export type PurchaseIntentResponse = {
-  intentId: string;
-  paymentAddress: string;
-  assetCode: string;
-  paymentAmount: string;
-  assetUsdPrice: string;
-  tokenPriceUsd: string;
-  tokensAllocatedPreview: string;
-  expiresAt: string;
-  currentTier: number;
-};
-
-export type ReportTransactionInput = {
-  txHash: string;
-};
-
-export type TransactionRefund = {
-  id: string;
+export type TrackTransactionResult = {
+  transactionId: string;
   status: string;
-  refundAmount: string;
-  outboundTxHash: string | null;
 };
 
 export type TransactionListItem = {
   id: string;
   userId: string;
-  status: string;
   walletId: string;
-  walletAddress: string | null;
-  chain: string;
+  walletAddress: string;
+  network: WalletNetwork;
+  chainId: number | null;
   assetCode: string;
+  amount: string;
+  status: 'SUBMITTED' | 'PENDING' | 'CONFIRMED' | 'FAILED' | 'DROPPED' | string;
+  operationId: string | null;
   txHash: string | null;
-  reportedTxHash: string | null;
-  matchedTxHash: string | null;
-  amountPaid: string;
-  tokensAllocated: string | null;
-  verificationFailureReason: string | null;
-  refundEligible: boolean;
-  confirmations: number;
+  blockNumber: string | null;
   blockTime: string | null;
   confirmedAt: string | null;
-  refund: TransactionRefund | null;
+  failureReason: string | null;
+  settlementDiagnostic: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -116,17 +136,18 @@ export type TransactionsResponse = {
 };
 
 export type AdminStats = {
-  totalConfirmedVolumeReal: string;
-  totalConfirmedVolumeDisplay: string;
+  totalConfirmedVolume: string;
+  totalTransactionCount: number;
+  activeTransactionCount: number;
+  confirmedTransactionCount: number;
+  failedTransactionCount: number;
+  lastTransactionAt: string | null;
   transactionCountsByStatus: Record<string, number>;
-  unmatchedCount: number;
-  refundCount: number;
-  currentTier: number;
 };
 
 export type AdminTransactionFilters = {
   status?: string;
-  chain?: string;
+  network?: string;
   assetCode?: string;
   userId?: string;
   from?: string;
@@ -135,47 +156,4 @@ export type AdminTransactionFilters = {
 
 export type AdminTransactionsResponse = {
   items: TransactionListItem[];
-};
-
-export type AdminUnmatchedTransaction = {
-  id: string;
-  chain: string;
-  assetCode: string;
-  txHash: string;
-  fromAddress: string;
-  toAddress: string;
-  amount: string;
-  confirmations: number;
-  reconciliationReason: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type AdminUnmatchedTransactionsResponse = {
-  items: AdminUnmatchedTransaction[];
-};
-
-export type RefundRecord = {
-  id: string;
-  purchaseIntentId: string;
-  approvedByUserId: string;
-  assetId: string;
-  refundAmount: string;
-  destinationAddress: string;
-  outboundTxHash: string | null;
-  status: string;
-  reason: string;
-  createdAt: string;
-  processedAt: string | null;
-};
-
-export type RefundListResponse = {
-  items: RefundRecord[];
-};
-
-export type CreateRefundInput = {
-  purchaseIntentId: string;
-  refundAmount: string;
-  destinationAddress: string;
-  reason: string;
 };

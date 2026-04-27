@@ -4,11 +4,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { appService } from './services';
 import type {
   AdminTransactionFilters,
-  CreateRefundInput,
-  CreatePurchaseIntentInput,
   CreateWalletChallengeInput,
-  ReportTransactionInput,
-  VerifyWalletSignatureInput,
+  LinkWalletInput,
+  SimulateTransactionInput,
+  TrackTransactionInput,
 } from './types';
 
 export const appQueryKeys = {
@@ -21,8 +20,6 @@ export const appQueryKeys = {
   adminTransactions: (filters?: AdminTransactionFilters) =>
     ['app', 'admin', 'transactions', filters ?? {}] as const,
   adminTransaction: (id: string) => ['app', 'admin', 'transactions', id] as const,
-  adminUnmatchedTransactions: ['app', 'admin', 'reconciliation', 'unmatched'] as const,
-  adminRefunds: ['app', 'admin', 'refunds'] as const,
 };
 
 export function useAuthMe() {
@@ -38,7 +35,7 @@ export function useDashboardSummary() {
     queryFn: appService.getDashboardSummary,
     refetchInterval: (query) => {
       const items = query.state.data?.recentTransactions ?? [];
-      const hasLiveLifecycle = items.some(item => !['CONFIRMED', 'FAILED', 'EXPIRED', 'REFUNDED'].includes(item.status));
+      const hasLiveLifecycle = items.some(item => ['SUBMITTED', 'PENDING'].includes(item.status));
       return hasLiveLifecycle ? 15000 : false;
     },
   });
@@ -51,17 +48,11 @@ export function useWallets() {
   });
 }
 
-export function useCreateWalletChallenge() {
-  return useMutation({
-    mutationFn: (input: CreateWalletChallengeInput) => appService.createWalletChallenge(input),
-  });
-}
-
-export function useVerifyWalletSignature() {
+export function useLinkWallet() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: VerifyWalletSignatureInput) => appService.verifyWalletSignature(input),
+    mutationFn: (input: LinkWalletInput) => appService.linkWallet(input),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: appQueryKeys.wallets }),
@@ -69,6 +60,12 @@ export function useVerifyWalletSignature() {
         queryClient.invalidateQueries({ queryKey: appQueryKeys.dashboardSummary }),
       ]);
     },
+  });
+}
+
+export function useCreateWalletChallenge() {
+  return useMutation({
+    mutationFn: (input: CreateWalletChallengeInput) => appService.createWalletChallenge(input),
   });
 }
 
@@ -87,29 +84,20 @@ export function useDeleteWallet() {
   });
 }
 
-export function useCreatePurchaseIntent() {
-  const queryClient = useQueryClient();
-
+export function useSimulateTransaction() {
   return useMutation({
-    mutationFn: (input: CreatePurchaseIntentInput) => appService.createPurchaseIntent(input),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: appQueryKeys.transactions }),
-        queryClient.invalidateQueries({ queryKey: appQueryKeys.dashboardSummary }),
-      ]);
-    },
+    mutationFn: (input: SimulateTransactionInput) => appService.simulateTransaction(input),
   });
 }
 
-export function useReportPurchaseTransaction(intentId: string) {
+export function useTrackTransaction() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: ReportTransactionInput) => appService.reportPurchaseTransaction(intentId, input),
+    mutationFn: (input: TrackTransactionInput) => appService.trackTransaction(input),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: appQueryKeys.transactions }),
-        queryClient.invalidateQueries({ queryKey: appQueryKeys.transaction(intentId) }),
         queryClient.invalidateQueries({ queryKey: appQueryKeys.dashboardSummary }),
       ]);
     },
@@ -122,7 +110,7 @@ export function useTransactions() {
     queryFn: appService.getTransactions,
     refetchInterval: (query) => {
       const items = query.state.data?.items ?? [];
-      const hasLiveLifecycle = items.some(item => !['CONFIRMED', 'FAILED', 'EXPIRED', 'REFUNDED'].includes(item.status));
+      const hasLiveLifecycle = items.some(item => ['SUBMITTED', 'PENDING'].includes(item.status));
       return hasLiveLifecycle ? 15000 : false;
     },
   });
@@ -139,7 +127,7 @@ export function useTransaction(id: string) {
         return 15000;
       }
 
-      return ['CONFIRMED', 'FAILED', 'EXPIRED', 'REFUNDED'].includes(status) ? false : 15000;
+      return ['CONFIRMED', 'FAILED', 'DROPPED'].includes(status) ? false : 15000;
     },
   });
 }
@@ -166,30 +154,15 @@ export function useAdminTransaction(id: string) {
   });
 }
 
-export function useAdminUnmatchedTransactions() {
-  return useQuery({
-    queryKey: appQueryKeys.adminUnmatchedTransactions,
-    queryFn: appService.getAdminUnmatchedTransactions,
-  });
-}
-
-export function useAdminRefunds() {
-  return useQuery({
-    queryKey: appQueryKeys.adminRefunds,
-    queryFn: appService.getAdminRefunds,
-  });
-}
-
-export function useCreateAdminRefund() {
+export function useReconcileAdminTransaction() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: CreateRefundInput) => appService.createAdminRefund(input),
-    onSuccess: async () => {
+    mutationFn: (id: string) => appService.reconcileAdminTransaction(id),
+    onSuccess: async (transaction) => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: appQueryKeys.adminRefunds }),
-        queryClient.invalidateQueries({ queryKey: appQueryKeys.adminStats }),
-        queryClient.invalidateQueries({ queryKey: ['app', 'admin', 'transactions'] }),
+        queryClient.invalidateQueries({ queryKey: appQueryKeys.adminTransactions() }),
+        queryClient.invalidateQueries({ queryKey: appQueryKeys.adminTransaction(transaction.id) }),
         queryClient.invalidateQueries({ queryKey: appQueryKeys.transactions }),
         queryClient.invalidateQueries({ queryKey: appQueryKeys.dashboardSummary }),
       ]);

@@ -48,7 +48,7 @@ export const marketingFaqs = [
   },
   {
     question: 'Does FlowDex custody user funds?',
-    answer: 'No. The product direction is non-custodial. Wallet ownership stays primary while the backend handles pricing, intent orchestration, and transaction verification.',
+    answer: 'No. The product direction is non-custodial. Wallet ownership stays primary while the backend handles durable ledgering and analytics.',
   },
   {
     question: 'What does the token do in the product?',
@@ -60,7 +60,7 @@ export const marketingFaqs = [
   },
   {
     question: 'Is the current buy flow already live?',
-    answer: 'Yes. The public buy page reads pricing, tiers, and configuration from the backend, while the protected app flow supports wallet linking and purchase intent creation.',
+    answer: 'Yes. The public buy page reads pricing, tiers, and configuration from the backend, while the protected app flow supports wallet linking, simulation checks, and transaction tracking.',
   },
 ];
 
@@ -82,7 +82,7 @@ export const marketingBlogPosts = [
     category: 'Product',
     date: 'April 2026',
     title: 'The protected app now supports wallet linking, buy flow, and transaction tracking.',
-    summary: 'Authenticated users can link an EVM wallet, create purchase intents, report transaction hashes, and monitor lifecycle state in the protected app shell.',
+    summary: 'Authenticated users can link an embedded wallet, run simulation checks, and monitor lifecycle state in the protected app shell.',
   },
   {
     category: 'Architecture',

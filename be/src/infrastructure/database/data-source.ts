@@ -3,16 +3,10 @@ import 'reflect-metadata';
 
 import { DataSource } from 'typeorm';
 
-import { AdminAuditLogEntity } from '../../modules/admin/entities/admin-audit-log.entity';
-import { RefundEntity } from '../../modules/admin/entities/refund.entity';
-import { BlockchainTransactionEntity } from '../../modules/blockchain/entities/blockchain-transaction.entity';
-import { PresaleStateEntity } from '../../modules/presale/entities/presale-state.entity';
-import { PresaleTierEntity } from '../../modules/presale/entities/presale-tier.entity';
-import { AssetPriceEntity } from '../../modules/pricing/entities/asset-price.entity';
-import { SupportedAssetEntity } from '../../modules/pricing/entities/supported-asset.entity';
-import { PurchaseIntentEntity } from '../../modules/purchase-intents/entities/purchase-intent.entity';
-import { TokenAllocationEntity } from '../../modules/transactions/entities/token-allocation.entity';
-import { WalletChallengeEntity } from '../../modules/wallets/entities/wallet-challenge.entity';
+import { AnalyticsSnapshotEntity } from '../../modules/transactions/entities/analytics-snapshot.entity';
+import { LedgerTransactionEntity } from '../../modules/transactions/entities/ledger-transaction.entity';
+import { SyncCheckpointEntity } from '../../modules/transactions/entities/sync-checkpoint.entity';
+import { WebhookDeliveryEntity } from '../../modules/transactions/entities/webhook-delivery.entity';
 import { WalletEntity } from '../../modules/wallets/entities/wallet.entity';
 import {
   AuthAccountEntity,
@@ -34,16 +28,10 @@ export default new DataSource({
     AuthVerificationEntity,
     UserProfileEntity,
     WalletEntity,
-    WalletChallengeEntity,
-    SupportedAssetEntity,
-    AssetPriceEntity,
-    PresaleTierEntity,
-    PresaleStateEntity,
-    PurchaseIntentEntity,
-    BlockchainTransactionEntity,
-    TokenAllocationEntity,
-    RefundEntity,
-    AdminAuditLogEntity,
+    LedgerTransactionEntity,
+    WebhookDeliveryEntity,
+    SyncCheckpointEntity,
+    AnalyticsSnapshotEntity,
   ],
   migrations: ['src/infrastructure/database/migrations/*.ts'],
 });

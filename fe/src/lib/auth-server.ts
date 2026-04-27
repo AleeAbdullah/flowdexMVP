@@ -54,6 +54,10 @@ export async function requireSession() {
 }
 
 export async function getBackendAccessToken(session: BetterAuthSession) {
+  return mintBackendAccessToken(session);
+}
+
+async function mintBackendAccessToken(session: BetterAuthSession) {
   const secret = new TextEncoder().encode(Env.INTERNAL_AUTH_JWT_SECRET);
   const role = resolveUserRole(session.user.email);
 
@@ -78,33 +82,14 @@ export async function backendFetchJson<T>(
     session?: BetterAuthSession;
   } = {},
 ): Promise<T> {
-  const session = init.session ?? await requireSession();
-  const accessToken = await getBackendAccessToken(session);
-  const response = await fetch(`${Env.NEXT_PUBLIC_API_URL}${path}`, {
-    ...init,
-    cache: 'no-store',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: init.body === undefined ? undefined : JSON.stringify(init.body),
-  });
-
-  const payload = await parseResponsePayload(response);
-
-  if (!response.ok) {
-    const message = extractErrorMessage(payload) ?? `Backend request failed with status ${response.status}`;
-    throw new BackendApiError(message, response.status, payload);
-  }
-
-  return payload as T;
+  return fetchBackendJsonWithRetry<T>(path, init);
 }
 
 export async function getAuthenticatedAppContext() {
   const session = await requireSession();
 
   try {
-    const profile = await backendFetchJson<AuthMe>('/auth/me', { session });
+    const profile = await fetchBackendJsonWithRetry<AuthMe>('/auth/me', { session });
 
     return {
       session,
@@ -133,17 +118,99 @@ export async function proxyBackendRequest(
   request: NextRequest,
   pathSegments: string[],
 ) {
+  const backendBaseUrl = Env.NEXT_PUBLIC_API_URL?.trim();
+  if (!backendBaseUrl) {
+    return Response.json({ message: 'NEXT_PUBLIC_API_URL is not configured' }, { status: 500 });
+  }
+
   const session = await getSessionFromRequest(request);
 
   if (!session) {
     return Response.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const accessToken = await getBackendAccessToken(session);
-  const upstreamUrl = `${Env.NEXT_PUBLIC_API_URL}/${pathSegments.join('/')}${request.nextUrl.search}`;
+  return proxyBackendRequestWithRetry(request, pathSegments, session, false, backendBaseUrl);
+}
+
+async function fetchBackendJsonWithRetry<T>(
+  path: string,
+  init: Omit<RequestInit, 'headers' | 'body'> & {
+    body?: unknown;
+    session?: BetterAuthSession;
+  } = {},
+  retried = false,
+): Promise<T> {
+  const session = init.session ?? await requireSession();
+  const response = await fetchWithBackendToken(path, init, session);
+  const payload = await parseResponsePayload(response);
+
+  if (response.status === 401 && !retried) {
+    const refreshedSession = await getOptionalSession();
+
+    if (!refreshedSession) {
+      redirect('/login');
+    }
+
+    return fetchBackendJsonWithRetry<T>(path, {
+      ...init,
+      session: refreshedSession,
+    }, true);
+  }
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      redirect('/login');
+    }
+
+    const message = extractErrorMessage(payload) ?? `Backend request failed with status ${response.status}`;
+    throw new BackendApiError(message, response.status, payload);
+  }
+
+  return payload as T;
+}
+
+async function fetchWithBackendToken(
+  path: string,
+  init: Omit<RequestInit, 'headers' | 'body'> & {
+    body?: unknown;
+  },
+  session: BetterAuthSession,
+) {
+  const backendBaseUrl = Env.NEXT_PUBLIC_API_URL?.trim();
+  if (!backendBaseUrl) {
+    throw new BackendApiError('NEXT_PUBLIC_API_URL is not configured', 500, null);
+  }
+
+  const accessToken = await mintBackendAccessToken(session);
+
+  return fetch(`${backendBaseUrl}${path}`, {
+    ...init,
+    cache: 'no-store',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+  });
+}
+
+async function proxyBackendRequestWithRetry(
+  request: NextRequest,
+  pathSegments: string[],
+  session: BetterAuthSession,
+  retried = false,
+  backendBaseUrl?: string,
+) {
+  const baseUrl = backendBaseUrl ?? Env.NEXT_PUBLIC_API_URL?.trim();
+  if (!baseUrl) {
+    return Response.json({ message: 'NEXT_PUBLIC_API_URL is not configured' }, { status: 500 });
+  }
+
+  const upstreamUrl = `${baseUrl}/${pathSegments.join('/')}${request.nextUrl.search}`;
   const bodyText = request.method === 'GET' || request.method === 'HEAD'
     ? undefined
     : await request.text();
+  const accessToken = await mintBackendAccessToken(session);
 
   const upstreamResponse = await fetch(upstreamUrl, {
     method: request.method,
@@ -154,6 +221,16 @@ export async function proxyBackendRequest(
     },
     body: bodyText && bodyText.length > 0 ? bodyText : undefined,
   });
+
+  if (upstreamResponse.status === 401 && !retried) {
+    const refreshedSession = await getSessionFromRequest(request);
+
+    if (!refreshedSession) {
+      return Response.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    return proxyBackendRequestWithRetry(request, pathSegments, refreshedSession, true, baseUrl);
+  }
 
   const responseText = await upstreamResponse.text();
 

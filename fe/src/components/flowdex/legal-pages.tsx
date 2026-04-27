@@ -43,7 +43,7 @@ const privacySections = [
     title: 'What Data We Collect',
     paragraphs: [
       'FlowDex may collect email addresses, session identifiers, account metadata, wallet addresses you choose to link, transaction-related interaction data, support contact details, and standard technical usage data such as browser, device, and request metadata.',
-      'If analytics are enabled, the site may also collect page-view and product interaction signals through analytics tooling such as PostHog. Wallet verification flows may capture challenge messages, signatures, and verification timestamps for security and auditability.',
+      'If analytics are enabled, the site may also collect page-view and product interaction signals through analytics tooling such as PostHog. Wallet and transaction telemetry may include linkage metadata and webhook event snapshots for security and auditability.',
     ],
   },
   {

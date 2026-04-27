@@ -22,19 +22,15 @@ export class DashboardService {
       this.transactionsService.listForUser(auth),
     ]);
 
-    const activePurchaseIntentCount = transactions.items.filter((item) =>
-      ['PENDING', 'MATCHED', 'CONFIRMING'].includes(item.status),
+    const activeTransactionCount = transactions.items.filter(item =>
+      ['SUBMITTED', 'PENDING'].includes(item.status),
     ).length;
-    const confirmedTransactions = transactions.items.filter((item) => item.status === 'CONFIRMED');
-    const totalContributedAmount = confirmedTransactions.reduce(
-      (sum, item) => addFixed(sum, item.amountPaid),
+    const confirmedTransactions = transactions.items.filter(item => item.status === 'CONFIRMED');
+    const totalTrackedVolume = confirmedTransactions.reduce(
+      (sum, item) => addFixed(sum, item.amount),
       '0',
     );
-    const totalAllocatedTokens = confirmedTransactions.reduce(
-      (sum, item) => addFixed(sum, item.tokensAllocated ?? '0'),
-      '0',
-    );
-    const primaryWallet = wallets.find((wallet) => wallet.isPrimary) ?? wallets[0] ?? null;
+    const primaryWallet = wallets.find(wallet => wallet.isPrimary) ?? wallets[0] ?? null;
 
     return {
       profile: {
@@ -48,16 +44,15 @@ export class DashboardService {
         primaryWallet: primaryWallet
           ? {
               id: primaryWallet.id,
-              chain: primaryWallet.chain,
+              network: primaryWallet.network,
               address: primaryWallet.address,
               verifiedAt: primaryWallet.verifiedAt,
             }
           : null,
       },
-      activePurchaseIntentCount,
+      activeTransactionCount,
       confirmedTransactionCount: confirmedTransactions.length,
-      totalContributedAmount,
-      totalAllocatedTokens,
+      totalTrackedVolume,
       recentTransactions: transactions.items.slice(0, 5),
     };
   }

@@ -39,8 +39,8 @@ describe('marketing nav contract', () => {
     expect(getActiveMarketingNavHref('/privacy')).toBeNull();
   });
 
-  it('shows login only when the user is logged out', () => {
-    expect(getMarketingNavActions(false)).toEqual(['login', 'buy']);
+  it('keeps the public site focused on the presale CTA only', () => {
+    expect(getMarketingNavActions(false)).toEqual(['buy']);
     expect(getMarketingNavActions(true)).toEqual(['buy']);
   });
 });

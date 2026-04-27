@@ -121,12 +121,12 @@ export function AboutPage() {
             ].map(item => {
               const Icon = item.icon;
               return (
-                <div key={item.title} className="rounded-[1.15rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] p-5">
-                  <div className="inline-flex rounded-2xl border border-[var(--flowdex-accent-border)] bg-[var(--flowdex-accent-bg)] p-3 text-[var(--flowdex-cyan)]">
+                <div key={item.title} className="rounded-[1.15rem] border border-[var(--card-border)] bg-[var(--card-bg)] p-5">
+                  <div className="inline-flex rounded-2xl border border-[var(--accent-border)] bg-[var(--accent-bg)] p-3 text-[var(--cyan)]">
                     <Icon className="h-5 w-5" />
                   </div>
-                  <div className="mt-4 text-lg font-bold text-[var(--flowdex-text)]">{item.title}</div>
-                  <p className="mt-3 text-sm leading-8 text-[var(--flowdex-muted)]">{item.body}</p>
+                  <div className="mt-4 text-lg font-bold text-[var(--text)]">{item.title}</div>
+                  <p className="mt-3 text-sm leading-8 text-[var(--muted)]">{item.body}</p>
                 </div>
               );
             })}
@@ -176,12 +176,12 @@ export function AboutPage() {
               </p>
             </MarketingBody>
 
-            <div className="rounded-[1.15rem] border border-[var(--flowdex-card-border)] bg-[var(--flowdex-card-bg)] p-5">
-              <div className="inline-flex rounded-2xl border border-[var(--flowdex-accent-border)] bg-[var(--flowdex-accent-bg)] p-3 text-[var(--flowdex-cyan)]">
+            <div className="rounded-[1.15rem] border border-[var(--card-border)] bg-[var(--card-bg)] p-5">
+              <div className="inline-flex rounded-2xl border border-[var(--accent-border)] bg-[var(--accent-bg)] p-3 text-[var(--cyan)]">
                 <FileText className="h-5 w-5" />
               </div>
-              <div className="mt-4 text-lg font-bold text-[var(--flowdex-text)]">Whitepaper v6.0</div>
-              <div className="mt-2 text-sm leading-7 text-[var(--flowdex-muted)]">
+              <div className="mt-4 text-lg font-bold text-[var(--text)]">Whitepaper v6.0</div>
+              <div className="mt-2 text-sm leading-7 text-[var(--muted)]">
                 Public release covering architecture, token utility, roadmap, market thesis, and launch framing.
               </div>
               <div className="mt-5 flex flex-wrap gap-3">

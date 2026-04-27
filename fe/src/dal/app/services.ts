@@ -4,18 +4,16 @@ import type {
   AdminStats,
   AdminTransactionFilters,
   AdminTransactionsResponse,
-  AdminUnmatchedTransactionsResponse,
   AuthMe,
-  CreateRefundInput,
-  CreatePurchaseIntentInput,
   CreateWalletChallengeInput,
   DashboardSummary,
-  PurchaseIntentResponse,
-  RefundListResponse,
-  ReportTransactionInput,
+  LinkWalletInput,
+  SimulateTransactionInput,
+  SimulateTransactionResult,
+  TrackTransactionInput,
+  TrackTransactionResult,
   TransactionListItem,
   TransactionsResponse,
-  VerifyWalletSignatureInput,
   Wallet,
   WalletChallenge,
   WalletListResponse,
@@ -37,11 +35,7 @@ async function fetchAppApi<T>(input: string, init?: RequestInit): Promise<T> {
     : await response.text();
 
   if (!response.ok) {
-    const message = typeof payload === 'object' && payload && 'message' in payload
-      ? String(payload.message)
-      : typeof payload === 'string'
-        ? payload
-        : `Request failed with status ${response.status}`;
+    const message = resolveErrorMessage(payload, response.status);
 
     if (response.status === 401 && typeof window !== 'undefined') {
       window.location.assign('/login');
@@ -51,6 +45,43 @@ async function fetchAppApi<T>(input: string, init?: RequestInit): Promise<T> {
   }
 
   return payload as T;
+}
+
+function resolveErrorMessage(payload: unknown, status: number): string {
+  const fallback = `Request failed with status ${status}`;
+
+  if (typeof payload === 'object' && payload) {
+    if ('message' in payload) {
+      const raw = (payload as { message?: unknown }).message;
+      if (Array.isArray(raw)) {
+        const joined = raw.map(item => String(item)).join(', ').trim();
+        if (joined) {
+          return joined;
+        }
+      } else if (raw !== undefined && raw !== null) {
+        const asText = String(raw).trim();
+        if (asText) {
+          return asText;
+        }
+      }
+    }
+
+    if ('error' in payload) {
+      const asText = String((payload as { error?: unknown }).error ?? '').trim();
+      if (asText) {
+        return asText;
+      }
+    }
+  }
+
+  if (typeof payload === 'string') {
+    const trimmed = payload.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+
+  return fallback;
 }
 
 export const appService = {
@@ -69,8 +100,8 @@ export const appService = {
       body: JSON.stringify(input),
     });
   },
-  verifyWalletSignature(input: VerifyWalletSignatureInput) {
-    return fetchAppApi<Wallet>(APP_API_ROUTES.walletVerify, {
+  linkWallet(input: LinkWalletInput) {
+    return fetchAppApi<Wallet>(APP_API_ROUTES.walletLink, {
       method: 'POST',
       body: JSON.stringify(input),
     });
@@ -80,14 +111,14 @@ export const appService = {
       method: 'DELETE',
     });
   },
-  createPurchaseIntent(input: CreatePurchaseIntentInput) {
-    return fetchAppApi<PurchaseIntentResponse>(APP_API_ROUTES.purchaseIntents, {
+  simulateTransaction(input: SimulateTransactionInput) {
+    return fetchAppApi<SimulateTransactionResult>(APP_API_ROUTES.transactionSimulate, {
       method: 'POST',
       body: JSON.stringify(input),
     });
   },
-  reportPurchaseTransaction(intentId: string, input: ReportTransactionInput) {
-    return fetchAppApi<{ accepted: true }>(`${APP_API_ROUTES.purchaseIntents}/${intentId}/report-tx`, {
+  trackTransaction(input: TrackTransactionInput) {
+    return fetchAppApi<TrackTransactionResult>(APP_API_ROUTES.transactionTrack, {
       method: 'POST',
       body: JSON.stringify(input),
     });
@@ -125,20 +156,9 @@ export const appService = {
       cache: 'no-store',
     });
   },
-  getAdminUnmatchedTransactions() {
-    return fetchAppApi<AdminUnmatchedTransactionsResponse>(APP_API_ROUTES.adminReconciliationUnmatched, {
-      cache: 'no-store',
-    });
-  },
-  getAdminRefunds() {
-    return fetchAppApi<RefundListResponse>(APP_API_ROUTES.adminRefunds, {
-      cache: 'no-store',
-    });
-  },
-  createAdminRefund(input: CreateRefundInput) {
-    return fetchAppApi<{ refundId: string; status: string }>(APP_API_ROUTES.adminRefunds, {
+  reconcileAdminTransaction(id: string) {
+    return fetchAppApi<TransactionListItem>(APP_API_ROUTES.adminTransactionReconcile(id), {
       method: 'POST',
-      body: JSON.stringify(input),
     });
   },
 };
