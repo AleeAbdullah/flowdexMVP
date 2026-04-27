@@ -128,6 +128,11 @@ export function AdminTransactionsPage() {
                     Failure reason: {item.failureReason}
                   </div>
                 ) : null}
+                {item.settlementDiagnostic ? (
+                  <div className="text-sm text-amber-200">
+                    Settlement diagnostic: {item.settlementDiagnostic}
+                  </div>
+                ) : null}
               </div>
 
               <div className="grid gap-4 sm:grid-cols-4 xl:min-w-[42rem]">

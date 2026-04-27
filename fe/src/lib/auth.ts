@@ -45,10 +45,24 @@ function buildTrustedOrigins(baseUrl?: string) {
   return Array.from(origins);
 }
 
+function parseTrustedOrigins(input?: string) {
+  if (!input) {
+    return [];
+  }
+
+  return input
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+}
+
 export const auth = betterAuth({
   secret: Env.BETTER_AUTH_SECRET,
   baseURL: Env.NEXT_PUBLIC_APP_URL,
-  trustedOrigins: buildTrustedOrigins(Env.NEXT_PUBLIC_APP_URL),
+  trustedOrigins: [
+    ...buildTrustedOrigins(Env.NEXT_PUBLIC_APP_URL),
+    ...parseTrustedOrigins(Env.NEXT_PUBLIC_AUTH_TRUSTED_ORIGINS),
+  ],
   database: pool,
   emailAndPassword: {
     enabled: true,

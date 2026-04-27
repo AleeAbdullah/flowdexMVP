@@ -35,6 +35,11 @@ export class AdminService {
     return this.transactionsService.getById(id);
   }
 
+  async reconcileTransaction(auth: AuthContext, id: string): Promise<TransactionListItemDto> {
+    await this.usersService.syncAndRequireActive(auth);
+    return this.transactionsService.reconcileById(id);
+  }
+
   async getStats(auth: AuthContext): Promise<{
     totalConfirmedVolume: string;
     totalTransactionCount: number;

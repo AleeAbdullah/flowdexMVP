@@ -21,6 +21,19 @@ type TransfersInput = {
   pageKey?: string;
 };
 
+type TransactionByHashResult = {
+  hash: string;
+  from: string;
+  to: string | null;
+  value: string;
+  blockNumber: string | null;
+};
+
+type TransactionReceiptResult = {
+  status: string | null;
+  blockNumber: string | null;
+};
+
 const JSON_RPC_HEADERS = {
   'Content-Type': 'application/json',
 } as const;
@@ -55,7 +68,7 @@ export class AlchemyService {
       {
         from: input.from,
         to: input.to,
-        value: input.value,
+        value: this.toRpcQuantity(input.value),
         data: input.data,
       },
       'latest',
@@ -99,6 +112,28 @@ export class AlchemyService {
       reason: null,
       raw: response,
     };
+  }
+
+  private toRpcQuantity(value: string | undefined): string | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+
+    if (/^0x[0-9a-fA-F]+$/.test(trimmed)) {
+      return trimmed;
+    }
+
+    if (/^[0-9]+$/.test(trimmed)) {
+      return `0x${BigInt(trimmed).toString(16)}`;
+    }
+
+    // Let upstream simulation return a clear validation error for unsupported formats.
+    return trimmed;
   }
 
   async getAssetTransfers(input: TransfersInput): Promise<{
@@ -165,6 +200,57 @@ export class AlchemyService {
     }
 
     return timingSafeEqual(left, right);
+  }
+
+  async getTransactionByHash(
+    network: AlchemyNetwork,
+    txHash: string,
+  ): Promise<TransactionByHashResult | null> {
+    if (!this.hasApiKey()) {
+      return null;
+    }
+
+    const result = await this.callRpc(network, 'eth_getTransactionByHash', [txHash]);
+    if (!result) {
+      return null;
+    }
+
+    const hash = typeof result.hash === 'string' ? result.hash : null;
+    const from = typeof result.from === 'string' ? result.from : null;
+    const to = typeof result.to === 'string' ? result.to : null;
+    const value = typeof result.value === 'string' ? result.value : null;
+    const blockNumber = typeof result.blockNumber === 'string' ? result.blockNumber : null;
+
+    if (!hash || !from || !value) {
+      return null;
+    }
+
+    return {
+      hash,
+      from,
+      to,
+      value,
+      blockNumber,
+    };
+  }
+
+  async getTransactionReceipt(
+    network: AlchemyNetwork,
+    txHash: string,
+  ): Promise<TransactionReceiptResult | null> {
+    if (!this.hasApiKey()) {
+      return null;
+    }
+
+    const result = await this.callRpc(network, 'eth_getTransactionReceipt', [txHash]);
+    if (!result) {
+      return null;
+    }
+
+    return {
+      status: typeof result.status === 'string' ? result.status : null,
+      blockNumber: typeof result.blockNumber === 'string' ? result.blockNumber : null,
+    };
   }
 
   private async callRpc(

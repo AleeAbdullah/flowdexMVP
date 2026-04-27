@@ -1,6 +1,8 @@
 export type AppUserRole = 'USER' | 'ADMIN';
 
 export type WalletNetwork = 'ETH_SEPOLIA' | 'BASE_SEPOLIA';
+export type WalletProvider = 'ALCHEMY_EMBEDDED' | 'METAMASK';
+export type WalletTrustLevel = 'PROVIDER_ASSERTED' | 'SIGNED';
 
 export type AuthMe = {
   userId: string;
@@ -14,7 +16,9 @@ export type Wallet = {
   id: string;
   address: string;
   network: WalletNetwork;
-  provider: string;
+  chainId: number;
+  provider: WalletProvider;
+  trustLevel: WalletTrustLevel;
   alchemyAccountId: string;
   alchemyWalletId: string;
   isPrimary: boolean;
@@ -25,12 +29,29 @@ export type WalletListResponse = {
   items: Wallet[];
 };
 
-export type LinkWalletInput = {
+export type CreateWalletChallengeInput = {
+  provider: 'METAMASK';
   network: WalletNetwork;
+  chainId: number;
   address: string;
-  alchemyAccountId: string;
-  alchemyWalletId: string;
-  provider?: string;
+  origin?: string;
+};
+
+export type WalletChallenge = {
+  challengeId: string;
+  message: string;
+  expiresAt: string;
+};
+
+export type LinkWalletInput = {
+  provider?: WalletProvider;
+  network: WalletNetwork;
+  chainId: number;
+  address: string;
+  alchemyAccountId?: string;
+  alchemyWalletId?: string;
+  challengeId?: string;
+  signature?: string;
 };
 
 export type DashboardSummary = {
@@ -58,6 +79,7 @@ export type DashboardSummary = {
 export type SimulateTransactionInput = {
   walletId: string;
   network: WalletNetwork;
+  chainId: number;
   to: string;
   value?: string;
   data?: string;
@@ -72,6 +94,7 @@ export type SimulateTransactionResult = {
 export type TrackTransactionInput = {
   walletId: string;
   network: WalletNetwork;
+  chainId: number;
   assetCode: string;
   amount: string;
   simulationId: string;
@@ -93,6 +116,7 @@ export type TransactionListItem = {
   walletId: string;
   walletAddress: string;
   network: WalletNetwork;
+  chainId: number | null;
   assetCode: string;
   amount: string;
   status: 'SUBMITTED' | 'PENDING' | 'CONFIRMED' | 'FAILED' | 'DROPPED' | string;
@@ -102,6 +126,7 @@ export type TransactionListItem = {
   blockTime: string | null;
   confirmedAt: string | null;
   failureReason: string | null;
+  settlementDiagnostic: string | null;
   createdAt: string;
   updatedAt: string;
 };

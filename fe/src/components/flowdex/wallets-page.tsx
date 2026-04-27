@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AuthCard, useAccount, useUser } from '@account-kit/react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -11,8 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useDeleteWallet, useLinkWallet, useWallets } from '@/dal/app/hooks';
-import type { WalletNetwork } from '@/dal/app/types';
+import {
+  useCreateWalletChallenge,
+  useDeleteWallet,
+  useLinkWallet,
+  useWallets,
+} from '@/dal/app/hooks';
+import type { WalletNetwork, WalletProvider } from '@/dal/app/types';
 import { GlassPanel, SectionHeading } from './primitives';
 
 const NETWORK_LABELS: Record<WalletNetwork, string> = {
@@ -20,20 +25,86 @@ const NETWORK_LABELS: Record<WalletNetwork, string> = {
   BASE_SEPOLIA: 'Base Sepolia',
 };
 
+const NETWORK_CHAIN_IDS: Record<WalletNetwork, number> = {
+  ETH_SEPOLIA: 11155111,
+  BASE_SEPOLIA: 84532,
+};
+
+type EthereumProvider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+  on?: (event: string, listener: (...args: unknown[]) => void) => void;
+  removeListener?: (event: string, listener: (...args: unknown[]) => void) => void;
+};
+
+function getEthereumProvider(): EthereumProvider | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  return (window as unknown as { ethereum?: EthereumProvider }).ethereum ?? null;
+}
+
 export function WalletsPage() {
   const walletsQuery = useWallets();
+  const challengeMutation = useCreateWalletChallenge();
   const linkMutation = useLinkWallet();
   const deleteMutation = useDeleteWallet();
-  const { user } = useUser();
+  const user = (useUser() as { id?: string; userId?: string } | null) ?? null;
   const { address, isLoadingAccount } = useAccount({
     type: 'ModularAccountV2',
   });
   const [network, setNetwork] = useState<WalletNetwork>('BASE_SEPOLIA');
-  const accountUser = (user as { id?: string; userId?: string } | null) ?? null;
+  const [provider, setProvider] = useState<WalletProvider>('ALCHEMY_EMBEDDED');
+  const [metamaskAccount, setMetamaskAccount] = useState<string | null>(null);
+  const [metamaskChainId, setMetamaskChainId] = useState<number | null>(null);
+  const accountUser = user;
 
   const wallets = walletsQuery.data?.items ?? [];
-  const canLink = Boolean(address && user && !isLoadingAccount);
-  const providerLabel = useMemo(() => 'ALCHEMY_EMBEDDED', []);
+  const canLinkAlchemy = Boolean(address && user && !isLoadingAccount);
+  const hasMetaMask = useMemo(() => Boolean(getEthereumProvider()), []);
+
+  useEffect(() => {
+    const ethereum = getEthereumProvider();
+    if (!ethereum) {
+      return;
+    }
+
+    const refreshState = async () => {
+      try {
+        const accounts = await ethereum.request({ method: 'eth_accounts' }) as string[];
+        const chainHex = await ethereum.request({ method: 'eth_chainId' }) as string;
+        setMetamaskAccount(accounts[0]?.toLowerCase() ?? null);
+        setMetamaskChainId(Number.parseInt(chainHex, 16));
+      } catch {
+        setMetamaskAccount(null);
+      }
+    };
+
+    void refreshState();
+
+    const handleAccountsChanged = (accounts: unknown) => {
+      const next = Array.isArray(accounts) ? String(accounts[0] ?? '').toLowerCase() : '';
+      setMetamaskAccount(next || null);
+    };
+    const handleChainChanged = (chain: unknown) => {
+      const raw = typeof chain === 'string' ? chain : '';
+      setMetamaskChainId(raw ? Number.parseInt(raw, 16) : null);
+    };
+    const handleDisconnect = () => {
+      setMetamaskAccount(null);
+      setMetamaskChainId(null);
+    };
+
+    ethereum.on?.('accountsChanged', handleAccountsChanged);
+    ethereum.on?.('chainChanged', handleChainChanged);
+    ethereum.on?.('disconnect', handleDisconnect);
+
+    return () => {
+      ethereum.removeListener?.('accountsChanged', handleAccountsChanged);
+      ethereum.removeListener?.('chainChanged', handleChainChanged);
+      ethereum.removeListener?.('disconnect', handleDisconnect);
+    };
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -56,13 +127,32 @@ export function WalletsPage() {
 
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <GlassPanel className="p-6 space-y-5">
-          <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
-            Embedded Onboarding
+          <div className="space-y-3">
+            <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
+              Wallet Provider
+            </div>
+            <Select value={provider} onValueChange={(value: WalletProvider) => setProvider(value)}>
+              <SelectTrigger className="h-12 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALCHEMY_EMBEDDED">Alchemy Embedded</SelectItem>
+                <SelectItem value="METAMASK">MetaMask</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--card-bg)] p-4">
-            <AuthCard />
-          </div>
+          {provider === 'ALCHEMY_EMBEDDED' ? (
+            <div className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--card-bg)] p-4">
+              <AuthCard />
+            </div>
+          ) : (
+            <div className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--card-bg)] p-4 text-sm text-[var(--text)]">
+              {hasMetaMask
+                ? `MetaMask detected${metamaskAccount ? ` • ${metamaskAccount}` : ''}`
+                : 'MetaMask not detected. Install extension to continue.'}
+            </div>
+          )}
 
           <div className="space-y-3">
             <div className="text-xs font-semibold tracking-[0.24em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
@@ -82,27 +172,75 @@ export function WalletsPage() {
           <div className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--card-bg)] p-4 text-sm text-[var(--text)]">
             <div className="font-semibold">Connected Address</div>
             <div className="mt-2 break-all text-[color-mix(in_srgb,var(--text)_65%,transparent)]">
-              {address ?? 'Authenticate to provision a smart wallet address'}
-            </div>
-          </div>
+                  {provider === 'ALCHEMY_EMBEDDED'
+                    ? (address ?? 'Authenticate to provision a smart wallet address')
+                    : (metamaskAccount ?? 'Connect MetaMask to select an account')}
+                </div>
+              </div>
 
           <Button
             variant="brand"
             className="w-full"
-            disabled={!canLink || linkMutation.isPending}
+            disabled={linkMutation.isPending || challengeMutation.isPending}
             onClick={async () => {
-              if (!address || !user) {
-                return;
-              }
-
               try {
-                await linkMutation.mutateAsync({
-                  network,
-                  address,
-                  alchemyAccountId: accountUser?.userId ?? accountUser?.id ?? address,
-                  alchemyWalletId: `${network}:${address.toLowerCase()}`,
-                  provider: providerLabel,
-                });
+                const chainId = NETWORK_CHAIN_IDS[network];
+
+                if (provider === 'ALCHEMY_EMBEDDED') {
+                  if (!address || !user || !canLinkAlchemy) {
+                    return;
+                  }
+
+                  await linkMutation.mutateAsync({
+                    provider,
+                    network,
+                    chainId,
+                    address,
+                    alchemyAccountId: accountUser?.userId ?? accountUser?.id ?? address,
+                    alchemyWalletId: `${network}:${address.toLowerCase()}`,
+                  });
+                } else {
+                  const ethereum = getEthereumProvider();
+                  if (!ethereum) {
+                    toast.error('MetaMask not available');
+                    return;
+                  }
+
+                  const accounts = await ethereum.request({ method: 'eth_requestAccounts' }) as string[];
+                  const account = String(accounts[0] ?? '').toLowerCase();
+                  if (!account) {
+                    toast.error('No MetaMask account selected');
+                    return;
+                  }
+
+                  const chainHex = await ethereum.request({ method: 'eth_chainId' }) as string;
+                  const detectedChainId = Number.parseInt(chainHex, 16);
+                  if (detectedChainId !== chainId) {
+                    toast.error(`Switch MetaMask to ${NETWORK_LABELS[network]}`);
+                    return;
+                  }
+
+                  const challenge = await challengeMutation.mutateAsync({
+                    provider: 'METAMASK',
+                    network,
+                    chainId,
+                    address: account,
+                    origin: window.location.origin,
+                  });
+                  const signature = await ethereum.request({
+                    method: 'personal_sign',
+                    params: [challenge.message, account],
+                  }) as string;
+
+                  await linkMutation.mutateAsync({
+                    provider: 'METAMASK',
+                    network,
+                    chainId,
+                    address: account,
+                    challengeId: challenge.challengeId,
+                    signature,
+                  });
+                }
 
                 toast.success('Wallet linked');
               } catch (error) {
@@ -110,7 +248,7 @@ export function WalletsPage() {
               }
             }}
           >
-            {linkMutation.isPending ? 'Linking...' : 'Link connected smart wallet'}
+            {linkMutation.isPending || challengeMutation.isPending ? 'Linking...' : 'Link wallet'}
           </Button>
         </GlassPanel>
 
@@ -142,7 +280,7 @@ export function WalletsPage() {
                   {wallet.address}
                 </div>
                 <div className="mt-1 text-xs text-[color-mix(in_srgb,var(--text)_45%,transparent)]">
-                  {wallet.provider} • {wallet.alchemyAccountId}
+                  {wallet.provider} • {wallet.trustLevel}
                 </div>
               </div>
               <div className="flex items-center gap-3">

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 
 export class SimulateTransactionDto {
   @ApiProperty()
@@ -9,6 +9,12 @@ export class SimulateTransactionDto {
   @ApiProperty()
   @IsString()
   network!: string;
+
+  @ApiProperty()
+  @IsInt()
+  @Min(1)
+  @Max(2147483647)
+  chainId!: number;
 
   @ApiProperty()
   @IsString()
@@ -33,6 +39,12 @@ export class TrackTransactionDto {
   @ApiProperty()
   @IsString()
   network!: string;
+
+  @ApiProperty()
+  @IsInt()
+  @Min(1)
+  @Max(2147483647)
+  chainId!: number;
 
   @ApiProperty()
   @IsString()
@@ -87,6 +99,9 @@ export class TransactionListItemDto {
   @ApiProperty()
   network!: string;
 
+  @ApiProperty({ nullable: true })
+  chainId!: number | null;
+
   @ApiProperty()
   assetCode!: string;
 
@@ -113,6 +128,9 @@ export class TransactionListItemDto {
 
   @ApiProperty({ nullable: true })
   failureReason!: string | null;
+
+  @ApiProperty({ nullable: true })
+  settlementDiagnostic!: string | null;
 
   @ApiProperty()
   createdAt!: Date;

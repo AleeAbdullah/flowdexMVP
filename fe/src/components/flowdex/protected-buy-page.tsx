@@ -7,7 +7,30 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSimulateTransaction, useTrackTransaction, useWallets } from '@/dal/app/hooks';
+import { Env } from '@/libs/Env';
 import { DataKicker, GlassPanel, SectionHeading, StatusPill } from './primitives';
+
+type EthereumProvider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+};
+
+function getEthereumProvider(): EthereumProvider | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  return (window as unknown as { ethereum?: EthereumProvider }).ethereum ?? null;
+}
+
+function toHexValue(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return '0x0';
+  }
+  if (trimmed.startsWith('0x')) {
+    return trimmed;
+  }
+  return `0x${BigInt(trimmed).toString(16)}`;
+}
 
 export function ProtectedBuyPage() {
   const walletsQuery = useWallets();
@@ -15,7 +38,6 @@ export function ProtectedBuyPage() {
   const trackMutation = useTrackTransaction();
 
   const [walletId, setWalletId] = useState('');
-  const [recipient, setRecipient] = useState('');
   const [value, setValue] = useState('0');
   const [data, setData] = useState('');
   const [assetCode, setAssetCode] = useState('ETH');
@@ -27,7 +49,15 @@ export function ProtectedBuyPage() {
   const wallets = walletsQuery.data?.items ?? [];
   const selectedWallet = wallets.find(wallet => wallet.id === walletId) ?? wallets[0] ?? null;
   const network = selectedWallet?.network ?? null;
-  const canSimulate = Boolean(selectedWallet && recipient.trim());
+  const treasuryRecipient = useMemo(() => {
+    if (!selectedWallet) {
+      return '';
+    }
+    return selectedWallet.network === 'BASE_SEPOLIA'
+      ? (Env.NEXT_PUBLIC_TREASURY_ADDRESS_BASE_SEPOLIA ?? '')
+      : (Env.NEXT_PUBLIC_TREASURY_ADDRESS_ETH_SEPOLIA ?? '');
+  }, [selectedWallet]);
+  const canSimulate = Boolean(selectedWallet && treasuryRecipient.trim());
 
   const simulationSummary = useMemo(() => {
     if (simulateMutation.data) {
@@ -44,8 +74,8 @@ export function ProtectedBuyPage() {
       <GlassPanel className="grid gap-8 p-6 lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
         <SectionHeading
           eyebrow="Execution"
-          title="Simulate first, then track execution in the ledger."
-          description="Direct chain reconciliation and manual reported-hash flow have been removed. V1 routes all transaction lifecycle state through simulation gates and backend ledger tracking."
+          title="Buy and track execution in the ledger."
+          description="Recipient is fixed to your configured treasury address. V1 still runs risk checks automatically before broadcast/track."
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <DataKicker label="Linked Wallets" value={`${wallets.length}`} />
@@ -76,7 +106,7 @@ export function ProtectedBuyPage() {
         <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
           <GlassPanel className="p-6 space-y-4">
             <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
-              Pre-Send Simulation
+              Buy Setup
             </div>
 
             <label className="block space-y-2">
@@ -94,12 +124,16 @@ export function ProtectedBuyPage() {
               </select>
             </label>
 
-            <Input
-              value={recipient}
-              onChange={event => setRecipient(event.target.value)}
-              placeholder="Recipient contract/address"
-              className="h-12 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
-            />
+            <div className="space-y-2">
+              <div className="text-xs font-semibold tracking-[0.24em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
+                Recipient (Treasury)
+              </div>
+              <Input
+                value={treasuryRecipient}
+                readOnly
+                className="h-12 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
+              />
+            </div>
             <Input
               value={value}
               onChange={event => setValue(event.target.value)}
@@ -126,7 +160,8 @@ export function ProtectedBuyPage() {
                   const result = await simulateMutation.mutateAsync({
                     walletId: selectedWallet.id,
                     network: selectedWallet.network,
-                    to: recipient,
+                    chainId: selectedWallet.chainId,
+                    to: treasuryRecipient,
                     value: value || undefined,
                     data: data || undefined,
                   });
@@ -141,7 +176,7 @@ export function ProtectedBuyPage() {
                 }
               }}
             >
-              {simulateMutation.isPending ? 'Simulating...' : 'Run simulation'}
+              {simulateMutation.isPending ? 'Preparing buy...' : 'Buy'}
             </Button>
           </GlassPanel>
 
@@ -202,10 +237,11 @@ export function ProtectedBuyPage() {
                   const tracked = await trackMutation.mutateAsync({
                     walletId: selectedWallet.id,
                     network: selectedWallet.network,
+                    chainId: selectedWallet.chainId,
                     assetCode,
                     amount,
                     simulationId: simulateMutation.data.simulationId,
-                    to: recipient,
+                    to: treasuryRecipient,
                     value: value || undefined,
                     data: data || undefined,
                     operationId: operationId || undefined,
@@ -220,6 +256,88 @@ export function ProtectedBuyPage() {
             >
               {trackMutation.isPending ? 'Tracking...' : 'Track transaction'}
             </Button>
+
+            {selectedWallet?.provider === 'METAMASK' ? (
+              <Button
+                variant="glass"
+                className="w-full"
+              disabled={
+                  !selectedWallet
+                  || trackMutation.isPending
+                  || !treasuryRecipient.trim()
+                }
+                onClick={async () => {
+                  if (!selectedWallet || !treasuryRecipient.trim()) {
+                    return;
+                  }
+
+                  try {
+                    const simulation = await simulateMutation.mutateAsync({
+                      walletId: selectedWallet.id,
+                      network: selectedWallet.network,
+                      chainId: selectedWallet.chainId,
+                      to: treasuryRecipient,
+                      value: value || undefined,
+                      data: data || undefined,
+                    });
+                    if (!simulation.allowed || !simulation.simulationId) {
+                      toast.error(simulation.reason ?? 'Buy blocked by risk checks');
+                      return;
+                    }
+
+                    const ethereum = getEthereumProvider();
+                    if (!ethereum) {
+                      toast.error('MetaMask not available');
+                      return;
+                    }
+
+                    const accounts = await ethereum.request({ method: 'eth_requestAccounts' }) as string[];
+                    const account = String(accounts[0] ?? '').toLowerCase();
+                    if (!account || account !== selectedWallet.address.toLowerCase()) {
+                      toast.error('Connected MetaMask account does not match selected wallet');
+                      return;
+                    }
+
+                    const chainHex = await ethereum.request({ method: 'eth_chainId' }) as string;
+                    const chainId = Number.parseInt(chainHex, 16);
+                    if (chainId !== selectedWallet.chainId) {
+                      toast.error(`Switch MetaMask to ${selectedWallet.network}`);
+                      return;
+                    }
+
+                    const broadcast = await ethereum.request({
+                      method: 'eth_sendTransaction',
+                      params: [{
+                        from: account,
+                        to: treasuryRecipient,
+                        value: toHexValue(value),
+                        data: data || undefined,
+                      }],
+                    }) as string;
+
+                    setTxHash(broadcast);
+                    const tracked = await trackMutation.mutateAsync({
+                      walletId: selectedWallet.id,
+                      network: selectedWallet.network,
+                      chainId: selectedWallet.chainId,
+                      assetCode,
+                      amount,
+                      simulationId: simulation.simulationId,
+                      to: treasuryRecipient,
+                      value: value || undefined,
+                      data: data || undefined,
+                      txHash: broadcast,
+                    });
+                    setLastTrackStatus(tracked.status);
+                    toast.success('MetaMask transaction broadcast and tracked');
+                  } catch (error) {
+                    toast.error(error instanceof Error ? error.message : 'MetaMask send failed');
+                  }
+                }}
+              >
+                Buy with MetaMask
+              </Button>
+            ) : null}
 
             {lastTrackStatus ? (
               <div className="flex items-center gap-2 text-emerald-300">

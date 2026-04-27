@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { AuthContext, CurrentAuth } from '../../common/decorators/current-auth.decorator';
@@ -32,6 +32,14 @@ export class AdminController {
     @Param('id') id: string,
   ): Promise<TransactionListItemDto> {
     return this.adminService.getTransaction(auth, id);
+  }
+
+  @Post('transactions/:id/reconcile')
+  reconcileTransaction(
+    @CurrentAuth() auth: AuthContext,
+    @Param('id') id: string,
+  ): Promise<TransactionListItemDto> {
+    return this.adminService.reconcileTransaction(auth, id);
   }
 
   @Get('stats')

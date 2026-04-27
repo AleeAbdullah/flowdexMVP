@@ -5,6 +5,7 @@ import type {
   AdminTransactionFilters,
   AdminTransactionsResponse,
   AuthMe,
+  CreateWalletChallengeInput,
   DashboardSummary,
   LinkWalletInput,
   SimulateTransactionInput,
@@ -14,6 +15,7 @@ import type {
   TransactionListItem,
   TransactionsResponse,
   Wallet,
+  WalletChallenge,
   WalletListResponse,
 } from './types';
 import { APP_API_ROUTES } from './routes';
@@ -33,11 +35,7 @@ async function fetchAppApi<T>(input: string, init?: RequestInit): Promise<T> {
     : await response.text();
 
   if (!response.ok) {
-    const message = typeof payload === 'object' && payload && 'message' in payload
-      ? String(payload.message)
-      : typeof payload === 'string'
-        ? payload
-        : `Request failed with status ${response.status}`;
+    const message = resolveErrorMessage(payload, response.status);
 
     if (response.status === 401 && typeof window !== 'undefined') {
       window.location.assign('/login');
@@ -49,6 +47,43 @@ async function fetchAppApi<T>(input: string, init?: RequestInit): Promise<T> {
   return payload as T;
 }
 
+function resolveErrorMessage(payload: unknown, status: number): string {
+  const fallback = `Request failed with status ${status}`;
+
+  if (typeof payload === 'object' && payload) {
+    if ('message' in payload) {
+      const raw = (payload as { message?: unknown }).message;
+      if (Array.isArray(raw)) {
+        const joined = raw.map(item => String(item)).join(', ').trim();
+        if (joined) {
+          return joined;
+        }
+      } else if (raw !== undefined && raw !== null) {
+        const asText = String(raw).trim();
+        if (asText) {
+          return asText;
+        }
+      }
+    }
+
+    if ('error' in payload) {
+      const asText = String((payload as { error?: unknown }).error ?? '').trim();
+      if (asText) {
+        return asText;
+      }
+    }
+  }
+
+  if (typeof payload === 'string') {
+    const trimmed = payload.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+
+  return fallback;
+}
+
 export const appService = {
   getAuthMe() {
     return fetchAppApi<AuthMe>(APP_API_ROUTES.authMe, { cache: 'no-store' });
@@ -58,6 +93,12 @@ export const appService = {
   },
   getWallets() {
     return fetchAppApi<WalletListResponse>(APP_API_ROUTES.wallets, { cache: 'no-store' });
+  },
+  createWalletChallenge(input: CreateWalletChallengeInput) {
+    return fetchAppApi<WalletChallenge>(APP_API_ROUTES.walletChallenge, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
   },
   linkWallet(input: LinkWalletInput) {
     return fetchAppApi<Wallet>(APP_API_ROUTES.walletLink, {
@@ -113,6 +154,11 @@ export const appService = {
   getAdminTransaction(id: string) {
     return fetchAppApi<TransactionListItem>(`${APP_API_ROUTES.adminTransactions}/${id}`, {
       cache: 'no-store',
+    });
+  },
+  reconcileAdminTransaction(id: string) {
+    return fetchAppApi<TransactionListItem>(APP_API_ROUTES.adminTransactionReconcile(id), {
+      method: 'POST',
     });
   },
 };

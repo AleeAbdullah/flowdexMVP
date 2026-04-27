@@ -7,11 +7,14 @@ import {
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { getAddress } from 'ethers';
+import { getAddress, parseUnits } from 'ethers';
 import { addFixed, compareFixed, normalizeFixed } from '../../common/utils/decimal';
 import { In, Repository } from 'typeorm';
 
 import { AuthContext } from '../../common/decorators/current-auth.decorator';
+import { LedgerTxStatus } from '../../common/enums/domain.enums';
+import { normalizeAddress } from '../../common/utils/address';
+import { assertNetworkChainPair, chainIdForNetwork, isSupportedNetwork } from '../../common/utils/network';
 import { env } from '../../infrastructure/config/env';
 import { AlchemyService } from '../alchemy/alchemy.service';
 import { UsersService } from '../users/users.service';
@@ -34,6 +37,7 @@ type ActivityEvent = {
   value: string;
   asset: string;
   network: string | null;
+  chainId: number | null;
   blockNumber: string | null;
   blockTime: Date | null;
   status: string;
@@ -63,8 +67,9 @@ export class TransactionsService {
     input: SimulateTransactionDto,
   ): Promise<{ allowed: boolean; reason: string | null; simulationId: string | null }> {
     await this.usersService.syncAndRequireActive(auth);
+    assertNetworkChainPair(input.network, input.chainId);
 
-    const wallet = await this.requireOwnedWallet(auth.sub, input.walletId, input.network);
+    const wallet = await this.requireOwnedWallet(auth.sub, input.walletId, input.network, input.chainId);
     const recipient = this.normalizeRecipient(input.to);
     this.assertTreasuryRecipient(input.network, recipient);
     const result = await this.alchemyService.simulateTransaction({
@@ -83,6 +88,7 @@ export class TransactionsService {
           auth.sub,
           wallet.id,
           input.network,
+          input.chainId,
           recipient,
           input.value,
           input.data,
@@ -96,8 +102,9 @@ export class TransactionsService {
     input: TrackTransactionDto,
   ): Promise<{ transactionId: string; status: string }> {
     await this.usersService.syncAndRequireActive(auth);
+    assertNetworkChainPair(input.network, input.chainId);
 
-    const wallet = await this.requireOwnedWallet(auth.sub, input.walletId, input.network);
+    const wallet = await this.requireOwnedWallet(auth.sub, input.walletId, input.network, input.chainId);
     const recipient = this.normalizeRecipient(input.to);
     this.assertTreasuryRecipient(input.network, recipient);
     this.assertSimulationToken(
@@ -105,6 +112,7 @@ export class TransactionsService {
       auth.sub,
       wallet.id,
       input.network,
+      input.chainId,
       recipient,
       input.value,
       input.data,
@@ -126,7 +134,7 @@ export class TransactionsService {
       throw new BadRequestException('amount must be greater than zero');
     }
 
-    const existing = await this.findExistingTrackedTransaction(wallet.id, operationId, txHash);
+    const existing = await this.findExistingTrackedTransaction(wallet.id, input.chainId, operationId, txHash);
     if (existing) {
       return {
         transactionId: existing.id,
@@ -138,6 +146,7 @@ export class TransactionsService {
       userId: auth.sub,
       walletId: wallet.id,
       network: input.network,
+      chainId: input.chainId,
       assetCode: input.assetCode.trim().toUpperCase(),
       amount: normalizedAmount,
       status: txHash ? 'PENDING' : 'SUBMITTED',
@@ -227,6 +236,57 @@ export class TransactionsService {
     return this.toDto(item);
   }
 
+  async reconcileById(id: string): Promise<TransactionListItemDto> {
+    const tx = await this.ledgerTransactionsRepository.findOne({ where: { id } });
+    if (!tx) {
+      throw new NotFoundException('Transaction not found');
+    }
+
+    if (!tx.txHash) {
+      throw new BadRequestException('Transaction has no txHash to reconcile');
+    }
+
+    if (!isSupportedNetwork(tx.network)) {
+      throw new BadRequestException('Unsupported transaction network');
+    }
+
+    const network = this.toAlchemyNetwork(tx.network);
+    const chainId = tx.chainId ?? chainIdForNetwork(tx.network);
+    const chainTx = await this.alchemyService.getTransactionByHash(network, tx.txHash);
+    const receipt = await this.alchemyService.getTransactionReceipt(network, tx.txHash);
+
+    if (!chainTx) {
+      return this.toDto(tx);
+    }
+
+    const activity: ActivityEvent = {
+      txHash: chainTx.hash,
+      from: chainTx.from,
+      to: chainTx.to,
+      value: this.hexToDecimal(chainTx.value),
+      asset: 'ETH',
+      network: tx.network,
+      chainId,
+      blockNumber: receipt?.blockNumber ?? chainTx.blockNumber,
+      blockTime: null,
+      status: receipt?.blockNumber ? 'CONFIRMED' : 'PENDING',
+    };
+
+    await this.processSettlementActivity(activity, {
+      source: 'ADMIN_RECONCILE',
+      txHash: tx.txHash,
+      tx: chainTx,
+      receipt,
+    });
+
+    const refreshed = await this.ledgerTransactionsRepository.findOne({ where: { id } });
+    if (!refreshed) {
+      throw new NotFoundException('Transaction not found after reconciliation');
+    }
+
+    return this.toDto(refreshed);
+  }
+
   async ingestAddressActivityWebhook(
     payload: Record<string, unknown>,
     signature: string,
@@ -255,46 +315,9 @@ export class TransactionsService {
       const affectedUsers = new Set<string>();
 
       for (const activity of activities) {
-        const matches = await this.resolveWalletMatches(activity);
-
-        for (const wallet of matches) {
-          if (!wallet.network || !SUPPORTED_APP_NETWORKS.has(wallet.network)) {
-            continue;
-          }
-
-          const existingTx = activity.txHash
-            ? await this.ledgerTransactionsRepository.findOne({
-                where: {
-                  walletId: wallet.id,
-                  txHash: activity.txHash,
-                },
-              })
-            : null;
-
-          const tx = existingTx ?? this.ledgerTransactionsRepository.create({
-            userId: wallet.userId,
-            walletId: wallet.id,
-            network: wallet.network,
-            assetCode: activity.asset,
-            amount: normalizeFixed(activity.value),
-            status: activity.status,
-          });
-
-          tx.userId = wallet.userId;
-          tx.walletId = wallet.id;
-          tx.network = wallet.network;
-          tx.assetCode = activity.asset;
-          tx.amount = normalizeFixed(activity.value);
-          tx.status = activity.status;
-          tx.txHash = activity.txHash;
-          tx.blockNumber = activity.blockNumber;
-          tx.blockTime = activity.blockTime;
-          tx.confirmedAt = activity.status === 'CONFIRMED' ? (activity.blockTime ?? new Date()) : null;
-          tx.failureReason = null;
-          tx.rawWebhookPayload = payload;
-
-          await this.ledgerTransactionsRepository.save(tx);
-          affectedUsers.add(wallet.userId);
+        const userId = await this.processSettlementActivity(activity, payload);
+        if (userId) {
+          affectedUsers.add(userId);
         }
       }
 
@@ -343,40 +366,7 @@ export class TransactionsService {
 
       for (const transfer of result.transfers) {
         const activity = this.toActivityEvent(transfer, wallet.network);
-        const txHash = activity.txHash;
-        if (!txHash) {
-          continue;
-        }
-
-        const existingTx = await this.ledgerTransactionsRepository.findOne({
-          where: {
-            walletId: wallet.id,
-            txHash,
-          },
-        });
-
-        const tx = existingTx ?? this.ledgerTransactionsRepository.create({
-          userId: wallet.userId,
-          walletId: wallet.id,
-          network: wallet.network,
-          assetCode: activity.asset,
-          amount: normalizeFixed(activity.value),
-          status: activity.status,
-        });
-
-        tx.userId = wallet.userId;
-        tx.walletId = wallet.id;
-        tx.network = wallet.network;
-        tx.assetCode = activity.asset;
-        tx.amount = normalizeFixed(activity.value);
-        tx.status = activity.status;
-        tx.txHash = txHash;
-        tx.blockNumber = activity.blockNumber;
-        tx.blockTime = activity.blockTime;
-        tx.confirmedAt = activity.status === 'CONFIRMED' ? (activity.blockTime ?? new Date()) : null;
-        tx.rawWebhookPayload = transfer;
-
-        await this.ledgerTransactionsRepository.save(tx);
+        await this.processSettlementActivity(activity, transfer);
       }
 
       checkpoint.lastPageKey = result.pageKey;
@@ -424,6 +414,7 @@ export class TransactionsService {
     const wallet = await this.walletsRepository.findOne({
       where: { id: entity.walletId },
     });
+    const settlementDiagnostic = this.buildSettlementDiagnostic(entity, wallet);
 
     return {
       id: entity.id,
@@ -431,6 +422,7 @@ export class TransactionsService {
       walletId: entity.walletId,
       walletAddress: wallet?.addressNormalized ?? '',
       network: entity.network,
+      chainId: entity.chainId,
       assetCode: entity.assetCode,
       amount: normalizeFixed(entity.amount),
       status: entity.status,
@@ -440,12 +432,112 @@ export class TransactionsService {
       blockTime: entity.blockTime,
       confirmedAt: entity.confirmedAt,
       failureReason: entity.failureReason,
+      settlementDiagnostic,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     };
   }
 
-  private async requireOwnedWallet(userId: string, walletId: string, network: string): Promise<WalletEntity> {
+  private async processSettlementActivity(
+    activity: ActivityEvent,
+    rawPayload: Record<string, unknown>,
+  ): Promise<string | null> {
+    if (!activity.txHash || !activity.network || activity.chainId === null || !activity.from || !activity.to) {
+      return null;
+    }
+    if (!isSupportedNetwork(activity.network) || !this.isNativeAsset(activity.asset)) {
+      return null;
+    }
+
+    const treasuryAddress = this.getTreasuryAddress(activity.network);
+    if (normalizeAddress(activity.to) !== normalizeAddress(treasuryAddress)) {
+      return null;
+    }
+
+    const senderAddress = normalizeAddress(activity.from);
+    const wallet = await this.walletsRepository.findOne({
+      where: {
+        chainId: activity.chainId,
+        addressNormalized: senderAddress,
+      },
+    });
+    if (!wallet || !wallet.network) {
+      return null;
+    }
+
+    const existingByChainHash = await this.ledgerTransactionsRepository.findOne({
+      where: { chainId: activity.chainId, txHash: activity.txHash },
+    });
+    if (existingByChainHash && existingByChainHash.walletId !== wallet.id) {
+      return null;
+    }
+
+    const tracked = await this.ledgerTransactionsRepository.findOne({
+      where: {
+        walletId: wallet.id,
+        chainId: activity.chainId,
+        txHash: activity.txHash,
+      },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (!tracked) {
+      if (existingByChainHash) {
+        return existingByChainHash.userId;
+      }
+      const unmatched = this.ledgerTransactionsRepository.create({
+        userId: wallet.userId,
+        walletId: wallet.id,
+        network: wallet.network,
+        chainId: activity.chainId,
+        assetCode: activity.asset,
+        amount: normalizeFixed(activity.value),
+        status: LedgerTxStatus.UNMATCHED,
+        txHash: activity.txHash,
+        blockNumber: activity.blockNumber,
+        blockTime: activity.blockTime,
+        rawWebhookPayload: rawPayload,
+      });
+      await this.ledgerTransactionsRepository.save(unmatched);
+      return wallet.userId;
+    }
+
+    const expectedTo = normalizeAddress(String(tracked.rawTrackPayload?.to ?? ''));
+    const actualAmount = normalizeFixed(activity.value);
+    const recipientMatches = expectedTo === normalizeAddress(treasuryAddress);
+    const amountMatches = this.isNativeAsset(activity.asset)
+      ? this.nativeAmountMatchesTrackedExpectation(actualAmount, tracked)
+      : normalizeFixed(tracked.amount) === actualAmount;
+    const expectationsPass = recipientMatches && amountMatches;
+
+    tracked.assetCode = activity.asset;
+    tracked.amount = actualAmount;
+    tracked.blockNumber = activity.blockNumber;
+    tracked.blockTime = activity.blockTime;
+    tracked.rawWebhookPayload = rawPayload;
+
+    if (expectationsPass) {
+      tracked.status = LedgerTxStatus.CONFIRMED;
+      tracked.failureReason = null;
+      tracked.confirmedAt = activity.blockTime ?? new Date();
+    } else {
+      tracked.status = LedgerTxStatus.FAILED;
+      tracked.failureReason = !recipientMatches
+        ? 'WEBHOOK_EXPECTATION_MISMATCH_RECIPIENT'
+        : 'WEBHOOK_EXPECTATION_MISMATCH_AMOUNT';
+      tracked.confirmedAt = null;
+    }
+
+    await this.ledgerTransactionsRepository.save(tracked);
+    return tracked.userId;
+  }
+
+  private async requireOwnedWallet(
+    userId: string,
+    walletId: string,
+    network: string,
+    chainId: number,
+  ): Promise<WalletEntity> {
     const wallet = await this.walletsRepository.findOne({
       where: {
         id: walletId,
@@ -459,6 +551,9 @@ export class TransactionsService {
 
     if (!wallet.network || wallet.network !== network) {
       throw new BadRequestException('Wallet network mismatch');
+    }
+    if (wallet.chainId !== chainId) {
+      throw new BadRequestException('Wallet chainId mismatch');
     }
 
     if (!SUPPORTED_APP_NETWORKS.has(network)) {
@@ -474,6 +569,73 @@ export class TransactionsService {
     }
 
     return 'eth-sepolia';
+  }
+
+  private isNativeAsset(assetCode: string): boolean {
+    return assetCode.trim().toUpperCase() === 'ETH';
+  }
+
+  private getTreasuryAddress(network: string): string {
+    return network === 'BASE_SEPOLIA'
+      ? env.treasuryAddressBaseSepolia
+      : env.treasuryAddressEthSepolia;
+  }
+
+  private buildSettlementDiagnostic(
+    entity: LedgerTransactionEntity,
+    wallet: WalletEntity | null,
+  ): string | null {
+    if (entity.status === LedgerTxStatus.CONFIRMED) {
+      return null;
+    }
+
+    if (entity.status === LedgerTxStatus.FAILED) {
+      return entity.failureReason
+        ? `Failed: ${entity.failureReason}`
+        : 'Failed without explicit machine-readable reason.';
+    }
+
+    if (!entity.txHash) {
+      return 'Awaiting on-chain tx hash. Track with txHash or operationId first.';
+    }
+
+    if (!wallet) {
+      return 'Linked wallet record is missing for this transaction.';
+    }
+
+    if (!wallet.network || !isSupportedNetwork(wallet.network)) {
+      return 'Wallet network is unsupported for settlement confirmation.';
+    }
+
+    if (entity.assetCode.trim().toUpperCase() !== 'ETH') {
+      return 'V1 confirms native ETH only; token-transfer settlement is ignored.';
+    }
+
+    const expectedRecipient = String(entity.rawTrackPayload?.to ?? '').trim();
+    if (!expectedRecipient) {
+      return 'Missing expected treasury recipient in tracked payload.';
+    }
+
+    const treasury = this.getTreasuryAddress(wallet.network);
+    try {
+      const expectedRecipientNormalized = normalizeAddress(getAddress(expectedRecipient));
+      const treasuryNormalized = normalizeAddress(getAddress(treasury));
+      if (expectedRecipientNormalized !== treasuryNormalized) {
+        return 'Tracked recipient does not match configured treasury address.';
+      }
+    } catch {
+      return 'Tracked recipient or treasury configuration is invalid.';
+    }
+
+    if (entity.status === LedgerTxStatus.UNMATCHED) {
+      return 'Webhook/backfill saw tx but it did not pass strict settlement matching.';
+    }
+
+    if (entity.blockNumber || entity.blockTime) {
+      return 'Observed on-chain activity, awaiting strict settlement attribute match.';
+    }
+
+    return 'Awaiting treasury inbound webhook/backfill confirmation for tracked tx hash.';
   }
 
   private buildWebhookDedupeKey(payload: Record<string, unknown>): string {
@@ -539,6 +701,7 @@ export class TransactionsService {
     const value = this.toNullableString(event.value) ?? '0';
     const asset = (this.toNullableString(event.asset) ?? 'UNKNOWN').toUpperCase();
     const network = this.toNullableString(event.network) ?? fallbackNetwork;
+    const chainId = network && isSupportedNetwork(network) ? chainIdForNetwork(network) : null;
     const blockNum = this.toNullableString(event.blockNum ?? event.blockNumber);
     const blockTimeText = this.toNullableString(
       (event.metadata as { blockTimestamp?: string } | undefined)?.blockTimestamp
@@ -552,34 +715,11 @@ export class TransactionsService {
       value,
       asset,
       network,
+      chainId,
       blockNumber: blockNum,
       blockTime: blockTimeText ? new Date(blockTimeText) : null,
       status: blockNum ? 'CONFIRMED' : 'PENDING',
     };
-  }
-
-  private async resolveWalletMatches(activity: ActivityEvent): Promise<WalletEntity[]> {
-    const candidates = [activity.from, activity.to]
-      .filter((item): item is string => Boolean(item))
-      .map((value) => {
-        try {
-          return getAddress(value);
-        } catch {
-          return value;
-        }
-      });
-
-    if (candidates.length === 0) {
-      return [];
-    }
-
-    const wallets = await this.walletsRepository.find({
-      where: {
-        addressNormalized: In(candidates),
-      },
-    });
-
-    return wallets;
   }
 
   private toNullableString(value: unknown): string | null {
@@ -616,12 +756,13 @@ export class TransactionsService {
     userId: string,
     walletId: string,
     network: string,
+    chainId: number,
     to: string,
     value?: string,
     data?: string,
   ): string {
     const issuedAt = Math.floor(Date.now() / 1000);
-    const payload = this.buildSimulationPayload(userId, walletId, network, to, value, data, issuedAt);
+    const payload = this.buildSimulationPayload(userId, walletId, network, chainId, to, value, data, issuedAt);
     const signature = this.signSimulationPayload(payload);
     return `${issuedAt}.${signature}`;
   }
@@ -631,6 +772,7 @@ export class TransactionsService {
     userId: string,
     walletId: string,
     network: string,
+    chainId: number,
     to: string,
     value?: string,
     data?: string,
@@ -648,7 +790,7 @@ export class TransactionsService {
       throw new BadRequestException('simulationId is expired');
     }
 
-    const payload = this.buildSimulationPayload(userId, walletId, network, to, value, data, issuedAt);
+    const payload = this.buildSimulationPayload(userId, walletId, network, chainId, to, value, data, issuedAt);
     const expected = this.signSimulationPayload(payload);
     const left = Buffer.from(expected, 'utf8');
     const right = Buffer.from(signature, 'utf8');
@@ -666,6 +808,7 @@ export class TransactionsService {
     userId: string,
     walletId: string,
     network: string,
+    chainId: number,
     to: string,
     value: string | undefined,
     data: string | undefined,
@@ -675,6 +818,7 @@ export class TransactionsService {
       userId,
       walletId,
       network,
+      String(chainId),
       to.toLowerCase(),
       this.normalizeTokenPart(value),
       this.normalizeTokenPart(data),
@@ -688,6 +832,78 @@ export class TransactionsService {
     }
 
     return value.trim().toLowerCase();
+  }
+
+  private hexToDecimal(value: string): string {
+    const trimmed = value.trim().toLowerCase();
+    if (/^0x[0-9a-f]+$/.test(trimmed)) {
+      return BigInt(trimmed).toString(10);
+    }
+    return value;
+  }
+
+  private nativeAmountMatchesTrackedExpectation(
+    actualWei: string,
+    tracked: LedgerTransactionEntity,
+  ): boolean {
+    const candidates = new Set<string>();
+
+    const trackedValue = String(tracked.rawTrackPayload?.value ?? '').trim().toLowerCase();
+    if (trackedValue) {
+      const parsed = this.parseWeiQuantity(trackedValue);
+      if (parsed) {
+        candidates.add(parsed);
+      }
+    }
+
+    const trackedAmount = String(tracked.amount ?? '').trim();
+    if (trackedAmount) {
+      const asWeiQuantity = this.parseWeiQuantity(trackedAmount);
+      if (asWeiQuantity) {
+        candidates.add(asWeiQuantity);
+      }
+
+      const asEthToWei = this.parseEthAmountToWei(trackedAmount);
+      if (asEthToWei) {
+        candidates.add(asEthToWei);
+      }
+    }
+
+    return candidates.has(actualWei);
+  }
+
+  private parseWeiQuantity(value: string): string | null {
+    const trimmed = value.trim().toLowerCase();
+    if (!trimmed) {
+      return null;
+    }
+
+    if (/^0x[0-9a-f]+$/.test(trimmed)) {
+      return BigInt(trimmed).toString(10);
+    }
+
+    if (/^[0-9]+$/.test(trimmed)) {
+      return BigInt(trimmed).toString(10);
+    }
+
+    return null;
+  }
+
+  private parseEthAmountToWei(value: string): string | null {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    if (!/^[0-9]+(\.[0-9]+)?$/.test(trimmed)) {
+      return null;
+    }
+
+    try {
+      return parseUnits(trimmed, 18).toString();
+    } catch {
+      return null;
+    }
   }
 
   private normalizeRecipient(value: string): string {
@@ -721,6 +937,7 @@ export class TransactionsService {
 
   private async findExistingTrackedTransaction(
     walletId: string,
+    chainId: number,
     operationId: string | null,
     txHash: string | null,
   ): Promise<LedgerTransactionEntity | null> {
@@ -740,6 +957,7 @@ export class TransactionsService {
     return this.ledgerTransactionsRepository.findOne({
       where: {
         walletId,
+        chainId,
         txHash,
       },
     });

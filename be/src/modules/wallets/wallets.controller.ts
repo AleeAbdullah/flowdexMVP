@@ -1,9 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
 import { AuthContext, CurrentAuth } from '../../common/decorators/current-auth.decorator';
 import { InternalJwtGuard } from '../../common/guards/internal-jwt.guard';
-import { LinkWalletDto, WalletDto } from './dto/wallets.dto';
+import { CreateWalletChallengeDto, LinkWalletDto, WalletChallengeDto, WalletDto } from './dto/wallets.dto';
 import { WalletsService } from './wallets.service';
 
 @ApiTags('wallets')
@@ -12,6 +12,15 @@ import { WalletsService } from './wallets.service';
 @Controller('wallets')
 export class WalletsController {
   constructor(private readonly walletsService: WalletsService) {}
+
+  @Post('challenge')
+  createChallenge(
+    @CurrentAuth() auth: AuthContext,
+    @Body() body: CreateWalletChallengeDto,
+    @Headers('origin') originHeader: string | undefined,
+  ): Promise<WalletChallengeDto> {
+    return this.walletsService.createChallenge(auth, body, originHeader);
+  }
 
   @Post('link')
   link(

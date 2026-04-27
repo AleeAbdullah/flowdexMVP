@@ -22,4 +22,15 @@ export enum LedgerTxStatus {
   CONFIRMED = 'CONFIRMED',
   FAILED = 'FAILED',
   DROPPED = 'DROPPED',
+  UNMATCHED = 'UNMATCHED',
+}
+
+export enum WalletProvider {
+  ALCHEMY_EMBEDDED = 'ALCHEMY_EMBEDDED',
+  METAMASK = 'METAMASK',
+}
+
+export enum WalletTrustLevel {
+  PROVIDER_ASSERTED = 'PROVIDER_ASSERTED',
+  SIGNED = 'SIGNED',
 }

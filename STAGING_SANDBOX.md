@@ -64,6 +64,12 @@ set +a
 npm run dev -- --port 3103
 ```
 
+
+6. set up ngrok
+   ```bash
+    
+   ```
+
 ## 4. Webhook Setup (Alchemy)
 
 Create an `ADDRESS_ACTIVITY` webhook in your staging Alchemy app:

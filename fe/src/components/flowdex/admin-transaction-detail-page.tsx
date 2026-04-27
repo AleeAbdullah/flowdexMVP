@@ -1,4 +1,5 @@
 import type { TransactionListItem } from '@/dal/app/types';
+import { AdminReconcileButton } from './admin-reconcile-button';
 import { DataKicker, GlassPanel, SectionHeading, StatusPill } from './primitives';
 import { formatDateTime, formatPlainNumber, truncateMiddle } from './utils';
 
@@ -24,6 +25,9 @@ export function AdminTransactionDetailPage(props: {
           <DataKicker label="Wallet" value={transaction.walletAddress ? truncateMiddle(transaction.walletAddress) : 'Unavailable'} />
           <DataKicker label="Network" value={transaction.network} />
         </div>
+        <div>
+          <AdminReconcileButton transactionId={transaction.id} />
+        </div>
       </GlassPanel>
 
       <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
@@ -46,6 +50,13 @@ export function AdminTransactionDetailPage(props: {
               <div className="text-lg font-bold text-[var(--text)]">Failure reason</div>
               <p className="text-sm leading-7 text-rose-100">
                 {transaction.failureReason}
+              </p>
+            </div>
+          ) : transaction.settlementDiagnostic ? (
+            <div className="space-y-3">
+              <div className="text-lg font-bold text-[var(--text)]">Settlement diagnostic</div>
+              <p className="text-sm leading-7 text-amber-100">
+                {transaction.settlementDiagnostic}
               </p>
             </div>
           ) : (

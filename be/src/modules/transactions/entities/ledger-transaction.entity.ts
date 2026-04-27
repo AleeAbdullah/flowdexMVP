@@ -10,6 +10,10 @@ import {
 @Entity('ledger_transactions')
 @Index('IDX_ledger_tx_user_created', ['userId', 'createdAt'])
 @Index('IDX_ledger_tx_wallet_network_hash', ['walletId', 'network', 'txHash'])
+@Index('IDX_ledger_tx_chain_hash_unique', ['chainId', 'txHash'], {
+  unique: true,
+  where: '"tx_hash" IS NOT NULL',
+})
 @Index('IDX_ledger_tx_operation_id', ['operationId'], { unique: true, where: '"operation_id" IS NOT NULL' })
 export class LedgerTransactionEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -23,6 +27,9 @@ export class LedgerTransactionEntity {
 
   @Column({ type: 'varchar', length: 40 })
   network!: string;
+
+  @Column({ name: 'chain_id', type: 'int', nullable: true })
+  chainId!: number | null;
 
   @Column({ name: 'asset_code', type: 'varchar', length: 64 })
   assetCode!: string;

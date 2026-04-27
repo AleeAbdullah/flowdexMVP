@@ -7,10 +7,10 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-import { Chain } from '../../../common/enums/domain.enums';
+import { Chain, WalletProvider, WalletTrustLevel } from '../../../common/enums/domain.enums';
 
 @Entity('wallets')
-@Index(['chain', 'addressNormalized'], { unique: true })
+@Index('IDX_wallet_chain_id_address', ['chainId', 'addressNormalized'], { unique: true })
 @Index('IDX_wallet_primary_per_user_chain', ['userId', 'chain'], {
   unique: true,
   where: '"is_primary" = true',
@@ -29,6 +29,9 @@ export class WalletEntity {
   @Column({ type: 'varchar', length: 20, enum: Chain })
   chain!: Chain;
 
+  @Column({ name: 'chain_id', type: 'int' })
+  chainId!: number;
+
   @Column({ name: 'address_raw', type: 'varchar', length: 255 })
   addressRaw!: string;
 
@@ -44,8 +47,17 @@ export class WalletEntity {
   @Column({ type: 'varchar', length: 40, nullable: true })
   network!: string | null;
 
-  @Column({ type: 'varchar', length: 40, nullable: true })
-  provider!: string | null;
+  @Column({ type: 'varchar', length: 40, nullable: true, enum: WalletProvider })
+  provider!: WalletProvider | null;
+
+  @Column({
+    name: 'trust_level',
+    type: 'varchar',
+    length: 40,
+    nullable: true,
+    enum: WalletTrustLevel,
+  })
+  trustLevel!: WalletTrustLevel | null;
 
   @Column({ name: 'alchemy_account_id', type: 'varchar', length: 255, nullable: true })
   alchemyAccountId!: string | null;

@@ -118,13 +118,18 @@ export async function proxyBackendRequest(
   request: NextRequest,
   pathSegments: string[],
 ) {
+  const backendBaseUrl = Env.NEXT_PUBLIC_API_URL?.trim();
+  if (!backendBaseUrl) {
+    return Response.json({ message: 'NEXT_PUBLIC_API_URL is not configured' }, { status: 500 });
+  }
+
   const session = await getSessionFromRequest(request);
 
   if (!session) {
     return Response.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  return proxyBackendRequestWithRetry(request, pathSegments, session);
+  return proxyBackendRequestWithRetry(request, pathSegments, session, false, backendBaseUrl);
 }
 
 async function fetchBackendJsonWithRetry<T>(
@@ -171,9 +176,14 @@ async function fetchWithBackendToken(
   },
   session: BetterAuthSession,
 ) {
+  const backendBaseUrl = Env.NEXT_PUBLIC_API_URL?.trim();
+  if (!backendBaseUrl) {
+    throw new BackendApiError('NEXT_PUBLIC_API_URL is not configured', 500, null);
+  }
+
   const accessToken = await mintBackendAccessToken(session);
 
-  return fetch(`${Env.NEXT_PUBLIC_API_URL}${path}`, {
+  return fetch(`${backendBaseUrl}${path}`, {
     ...init,
     cache: 'no-store',
     headers: {
@@ -189,8 +199,14 @@ async function proxyBackendRequestWithRetry(
   pathSegments: string[],
   session: BetterAuthSession,
   retried = false,
+  backendBaseUrl?: string,
 ) {
-  const upstreamUrl = `${Env.NEXT_PUBLIC_API_URL}/${pathSegments.join('/')}${request.nextUrl.search}`;
+  const baseUrl = backendBaseUrl ?? Env.NEXT_PUBLIC_API_URL?.trim();
+  if (!baseUrl) {
+    return Response.json({ message: 'NEXT_PUBLIC_API_URL is not configured' }, { status: 500 });
+  }
+
+  const upstreamUrl = `${baseUrl}/${pathSegments.join('/')}${request.nextUrl.search}`;
   const bodyText = request.method === 'GET' || request.method === 'HEAD'
     ? undefined
     : await request.text();
@@ -213,7 +229,7 @@ async function proxyBackendRequestWithRetry(
       return Response.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    return proxyBackendRequestWithRetry(request, pathSegments, refreshedSession, true);
+    return proxyBackendRequestWithRetry(request, pathSegments, refreshedSession, true, baseUrl);
   }
 
   const responseText = await upstreamResponse.text();

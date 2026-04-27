@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { appService } from './services';
 import type {
   AdminTransactionFilters,
+  CreateWalletChallengeInput,
   LinkWalletInput,
   SimulateTransactionInput,
   TrackTransactionInput,
@@ -59,6 +60,12 @@ export function useLinkWallet() {
         queryClient.invalidateQueries({ queryKey: appQueryKeys.dashboardSummary }),
       ]);
     },
+  });
+}
+
+export function useCreateWalletChallenge() {
+  return useMutation({
+    mutationFn: (input: CreateWalletChallengeInput) => appService.createWalletChallenge(input),
   });
 }
 
@@ -144,5 +151,21 @@ export function useAdminTransaction(id: string) {
     queryKey: appQueryKeys.adminTransaction(id),
     queryFn: () => appService.getAdminTransaction(id),
     enabled: Boolean(id),
+  });
+}
+
+export function useReconcileAdminTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => appService.reconcileAdminTransaction(id),
+    onSuccess: async (transaction) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: appQueryKeys.adminTransactions() }),
+        queryClient.invalidateQueries({ queryKey: appQueryKeys.adminTransaction(transaction.id) }),
+        queryClient.invalidateQueries({ queryKey: appQueryKeys.transactions }),
+        queryClient.invalidateQueries({ queryKey: appQueryKeys.dashboardSummary }),
+      ]);
+    },
   });
 }
