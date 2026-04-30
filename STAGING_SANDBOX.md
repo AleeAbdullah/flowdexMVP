@@ -61,7 +61,7 @@ cd fe
 set -a
 source .env.staging
 set +a
-npm run dev -- --port 3103
+npm run dev
 ```
 
 

@@ -414,7 +414,7 @@ export function LandingPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* <div className="flex items-center gap-4">
             <Button
               type="button"
               variant="glass"
@@ -444,7 +444,7 @@ export function LandingPage() {
             >
               <ArrowRight className="h-4 w-4" />
             </Button>
-          </div>
+          </div> */}
           {/* <div className="h-1.5 max-w-xs overflow-hidden rounded-full bg-[var(--track)]">
             <div
               className="h-full rounded-full bg-[var(--cyan)] transition-[width] duration-100"

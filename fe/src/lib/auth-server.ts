@@ -99,6 +99,9 @@ export async function getAuthenticatedAppContext() {
     if (error instanceof BackendApiError && error.status === 401) {
       redirect('/login');
     }
+    if (isBackendNetworkError(error)) {
+      redirectToPublicWithToast(session);
+    }
 
     throw error;
   }
@@ -267,4 +270,37 @@ function extractErrorMessage(payload: unknown) {
   }
 
   return null;
+}
+
+function isBackendNetworkError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  if (error instanceof BackendApiError) {
+    return false;
+  }
+
+  if (error.message.toLowerCase().includes('fetch failed')) {
+    return true;
+  }
+
+  const cause = (error as Error & { cause?: unknown }).cause;
+  if (cause && typeof cause === 'object') {
+    const code = 'code' in cause ? String((cause as { code?: unknown }).code) : '';
+    return code === 'ECONNREFUSED' || code === 'ENOTFOUND' || code === 'ETIMEDOUT';
+  }
+
+  return false;
+}
+
+function redirectToPublicWithToast(session: BetterAuthSession): never {
+  const params = new URLSearchParams({
+    auth_toast: 'backend_unreachable',
+    user_email: session.user.email ?? '',
+    user_name: session.user.name ?? '',
+    user_role: resolveUserRole(session.user.email),
+  });
+
+  redirect(`/?${params.toString()}`);
 }

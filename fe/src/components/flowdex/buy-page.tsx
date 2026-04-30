@@ -35,6 +35,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { authClient } from '@/lib/auth-client';
 import {
   formatCompact,
   formatCurrency,
@@ -130,14 +131,17 @@ const BUY_TABS = [
   { value: 'referrals', label: 'Referrals' },
 ] as const;
 
-export function BuyPage(props: { isAuthenticated: boolean }) {
+export function BuyPage() {
   const router = useRouter();
+  const { data: session } = authClient.useSession();
   const [activeTab, setActiveTab] = useState<string>('buy');
   const [walletConnected, setWalletConnected] = useState(false);
   const [orderMode, setOrderMode] = useState<string>('buy');
   const [paymentRail, setPaymentRail] = useState<string>('crypto');
   const [selectedAssetCode, setSelectedAssetCode] = useState<string>(PAYMENT_ASSETS[0].code);
   const [customAmount, setCustomAmount] = useState(`${QUICK_BUY_AMOUNTS[0]}`);
+  const isAuthenticated = Boolean(session);
+  const sessionUserDisplay = session?.user.name || session?.user.email || 'Unknown';
 
   const selectedAsset = PAYMENT_ASSETS.find(asset => asset.code === selectedAssetCode) ?? PAYMENT_ASSETS[0];
   const amountUsd = parseDecimal(customAmount);
@@ -149,13 +153,13 @@ export function BuyPage(props: { isAuthenticated: boolean }) {
   const activeQuickAmount = QUICK_BUY_AMOUNTS.find(value => value === amountUsd)?.toString() ?? '';
 
   const handleConnectWallet = () => {
-    if (!props.isAuthenticated) {
+    if (!isAuthenticated) {
       router.push('/login');
       return;
     }
 
     setWalletConnected(true);
-    toast.success('Wallet connected');
+    toast.success(`Wallet connected for ${sessionUserDisplay}`);
   };
 
   const handleDisconnectWallet = () => {
@@ -163,7 +167,7 @@ export function BuyPage(props: { isAuthenticated: boolean }) {
   };
 
   const handlePrimaryAction = () => {
-    if (!props.isAuthenticated) {
+    if (!isAuthenticated) {
       handleConnectWallet();
       return;
     }

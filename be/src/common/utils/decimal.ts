@@ -8,15 +8,25 @@ export function parseFixed(value: string | number, scale = DECIMAL_SCALE): bigin
     return 0n;
   }
 
-  const negative = normalized.startsWith('-');
-  const unsigned = negative ? normalized.slice(1) : normalized;
-  const [wholePartRaw, fractionalPartRaw = ''] = unsigned.split('.');
-  const wholePart = wholePartRaw || '0';
-  const fractionalPart = fractionalPartRaw.padEnd(scale, '0').slice(0, scale);
-  const combined = `${wholePart}${fractionalPart}`.replace(/^0+(?=\d)/, '');
-  const result = BigInt(combined || '0');
+  const match = normalized.match(/^([+-]?)(?:(\d+)(?:\.(\d*))?|\.(\d+))(?:[eE]([+-]?\d+))?$/);
+  if (!match) {
+    throw new SyntaxError(`Invalid decimal value: ${normalized}`);
+  }
 
-  return negative ? -result : result;
+  const [, sign, wholeDigits = '', fractionalDigitsFromWhole = '', fractionalDigitsOnly = '', exponentRaw] = match;
+  const fractionalDigits = fractionalDigitsOnly || fractionalDigitsFromWhole;
+  const digits = `${wholeDigits}${fractionalDigits}`.replace(/^0+(?=\d)/, '') || '0';
+  const exponent = exponentRaw ? Number.parseInt(exponentRaw, 10) : 0;
+  const shift = exponent - fractionalDigits.length + scale;
+
+  let result = BigInt(digits);
+  if (shift >= 0) {
+    result *= 10n ** BigInt(shift);
+  } else {
+    result /= 10n ** BigInt(-shift);
+  }
+
+  return sign === '-' ? -result : result;
 }
 
 export function formatFixed(value: bigint, scale = DECIMAL_SCALE): string {
