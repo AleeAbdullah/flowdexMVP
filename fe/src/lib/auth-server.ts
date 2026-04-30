@@ -4,9 +4,12 @@ import type { NextRequest } from 'next/server';
 import { SignJWT } from 'jose';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { API_ROUTES } from '@/api-routes';
+import { APP_USER_ROLES, type AppUserRole, type IAuthMe } from '@/dal/app/auth/auth.types';
 import { auth } from '@/lib/auth';
+import { AUTH_PAGE_ERROR_CODES } from '@/lib/auth-page';
 import { Env } from '@/libs/Env';
-import type { AuthMe } from '@/dal/app/types';
+import { ROUTES, AUTH_TOASTS, getPublicAuthToastRoute } from '@/routes';
 
 export type BetterAuthSession = NonNullable<
   Awaited<ReturnType<typeof auth.api.getSession>>
@@ -22,13 +25,15 @@ export class BackendApiError extends Error {
   }
 }
 
-export function resolveUserRole(email: string): 'USER' | 'ADMIN' {
+export function resolveUserRole(email: string): AppUserRole {
   const adminEmails = (Env.ADMIN_EMAILS ?? '')
     .split(',')
     .map(value => value.trim().toLowerCase())
     .filter(Boolean);
 
-  return adminEmails.includes(email.trim().toLowerCase()) ? 'ADMIN' : 'USER';
+  return adminEmails.includes(email.trim().toLowerCase())
+    ? APP_USER_ROLES.ADMIN
+    : APP_USER_ROLES.USER;
 }
 
 export async function getOptionalSession() {
@@ -47,7 +52,7 @@ export async function requireSession() {
   const session = await getOptionalSession();
 
   if (!session) {
-    redirect('/login');
+    redirect(ROUTES.AUTH.LOGIN);
   }
 
   return session;
@@ -89,7 +94,7 @@ export async function getAuthenticatedAppContext() {
   const session = await requireSession();
 
   try {
-    const profile = await fetchBackendJsonWithRetry<AuthMe>('/auth/me', { session });
+    const profile = await fetchBackendJsonWithRetry<IAuthMe>(API_ROUTES.backend.auth.me, { session });
 
     return {
       session,
@@ -97,7 +102,18 @@ export async function getAuthenticatedAppContext() {
     };
   } catch (error) {
     if (error instanceof BackendApiError && error.status === 401) {
-      redirect('/login');
+      redirect(ROUTES.AUTH.LOGIN);
+    }
+    if (error instanceof BackendApiError && error.status === 403) {
+      const errorCode = extractErrorCode(error.payload);
+
+      if (errorCode === 'USER_ACCOUNT_INACTIVE') {
+        redirect(`${ROUTES.AUTH.LOGIN}?auth_error=${AUTH_PAGE_ERROR_CODES.ACCOUNT_INACTIVE}`);
+      }
+
+      if (errorCode === 'USER_PROFILE_NOT_FOUND') {
+        redirect(`${ROUTES.AUTH.LOGIN}?auth_error=${AUTH_PAGE_ERROR_CODES.ACCOUNT_SETUP_FAILED}`);
+      }
     }
     if (isBackendNetworkError(error)) {
       redirectToPublicWithToast(session);
@@ -110,8 +126,8 @@ export async function getAuthenticatedAppContext() {
 export async function requireAdminAppContext() {
   const context = await getAuthenticatedAppContext();
 
-  if (context.profile.role !== 'ADMIN') {
-    redirect('/app');
+  if (context.profile.role !== APP_USER_ROLES.ADMIN) {
+    redirect(ROUTES.DASHBOARD.HOME);
   }
 
   return context;
@@ -151,7 +167,7 @@ async function fetchBackendJsonWithRetry<T>(
     const refreshedSession = await getOptionalSession();
 
     if (!refreshedSession) {
-      redirect('/login');
+      redirect(ROUTES.AUTH.LOGIN);
     }
 
     return fetchBackendJsonWithRetry<T>(path, {
@@ -162,7 +178,7 @@ async function fetchBackendJsonWithRetry<T>(
 
   if (!response.ok) {
     if (response.status === 401) {
-      redirect('/login');
+      redirect(ROUTES.AUTH.LOGIN);
     }
 
     const message = extractErrorMessage(payload) ?? `Backend request failed with status ${response.status}`;
@@ -272,6 +288,18 @@ function extractErrorMessage(payload: unknown) {
   return null;
 }
 
+function extractErrorCode(payload: unknown) {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  if ('code' in payload && typeof payload.code === 'string') {
+    return payload.code;
+  }
+
+  return null;
+}
+
 function isBackendNetworkError(error: unknown): boolean {
   if (!(error instanceof Error)) {
     return false;
@@ -295,12 +323,10 @@ function isBackendNetworkError(error: unknown): boolean {
 }
 
 function redirectToPublicWithToast(session: BetterAuthSession): never {
-  const params = new URLSearchParams({
-    auth_toast: 'backend_unreachable',
-    user_email: session.user.email ?? '',
-    user_name: session.user.name ?? '',
-    user_role: resolveUserRole(session.user.email),
-  });
-
-  redirect(`/?${params.toString()}`);
+  redirect(getPublicAuthToastRoute({
+    toast: AUTH_TOASTS.BACKEND_UNREACHABLE,
+    userEmail: session.user.email,
+    userName: session.user.name,
+    userRole: resolveUserRole(session.user.email),
+  }));
 }

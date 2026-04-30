@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { AppShell } from '@/components/flowdex/app-shell';
 import { getAuthenticatedAppContext } from '@/lib/auth-server';
+import { AppShell } from './_components/app-shell';
 
 export default async function AppLayout(props: {
   children: ReactNode;

@@ -31,12 +31,12 @@ export function BlogsPage() {
       </MarketingContentShell>
 
       <MarketingCtaBand
-        title="Read the public progress log, then move into the product-facing routes."
-        body="This route gives the site a real content surface without adding a CMS yet. The buy route remains the main public conversion point."
-        primaryHref="/buy"
-        primaryLabel="Open Buy Page"
-        secondaryHref="/whitepaper"
-        secondaryLabel="Read Whitepaper"
+        content={{
+          title: 'Read the public progress log, then move into the product-facing routes.',
+          body: 'This route gives the site a real content surface without adding a CMS yet. The buy route remains the main public conversion point.',
+          primary: { href: '/buy', label: 'Open Buy Page' },
+          secondary: { href: '/whitepaper', label: 'Read Whitepaper' },
+        }}
       />
     </div>
   );

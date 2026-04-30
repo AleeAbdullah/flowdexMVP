@@ -1,8 +1,9 @@
 import Link from 'next/link';
-import { ArrowRight, Coins, ShieldCheck, Vote } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowRight, Coins, ShieldCheck, Vote } from '@/icons';
+import { ROUTES } from '@/routes';
 import {
   MarketingBody,
   MarketingContentShell,
@@ -47,13 +48,13 @@ export function TokenomicsPage() {
         actions={(
           <>
             <Button variant="brand" size="lg" asChild>
-              <Link href="/buy">
+              <Link href={ROUTES.MARKETING.BUY}>
                 Buy Now
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
             <Button variant="glass" size="lg" asChild>
-              <Link href="/whitepaper">Whitepaper</Link>
+              <Link href={ROUTES.MARKETING.WHITEPAPER}>Whitepaper</Link>
             </Button>
           </>
         )}
@@ -125,12 +126,12 @@ export function TokenomicsPage() {
       </MarketingContentShell>
 
       <MarketingCtaBand
-        title="Tokenomics is one layer of the story. The product path is the next one."
-        body="If you want the delivery sequence behind the token model, move into the roadmap. If you want the long-form framing, continue into the whitepaper."
-        primaryHref="/roadmap"
-        primaryLabel="View Roadmap"
-        secondaryHref="/whitepaper"
-        secondaryLabel="Read Whitepaper"
+        content={{
+          title: 'Tokenomics is one layer of the story. The product path is the next one.',
+          body: 'If you want the delivery sequence behind the token model, move into the roadmap. If you want the long-form framing, continue into the whitepaper.',
+          primary: { href: ROUTES.MARKETING.ROADMAP, label: 'View Roadmap' },
+          secondary: { href: ROUTES.MARKETING.WHITEPAPER, label: 'Read Whitepaper' },
+        }}
       />
     </div>
   );

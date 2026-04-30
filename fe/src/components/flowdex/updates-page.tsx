@@ -51,12 +51,12 @@ export function UpdatesPage() {
       </MarketingContentShell>
 
       <MarketingCtaBand
-        title="Follow the public narrative, then move into the actual presale flow."
-        body="The updates page gives the marketing layer a living pulse without needing a publishing system yet. The buy route remains the main public conversion path."
-        primaryHref="/buy"
-        primaryLabel="Open Buy Page"
-        secondaryHref="/whitepaper"
-        secondaryLabel="Read Whitepaper"
+        content={{
+          title: 'Follow the public narrative, then move into the actual presale flow.',
+          body: 'The updates page gives the marketing layer a living pulse without needing a publishing system yet. The buy route remains the main public conversion path.',
+          primary: { href: '/buy', label: 'Open Buy Page' },
+          secondary: { href: '/whitepaper', label: 'Read Whitepaper' },
+        }}
       />
     </div>
   );

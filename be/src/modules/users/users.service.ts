@@ -45,7 +45,10 @@ export class UsersService {
     const profile = await this.syncProfile(auth);
 
     if (profile.status !== UserStatus.ACTIVE) {
-      throw new ForbiddenException('User account is not active');
+      throw new ForbiddenException({
+        code: 'USER_ACCOUNT_INACTIVE',
+        message: 'User account is not active',
+      });
     }
 
     return profile;
@@ -55,11 +58,17 @@ export class UsersService {
     const profile = await this.getByUserId(userId);
 
     if (!profile) {
-      throw new ForbiddenException('User profile not found');
+      throw new ForbiddenException({
+        code: 'USER_PROFILE_NOT_FOUND',
+        message: 'User profile not found',
+      });
     }
 
     if (profile.status !== UserStatus.ACTIVE) {
-      throw new ForbiddenException('User account is not active');
+      throw new ForbiddenException({
+        code: 'USER_ACCOUNT_INACTIVE',
+        message: 'User account is not active',
+      });
     }
 
     return profile;

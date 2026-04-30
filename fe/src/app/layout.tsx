@@ -1,12 +1,31 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { NuqsProvider } from '@/components/providers/nuqs-adapter';
+import { DM_Sans, Instrument_Sans, JetBrains_Mono } from 'next/font/google';
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
+import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { AlchemyProvider } from '@/components/providers/alchemy-provider';
-import { ThemeProvider } from '@/components/providers/theme-provider';
-import { Toaster } from '@/components/providers/toaster';
+import { Toaster as SonnerToaster } from '@/components/ui/sonner';
 import { AppConfig } from '@/utils/app-config';
 import '@/styles/global.css';
+
+const bodyFont = DM_Sans({
+  subsets: ['latin'],
+  variable: '--font-dm-sans',
+  display: 'swap',
+});
+
+const headingFont = Instrument_Sans({
+  subsets: ['latin'],
+  variable: '--font-instrument',
+  display: 'swap',
+});
+
+const dataFont = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   icons: [
@@ -39,9 +58,14 @@ export default function RootLayout(props: {
   children: ReactNode;
 }) {
   return (
-    <html lang={AppConfig.language} data-theme="dark" suppressHydrationWarning>
+    <html
+      lang={AppConfig.language}
+      data-theme="dark"
+      suppressHydrationWarning
+      className={`${bodyFont.variable} ${headingFont.variable} ${dataFont.variable}`}
+    >
       <body>
-        <ThemeProvider
+        <NextThemesProvider
           attribute="data-theme"
           themes={['light', 'dark']}
           defaultTheme="dark"
@@ -50,13 +74,13 @@ export default function RootLayout(props: {
         >
           <QueryProvider>
             <AlchemyProvider>
-              <NuqsProvider>
+              <NuqsAdapter>
                 {props.children}
-                <Toaster />
-              </NuqsProvider>
+                <SonnerToaster position="top-right" richColors />
+              </NuqsAdapter>
             </AlchemyProvider>
           </QueryProvider>
-        </ThemeProvider>
+        </NextThemesProvider>
       </body>
     </html>
   );

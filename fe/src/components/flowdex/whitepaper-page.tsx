@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ArrowRight } from '@/icons';
+import { ROUTES } from '@/routes';
 import {
   MarketingBody,
   MarketingBulletList,
@@ -126,13 +127,13 @@ export function WhitepaperPage() {
         actions={(
           <>
             <Button variant="brand" size="lg" asChild>
-              <Link href="/buy">
+              <Link href={ROUTES.MARKETING.BUY}>
                 Go to Presale
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
             <Button variant="glass" size="lg" asChild>
-              <a href="/assets/whitepaper/FlowDex_Whitepaper.docx" download>
+              <a href={ROUTES.ASSETS.WHITEPAPER_DOC} download>
                 Download Full Whitepaper
               </a>
             </Button>
@@ -348,12 +349,12 @@ export function WhitepaperPage() {
       </MarketingContentShell>
 
       <MarketingCtaBand
-        title="Read the thesis, then move to the live public presale surface."
-        body="The whitepaper gives the full strategic narrative. The buy page is where that narrative already starts connecting to live backend-fed pricing and tier data."
-        primaryHref="/buy"
-        primaryLabel="Go to Buy"
-        secondaryHref="/about"
-        secondaryLabel="About FlowDex"
+        content={{
+          title: 'Read the thesis, then move to the live public presale surface.',
+          body: 'The whitepaper gives the full strategic narrative. The buy page is where that narrative already starts connecting to live backend-fed pricing and tier data.',
+          primary: { href: '/buy', label: 'Go to Buy' },
+          secondary: { href: '/about', label: 'About FlowDex' },
+        }}
       />
     </div>
   );

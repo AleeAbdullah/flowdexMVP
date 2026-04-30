@@ -1,33 +1,54 @@
 'use client';
 
 import { useEffect } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { parseAsString, useQueryStates } from 'nuqs';
 import { toast } from 'sonner';
+import { AUTH_TOASTS } from '@/routes';
 
 export function PublicAuthToast() {
-  const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const [params, setParams] = useQueryStates({
+    auth_toast: parseAsString,
+    user_name: parseAsString,
+    user_email: parseAsString,
+    user_role: parseAsString,
+  });
+  const toastType = params.auth_toast;
+  const userName = params.user_name;
+  const userEmail = params.user_email;
+  const userRole = params.user_role;
+  const userLabel = userName || userEmail || 'unknown';
+  const roleSuffix = userRole ? ` (${userRole})` : '';
+  const description = `Signed-in user: ${userLabel}${roleSuffix}. Redirected to public page.`;
 
   useEffect(() => {
-    const toastType = searchParams.get('auth_toast');
-    if (toastType !== 'backend_unreachable') {
+    if (toastType !== AUTH_TOASTS.BACKEND_UNREACHABLE) {
       return;
     }
 
-    const userName = searchParams.get('user_name');
-    const userEmail = searchParams.get('user_email');
-    const userRole = searchParams.get('user_role');
-    const userLabel = userName || userEmail || 'unknown';
-    const roleSuffix = userRole ? ` (${userRole})` : '';
-
     toast.error('App backend is unavailable', {
-      description: `Signed-in user: ${userLabel}${roleSuffix}. Redirected to public page.`,
+      description,
       id: 'auth-backend-unreachable',
     });
 
+    void setParams({
+      auth_toast: null,
+      user_name: null,
+      user_email: null,
+      user_role: null,
+    });
     router.replace(pathname, { scroll: false });
-  }, [pathname, router, searchParams]);
+  }, [description, pathname, router, setParams, toastType]);
 
-  return null;
+  if (toastType !== AUTH_TOASTS.BACKEND_UNREACHABLE) {
+    return null;
+  }
+
+  return (
+    <div className="sr-only" aria-live="polite">
+      App backend is unavailable. {description}
+    </div>
+  );
 }

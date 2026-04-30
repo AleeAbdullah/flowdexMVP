@@ -21,8 +21,3 @@ export function getActiveMarketingNavHref(pathname: string): string | null {
 
   return null;
 }
-
-export function getMarketingNavActions(isAuthenticated: boolean): Array<'login' | 'buy'> {
-  void isAuthenticated;
-  return ['buy'];
-}

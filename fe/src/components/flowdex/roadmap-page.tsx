@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowRight } from '@/icons';
+import { ROUTES } from '@/routes';
 import {
   MarketingBody,
   MarketingContentShell,
@@ -27,13 +28,13 @@ export function RoadmapPage() {
         actions={(
           <>
             <Button variant="brand" size="lg" asChild>
-              <Link href="/buy">
+              <Link href={ROUTES.MARKETING.BUY}>
                 Buy Now
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
             <Button variant="glass" size="lg" asChild>
-              <Link href="/about">Read About</Link>
+              <Link href={ROUTES.MARKETING.ABOUT}>Read About</Link>
             </Button>
           </>
         )}
@@ -89,12 +90,12 @@ export function RoadmapPage() {
       </MarketingContentShell>
 
       <MarketingCtaBand
-        title="Roadmap context is useful. The whitepaper goes deeper."
-        body="If you need the wider architecture and market framing behind these phases, move to the whitepaper. If you’re ready for action, go straight to the buy flow."
-        primaryHref="/whitepaper"
-        primaryLabel="Open Whitepaper"
-        secondaryHref="/buy"
-        secondaryLabel="Go to Buy"
+        content={{
+          title: 'Roadmap context is useful. The whitepaper goes deeper.',
+          body: 'If you need the wider architecture and market framing behind these phases, move to the whitepaper. If you’re ready for action, go straight to the buy flow.',
+          primary: { href: ROUTES.MARKETING.WHITEPAPER, label: 'Open Whitepaper' },
+          secondary: { href: ROUTES.MARKETING.BUY, label: 'Go to Buy' },
+        }}
       />
     </div>
   );
