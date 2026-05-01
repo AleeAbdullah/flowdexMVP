@@ -12,7 +12,6 @@ import {
   landingFeatureTones,
   landingHeroSlides,
   landingMarketStats,
-  landingPresaleFacts,
   landingRoadmapHighlights,
   landingTokenDistribution,
   landingTrustSignals,
@@ -42,7 +41,7 @@ const marketPillars = [
 export function LandingPage() {
   return (
     <div className="pb-12">
-      <LandingHeroCarousel slides={landingHeroSlides} facts={landingPresaleFacts} />
+      <LandingHeroCarousel slides={landingHeroSlides} />
 
       <section id="market-thesis" className="section-shell section-pad scroll-mt-28">
         <SectionHeading

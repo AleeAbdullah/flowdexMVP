@@ -37,12 +37,12 @@ export async function MarketingShell({
                 {marketingShellBanner.status}
               </Badge>
               {marketingShellBanner.stats.map(stat => (
-                <span key={stat.label}>
+                <span key={stat.label} className="hidden sm:inline">
                   {stat.label}: <span className={`font-data font-bold ${stat.label === 'Current Tier' ? 'text-[var(--accent-strong)]' : 'text-[var(--text)]'}`}>{stat.value}</span>
                 </span>
               ))}
             </div>
-            <div className="inline-flex items-center gap-2 font-semibold text-[var(--accent-strong)]">
+            <div className="hidden items-center gap-2 font-semibold text-[var(--accent-strong)] md:inline-flex">
               <Send aria-hidden="true" className="h-3.5 w-3.5" />
               Telegram Coming Soon
             </div>

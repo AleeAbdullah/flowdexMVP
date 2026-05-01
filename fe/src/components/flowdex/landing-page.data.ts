@@ -1,51 +1,197 @@
+import { ROUTES } from '@/routes';
 import { marketingFaqs, marketingRoadmap } from './marketing-data';
+import { isTopLevelMarketingNavHref } from './marketing-nav.utils';
+
+export type LandingHeroVisualMode = 'globe' | 'cards' | 'scene';
+export type LandingHeroAccent = 'cyan' | 'gold' | 'slate' | 'green' | 'rose';
+
+export type LandingHeroCta = {
+  label: string;
+  href: string;
+};
+
+export type LandingHeroStat = {
+  label: string;
+  value: string;
+  note: string;
+};
+
+export type LandingHeroVisualLayout = 'stack' | 'phase' | 'signal';
+
+export type LandingHeroVisualItem = {
+  label: string;
+  value: string;
+  note?: string;
+};
+
+export type LandingHeroVisualPanel = {
+  eyebrow: string;
+  title: string;
+  body: string;
+  badge?: string;
+  layout: LandingHeroVisualLayout;
+  items: LandingHeroVisualItem[];
+};
 
 export type LandingHeroSlide = {
+  id: 'universal' | 'presale' | 'flowchain' | 'staking' | 'community';
   badge: string;
   title: string;
   emphasis: string;
   description: string;
-  primary: {
-    label: string;
-    href: string;
-  };
-  secondary: {
-    label: string;
-    href: string;
-  };
+  visualMode: LandingHeroVisualMode;
+  accent: LandingHeroAccent;
+  primary?: LandingHeroCta;
+  secondary?: LandingHeroCta;
+  stats: LandingHeroStat[];
+  visualPanel: LandingHeroVisualPanel;
 };
+
+function createNavCta(label: string, href: string): LandingHeroCta | undefined {
+  return isTopLevelMarketingNavHref(href)
+    ? { label, href }
+    : undefined;
+}
 
 export const landingHeroSlides: LandingHeroSlide[] = [
   {
+    id: 'universal',
     badge: 'Editorial Preview',
     title: 'A Universal Exchange for Crypto & Tokenized Global Markets.',
     emphasis: 'Universal Exchange',
     description: 'FlowDex is shaping a wallet-first market surface for crypto, tokenized equities, forex, commodities, and other real-world asset exposure.',
-    primary: { label: 'Join Presale', href: '/buy' },
-    secondary: { label: 'See the Thesis', href: '#market-thesis' },
+    visualMode: 'globe',
+    accent: 'cyan',
+    primary: createNavCta('Join Presale', ROUTES.MARKETING.BUY),
+    secondary: createNavCta('About FlowDex', ROUTES.MARKETING.ABOUT),
+    stats: [
+      { label: 'Target Markets', value: '500+', note: 'Crypto to tokenized real-world assets' },
+      { label: 'Execution Posture', value: 'Wallet-First', note: 'User trust starts at the wallet layer' },
+      { label: 'Chain Direction', value: '10+', note: 'Multi-chain ambition beyond launch' },
+    ],
+    visualPanel: {
+      eyebrow: 'Global Market Surface',
+      title: 'Market Reach',
+      body: 'A wallet-first front door for crypto-native users who want broader market access without falling back to custodial exchange assumptions.',
+      badge: 'Live Thesis',
+      layout: 'stack',
+      items: [
+        { label: 'Target Markets', value: '500+', note: 'Crypto plus tokenized real-world assets' },
+        { label: 'Execution Posture', value: 'Wallet-First', note: 'Trust anchored at the wallet layer' },
+        { label: 'Chain Direction', value: '10+', note: 'Multi-chain ambition beyond launch' },
+      ],
+    },
   },
   {
+    id: 'presale',
     badge: 'Launch-Stage Pricing',
     title: 'Presale Access Starts at $0.001 Before the Broader Market Rollout.',
     emphasis: '$0.001',
     description: 'The public buy route reads live presale configuration while the marketing site focuses on why the exchange thesis matters.',
-    primary: { label: 'View Presale', href: '/buy' },
-    secondary: { label: 'Review Tokenomics', href: '#tokenomics' },
+    visualMode: 'cards',
+    accent: 'gold',
+    primary: createNavCta('View Presale', ROUTES.MARKETING.BUY),
+    secondary: createNavCta('Review Tokenomics', ROUTES.MARKETING.TOKENOMICS),
+    stats: [
+      { label: 'Current Tier', value: 'Tier 1', note: 'Presale live now' },
+      { label: 'Listing Reference', value: '$0.05', note: 'Whitepaper framing' },
+      { label: 'Community Allocation', value: '75%', note: 'Community-facing ownership' },
+    ],
+    visualPanel: {
+      eyebrow: 'Product Surface',
+      title: 'Presale Ladder',
+      body: 'The live buy route owns pricing and tier reads while the hero frames the tiered entry story cleanly.',
+      badge: '8 Tiers',
+      layout: 'stack',
+      items: [
+        { label: 'Current Tier', value: 'Tier 1', note: 'Genesis access is live now' },
+        { label: 'Listing Reference', value: '$0.05', note: 'Public whitepaper framing' },
+        { label: 'Community Allocation', value: '75%', note: 'Community-facing ownership narrative' },
+      ],
+    },
   },
   {
+    id: 'flowchain',
     badge: 'Phased Infrastructure',
     title: 'Start on Ethereum. Expand Across Chains. Earn the FlowChain Ambition.',
     emphasis: 'FlowChain',
     description: 'FlowDex is positioned as a phased product: prove the market surface first, widen routing and assets second, and only then move deeper into infrastructure.',
-    primary: { label: 'Read Whitepaper', href: '/whitepaper' },
-    secondary: { label: 'Open Roadmap', href: '#roadmap' },
+    visualMode: 'scene',
+    accent: 'slate',
+    primary: createNavCta('Read Whitepaper', ROUTES.MARKETING.WHITEPAPER),
+    secondary: createNavCta('Open Roadmap', ROUTES.MARKETING.ROADMAP),
+    stats: [
+      { label: 'Phase 1', value: 'Ethereum', note: 'Launch foundation' },
+      { label: 'Phase 2', value: 'Routing Rails', note: 'Broader execution coverage' },
+      { label: 'Phase 3', value: 'FlowChain', note: 'Dedicated execution layer' },
+    ],
+    visualPanel: {
+      eyebrow: 'Routing Logic',
+      title: 'Infrastructure Arc',
+      body: 'The exchange story comes first. Infrastructure depth is earned through execution, asset coverage, and settlement visibility over time.',
+      badge: '3 Phases',
+      layout: 'phase',
+      items: [
+        { label: 'Phase 1', value: 'Ethereum', note: 'Launch foundation' },
+        { label: 'Phase 2', value: 'Routing Rails', note: 'Broader execution coverage' },
+        { label: 'Phase 3', value: 'FlowChain', note: 'Dedicated execution layer' },
+      ],
+    },
   },
-];
-
-export const landingPresaleFacts = [
-  { label: 'Current Tier', value: 'Tier 1', note: 'Presale Live' },
-  { label: 'Listing Reference', value: '$0.05', note: 'Whitepaper framing' },
-  { label: 'Community Allocation', value: '75%', note: 'Community-facing ownership' },
+  {
+    id: 'staking',
+    badge: 'Fee Participation',
+    title: 'Stake $FDN. Earn Fee Exposure. Strengthen The Utility Story.',
+    emphasis: 'Stake $FDN.',
+    description: 'Staking, governance, and routing-aligned incentives turn exchange activity into token utility instead of leaving the asset as a passive presale instrument.',
+    visualMode: 'scene',
+    accent: 'green',
+    primary: createNavCta('Open Tokenomics', ROUTES.MARKETING.TOKENOMICS),
+    stats: [
+      { label: 'Stakers', value: '40%', note: 'Illustrative fee share' },
+      { label: 'Rewards Pool', value: '12.5%', note: 'Supply reserved for staking rewards' },
+      { label: 'Insurance Fund', value: '30%', note: 'Protocol resilience allocation' },
+    ],
+    visualPanel: {
+      eyebrow: 'Token Utility',
+      title: 'Participation Layer',
+      body: 'Routing activity feeds into staking relevance, fee exposure, and governance credibility.',
+      badge: 'Utility',
+      layout: 'signal',
+      items: [
+        { label: 'Stakers', value: '40%', note: 'Illustrative fee share' },
+        { label: 'Rewards Pool', value: '12.5%', note: 'Reserved for staking rewards' },
+        { label: 'Insurance Fund', value: '30%', note: 'Protocol resilience allocation' },
+      ],
+    },
+  },
+  {
+    id: 'community',
+    badge: 'Community Priority',
+    title: 'By The Community. For The Community. No VC Gravity.',
+    emphasis: 'Community',
+    description: 'The ownership story stays legible: community-facing allocation dominates the public token narrative while venture capital dependency stays out of the core positioning.',
+    visualMode: 'scene',
+    accent: 'rose',
+    primary: createNavCta('About the Thesis', ROUTES.MARKETING.ABOUT),
+    stats: [
+      { label: 'Community Share', value: '75%', note: 'Community-facing ownership categories' },
+      { label: 'VC Allocation', value: '0%', note: 'No venture allocation in the narrative' },
+      { label: 'Treasury / DAO', value: '8%', note: 'Long-horizon protocol control' },
+    ],
+    visualPanel: {
+      eyebrow: 'Ownership Narrative',
+      title: 'No VC Gravity',
+      body: 'The ownership story stays explicit without turning the first screen into a tokenomics document.',
+      badge: 'Community',
+      layout: 'signal',
+      items: [
+        { label: 'Community Share', value: '75%', note: 'Community-facing ownership categories' },
+        { label: 'VC Allocation', value: '0%', note: 'No venture allocation in the narrative' },
+        { label: 'Treasury / DAO', value: '8%', note: 'Long-horizon protocol control' },
+      ],
+    },
+  },
 ];
 
 export const landingMarketStats = [
