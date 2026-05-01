@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { HeroDitheringCard } from '@/components/ui/hero-dithering-card';
+import { ArrowRight } from '@/icons';
 import { cn } from '@/lib/utils';
 import { GlassPanel, SectionHeading } from './primitives';
 
@@ -61,7 +61,7 @@ export function MarketingContentShell(props: {
               <Link
                 key={item.id}
                 href={`#${item.id}`}
-                className="block text-sm font-medium text-[var(--muted)] hover:text-[var(--cyan)]"
+                className="block text-sm font-medium text-[var(--muted)] hover:text-[var(--accent-strong)]"
               >
                 {item.label}
               </Link>
@@ -182,35 +182,42 @@ export function MarketingComparisonTable(props: {
 }
 
 export function MarketingCtaBand(props: {
-  title: string;
-  body: string;
-  primaryHref: string;
-  primaryLabel: string;
-  secondaryHref?: string;
-  secondaryLabel?: string;
+  content: {
+    eyebrow?: string;
+    title: string;
+    body: string;
+    primary: {
+      href: string;
+      label: string;
+    };
+    secondary?: {
+      href: string;
+      label: string;
+    };
+  };
 }) {
   return (
     <GlassPanel className="section-shell mt-8 p-6 md:p-8">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-3xl">
-          <div className="text-[10px] font-bold tracking-[0.28em] text-[var(--cyan)] uppercase">Next Step</div>
+          <div className="text-[10px] font-bold tracking-[0.28em] text-[var(--accent-strong)] uppercase">{props.content.eyebrow ?? 'Next Step'}</div>
           <div className="mt-3 text-2xl font-black tracking-tight text-[var(--text)] md:text-4xl">
-            {props.title}
+            {props.content.title}
           </div>
           <p className="mt-4 text-sm leading-8 text-[var(--muted)] md:text-base">
-            {props.body}
+            {props.content.body}
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button variant="brand" size="lg" asChild>
-            <Link href={props.primaryHref}>
-              {props.primaryLabel}
+            <Link href={props.content.primary.href}>
+              {props.content.primary.label}
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
-          {props.secondaryHref && props.secondaryLabel ? (
+          {props.content.secondary ? (
             <Button variant="glass" size="lg" asChild>
-              <Link href={props.secondaryHref}>{props.secondaryLabel}</Link>
+              <Link href={props.content.secondary.href}>{props.content.secondary.label}</Link>
             </Button>
           ) : null}
         </div>

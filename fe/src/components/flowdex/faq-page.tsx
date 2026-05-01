@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
+import { ArrowRight } from '@/icons';
+import { ROUTES } from '@/routes';
 import {
   MarketingContentShell,
   MarketingCtaBand,
@@ -26,13 +27,13 @@ export function FaqPage() {
         actions={(
           <>
             <Button variant="brand" size="lg" asChild>
-              <Link href="/buy">
+              <Link href={ROUTES.MARKETING.BUY}>
                 Buy Now
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
             <Button variant="glass" size="lg" asChild>
-              <Link href="/about">About FlowDex</Link>
+              <Link href={ROUTES.MARKETING.ABOUT}>About FlowDex</Link>
             </Button>
           </>
         )}
@@ -55,13 +56,14 @@ export function FaqPage() {
         </MarketingSection>
       </MarketingContentShell>
 
+      {/* TODO(flowdex): Revisit MarketingCtaBand API once the shared marketing content refactor is scheduled. */}
       <MarketingCtaBand
-        title="If the questions are resolved, the next step is either research or participation."
-        body="Move into the whitepaper for the long-form version, or go to the public buy page if you already understand the product and presale frame."
-        primaryHref="/whitepaper"
-        primaryLabel="Read Whitepaper"
-        secondaryHref="/buy"
-        secondaryLabel="Go to Buy"
+        content={{
+          title: 'If the questions are resolved, the next step is either research or participation.',
+          body: 'Move into the whitepaper for the long-form version, or go to the public buy page if you already understand the product and presale frame.',
+          primary: { href: ROUTES.MARKETING.WHITEPAPER, label: 'Read Whitepaper' },
+          secondary: { href: ROUTES.MARKETING.BUY, label: 'Go to Buy' },
+        }}
       />
     </div>
   );

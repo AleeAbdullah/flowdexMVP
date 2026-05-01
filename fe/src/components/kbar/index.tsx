@@ -7,11 +7,11 @@ import {
   KBarSearch,
   useKBar
 } from 'kbar';
-import { X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
+import { X } from '@/icons';
 
-import { navItems } from '@/constants/data';
+import { appNavItems as navItems } from '@/app/app/_components/app-nav';
 
 import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';

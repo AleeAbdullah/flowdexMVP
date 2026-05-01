@@ -1,7 +1,59 @@
+import type { MarketingPrimaryAction } from './marketing-nav-client';
+
+export const marketingAppAction: MarketingPrimaryAction = {
+  href: '/app',
+  label: 'Open App',
+};
+
+export const marketingShellBanner = {
+  status: 'Presale Live',
+  stats: [
+    { label: '$FDN Price', value: '$0.001' },
+    { label: 'Listing Reference', value: '$0.05' },
+    { label: 'Community Allocation', value: '75%' },
+    { label: 'Current Tier', value: '1 of 8' },
+  ],
+};
+
+export const marketingShellFooter = {
+  brandBody: 'FlowDex is building a wallet-first market surface for crypto, tokenized equities, forex, commodities, and other tokenized real-world assets.',
+  columns: [
+    {
+      title: 'Research',
+      items: [
+        { label: 'Whitepaper', href: '/whitepaper' },
+        { label: 'Tokenomics', href: '/tokenomics' },
+        { label: 'Roadmap', href: '/roadmap' },
+        { label: 'FAQ', href: '/faq' },
+      ],
+    },
+    {
+      title: 'Community',
+      items: [
+        { label: 'Telegram', href: '#', note: 'Coming soon. Replace in `marketing-data.ts`.' },
+        { label: 'X', href: '#', note: 'Coming soon. Replace in `marketing-data.ts`.' },
+        { label: 'Discord', href: '#', note: 'Coming soon. Replace in `marketing-data.ts`.' },
+      ],
+    },
+    {
+      title: 'Legal',
+      items: [
+        { label: 'Terms', href: '/terms' },
+        { label: 'Privacy', href: '/privacy' },
+        { label: 'Legal Notice', href: '/legal' },
+      ],
+    },
+  ],
+  noticeTitle: 'Presale Notice',
+  noticeBody: 'This website is informational and promotional. Participation in any presale involves risk and should not be treated as legal, tax, or financial advice.',
+  legalLine: '© 2026 FlowDex Network. All rights reserved.',
+  utilityLine: '$FDN is presented as a utility token within the FlowDex ecosystem.',
+};
+
 export const marketingSocialCards = [
-  { label: 'Telegram', href: 'https://t.me', note: 'Launch room, market context, and presale alerts.' },
-  { label: 'X', href: 'https://x.com', note: 'Announcements, ecosystem notes, and public progress.' },
-  { label: 'Discord', href: 'https://discord.com', note: 'Builders, contributors, and operator discussions.' },
+  { label: 'Telegram', href: '#', note: 'Coming soon. Replace in `marketing-data.ts` when the destination is ready.' },
+  { label: 'X', href: '#', note: 'Coming soon. Replace in `marketing-data.ts` when the destination is ready.' },
+  { label: 'Discord', href: '#', note: 'Coming soon. Replace in `marketing-data.ts` when the destination is ready.' },
 ];
 
 export const marketingFeatureCards = [
@@ -60,7 +112,7 @@ export const marketingFaqs = [
   },
   {
     question: 'Is the current buy flow already live?',
-    answer: 'Yes. The public buy page reads pricing, tiers, and configuration from the backend, while the protected app flow supports wallet linking, simulation checks, and transaction tracking.',
+    answer: 'Yes. The public buy route reads pricing, tiers, and supported assets from backend market endpoints, while authenticated execution continues in the protected app flow.',
   },
 ];
 

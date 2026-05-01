@@ -1,274 +1,332 @@
+# FlowDex Frontend Standards
 
-## Project Structure
+This document is the canonical frontend standard for `fe/`.
 
-```
-src/
-├── app/                    # Next.js App Router pages
-│   ├── [locale]/          # Internationalized routes
-│   │   ├── (marketing)/   # Route groups
-│   │   │   ├── _components/  # Page-specific components
-│   │   │   ├── layout.tsx
-│   │   │   └── page.tsx
-│   │   └── api/           # API routes
-│   └── ...
-├── components/             # Reusable components
-│   ├── ui/                # shadcn/ui components (Button, Input, etc.)
-│   ├── icons/             # Icon components
-│   ├── animations/        # Animation components
-│   └── providers/         # Context providers
-├── features/              # Feature-based modules
-│   ├── product/
-│   │   ├── components/    # Product-specific components
-│   │   ├── hooks/        # Product-specific hooks
-│   │   └── services/      # Product services
-│   ├── cart/
-│   ├── checkout/
-│   └── ...
-├── hooks/                 # Shared reusable hooks
-├── lib/                   # Library configurations and utilities
-│   ├── utils.ts           # Utility functions (cn, etc.)
-│   ├── query-client.ts    # React Query configuration
-│   └── ...
-├── services/              # API service layer
-│   ├── product/
-│   │   ├── product.service.ts
-│   │   ├── product.types.ts
-│   │   └── product.hooks.ts
-│   ├── order/
-│   ├── user/
-│   └── ...
-├── stores/                # Zustand stores
-├── types/                 # Global types and interfaces
-│   ├── product.types.ts
-│   ├── order.types.ts
-│   ├── user.types.ts
-│   ├── auth.types.ts
-│   ├── cart.types.ts
-│   └── checkout.types.ts
-├── utils/                 # Utility functions
-└── validations/           # Zod validation schemas
+It replaces the old generic layout guidance and matches the real FlowDex frontend:
+- Next.js App Router in `src/app`
+- shared product UI in `src/components/flowdex`
+- shared primitives in `src/components/ui`
+- concern-based DALs in `src/dal/market` and `src/dal/app`
+- canonical frontend routes in `src/routes.ts`
+- canonical API routes in `src/api-routes.ts`
+- canonical app-level icons in `src/icons.ts`
+
+## What Is Already Correct
+
+These existing patterns are good and should be preserved:
+
+1. Thin `page.tsx` wrappers are acceptable when they only handle route entry concerns.
+2. Public and authenticated data access are correctly split between `src/dal/market` and `src/dal/app`.
+3. `nuqs` is already installed and wired at the app root and is the required URL state solution for client-owned query state.
+4. Backend DTOs already live mostly in DAL types and must remain the source of truth.
+
+## Canonical Architecture
+
+### 1. Route Ownership
+
+`src/app/**` owns route-specific logic.
+
+For larger routes, the route segment is the boundary. Use this structure:
+
+```text
+src/app/<segment>/
+├── page.tsx
+├── hooks/
+├── utils/
+├── constants.ts | constants/
+├── types/            # only route-local UI types
+└── _components/      # only route-local subcomponents
 ```
 
-All types, interfaces, and enums should be defined in the `src/types/` folder, organized by domain:
+Use thin pages when the route only needs:
+- params or search params parsing
+- auth gating
+- initial server fetches
+- metadata wiring
+- composition of existing route-owned modules
 
-```typescript
-// src/types/product.types.ts
-export interface Product {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  images: string[];
-  brand: string;
-  category: string;
-}
+Move logic out of a thin page when the route grows stateful UI, route-local helpers, route-local constants, or multiple subcomponents.
 
-export type ProductStatus = 'active' | 'inactive' | 'draft';
+### 2. Shared Code Boundaries
 
-export interface ProductFilters {
-  category?: string;
-  brand?: string;
-  minPrice?: number;
-  maxPrice?: number;
-}
+- `src/components/ui`: shared reusable UI primitives
+- `src/components/flowdex`: shared product UI reused by more than one route segment
+- `src/hooks`: cross-route hooks
+- `src/utils`: cross-route utilities
+- `src/constants`: cross-route constants
+- `src/types`: cross-route UI types only
+- `src/lib` and `src/libs`: framework/library integration helpers
+
+Do not place route-local helpers in root shared folders.
+
+## Routes
+
+### Frontend Routes
+
+All internal navigation must use `src/routes.ts`.
+
+Use it for:
+- `Link`
+- `router.push`
+- `router.replace`
+- `redirect`
+- `window.location.assign`
+- route builders for nested pages
+- auth redirect helpers
+
+Rules:
+- Never hardcode internal page paths in feature code.
+- Add new internal paths to `src/routes.ts` first.
+- Feature-level wrappers are allowed only if they call the root registry.
+
+### Backend and BFF Routes
+
+All backend and BFF endpoints must originate from `src/api-routes.ts`.
+
+Rules:
+- Add new endpoint paths to `src/api-routes.ts` first.
+- Server fetch helpers and DAL services must consume the root API registry directly.
+- Do not add DAL `routes.ts` files that simply alias, mirror, or re-export `src/api-routes.ts`.
+- If a DAL service needs an endpoint, import `API_ROUTES` from the source instead of wrapping it in another const.
+
+## DAL Standard
+
+DAL is the source of truth for backend communication.
+
+Do not use broad aggregate modules such as one giant `dal/app` or one giant `dal/market` surface.
+
+Split DAL by concern:
+
+```text
+src/dal/app/
+├── auth/
+├── dashboard/
+├── wallets/
+├── transactions/
+└── admin/
+
+src/dal/market/
+├── pricing/
+└── presale/
 ```
 
-### Type Utilities
+Each concern should use:
 
-Use TypeScript utility types for code reuse:
-
-```typescript
-// Create variations using utility types
-export type ProductPreview = Pick<Product, 'id' | 'name' | 'price' | 'images'>;
-export type CreateProduct = Omit<Product, 'id' | 'createdAt'>;
-export type UpdateProduct = Partial<Pick<Product, 'name' | 'price' | 'description'>>;
+```text
+<feature>.services.ts
+<feature>.types.ts
 ```
 
-### Service-Specific Types
+Rules:
+- DTOs from the backend live in DAL types.
+- React Query hooks live in the matching DAL service file. Do not create separate `*.hooks.ts` files for backend data.
+- Components must import backend query and mutation hooks from the relevant `*.services.ts` file.
+- UI variations must derive from DAL DTOs with `Pick`, `Omit`, intersections, or mapped types.
+- Do not redefine backend payload types in route folders or root `src/types`.
+- Keep public and authenticated domains separate.
+- Do not recreate old aggregate entrypoints like `dal/app/types.ts` or `dal/market/services.ts`.
+- If two concerns are meaningfully different, keep them in separate DAL folders even if they are both under `/app`.
 
-Services can have their own types file that imports from the main types or the other way around:
+### Backend Fetching
 
-```typescript
-// src/services/product/product.types.ts
-import type { Product, ProductFilters } from '@/types/product.types';
+Use the repo-safe Axios stack for DAL fetching:
+- authenticated app requests use `useAxiosAuth()` from `src/hooks/use-axiosAuth.tsx`
+- app requests target `API_ROUTES.bff.*` so the existing Next.js BFF can mint the backend internal JWT
+- public market requests use `api` or `axiosInstance` from `src/lib/axios.ts`
+- endpoint strings and route builders live only in `src/api-routes.ts`
+- mutation errors use `extractAxiosError()` from `src/lib/axios.ts`
 
-export interface ProductServiceResponse {
-  products: Product[];
-  total: number;
-  page: number;
-  limit: number;
-}
+Rules:
+- Components must not call Axios or `fetch` directly for backend data.
+- Reads must use `useQuery` or `useInfiniteQuery` inside the DAL service file.
+- Writes must use `useMutation` inside the DAL service file.
+- Query keys must be stable and include every input that changes the result.
+- Optional IDs and optional auth-dependent inputs must be gated with `enabled`.
+- Mutation success and failure toasts belong in React Query callbacks, not repeated in consuming components.
+- Invalidate only affected resource families.
+- Normalize endpoint-specific response shapes inside the DAL service before returning them to UI.
+- Use `FormData` only for multipart/file payloads, and set multipart request headers there.
+- Use `blob` or `arraybuffer` response types for downloads.
 
-export type ProductServiceParams = ProductFilters & {
-  page?: number;
-  limit?: number;
-};
+## URL State With `nuqs`
+
+`nuqs` is mandatory for client-owned URL state.
+
+Allowed:
+- App Router `searchParams` in server page entrypoints
+- metadata/server-only parsing flows
+- route builders in `src/routes.ts`
+
+Not allowed:
+- mutable client state driven by `useSearchParams`
+- ad hoc query string reads/writes in client components
+- manual query-state navigation when a `nuqs` parser should exist
+
+Rules:
+- Define feature query parsers close to the route or feature that owns them.
+- Prefer `useQueryState` or `useQueryStates`.
+- Clear query-state through `nuqs`, not by manual string replacement.
+- If a filter or tab is user-visible and shareable, it should usually live in the URL via `nuqs`.
+
+## Types and Enums
+
+### Ownership Rules
+
+- Backend DTOs: DAL `*.types.ts`
+- Cross-route UI types: `src/types`
+- Route-local UI types shared across a route module: route-local `types/`
+- Component-local prop types: inside the component file
+
+### Backend DTO Naming
+
+Backend-derived DAL data types must use the `I<TypeName>` convention.
+
+Examples:
+- `IAuthMe`
+- `IWallet`
+- `ITransactionListItem`
+- `IPricingItem`
+- `IPresaleConfig`
+
+Apply the `I` prefix to:
+- objects received from the backend
+- response wrapper shapes returned by the backend
+- nested backend-derived DTO containers
+
+Do not apply the `I` prefix to:
+- request payloads sent to the backend
+- filter/query input types
+- local UI-only types
+- enums or enum-like constants
+
+### Import Rules
+
+- Import types directly from the defining file.
+- Do not re-export types from convenience barrels.
+- Do not create empty wrapper type files that only mirror another source.
+- Backend DTOs must keep the `I<TypeName>` prefix at their DAL source of truth.
+
+### Enum-Like Constants
+
+Use enum-like constants for stable business-domain values. In this repo that includes:
+- user roles
+- wallet providers
+- wallet networks
+- wallet trust levels
+- transaction statuses
+- auth modes when shared across multiple files
+
+String unions are still acceptable for:
+- one-file UI-only variants
+- local display modes
+- values not shared across app boundaries or conditional logic
+
+## Icons
+
+All app-level icon imports must go through `src/icons.ts`.
+
+Allowed direct `lucide-react` imports:
+- shared UI infrastructure in `src/components/ui`
+- icon infrastructure files themselves
+
+Not allowed:
+- direct `lucide-react` imports inside page code, product features, route modules, or layout features
+
+## Wrapper Policy
+
+Do not keep wrappers that only rename or pass through another component/provider.
+
+Remove wrappers when they do nothing except:
+- return `{children}`
+- forward identical props without adding logic
+- wrap a single provider with no FlowDex-specific behavior
+- mirror an aggregate DAL module without owning real logic
+
+Examples of wrappers that should be removed instead of preserved:
+- pass-through provider aliases
+- dead icon gateway duplicates
+- aggregate DAL files that only proxy the real concern modules
+- page-adjacent wrappers that can be moved into the route file directly
+
+## Utilities and Constants
+
+Rules:
+- cross-route helpers go in `src/utils`
+- route-local helpers go in route-local `utils/`
+- cross-route constants go in `src/constants`
+- route-local constants go in route-local `constants.ts` or `constants/`
+- avoid generic catch-all files once a helper set grows beyond one small cohesive file
+
+Prefer domain names like:
+- `transaction-status.ts`
+- `buy-form-query.ts`
+- `wallet-network.ts`
+
+Avoid broad names like:
+- `helpers.ts`
+- `misc.ts`
+- `common.ts`
+
+## Next.js Boundaries
+
+Use server contexts for:
+- auth gating
+- protected server fetches
+- initial route composition
+- params and search params parsing
+
+Use client contexts for:
+- React Query hooks
+- interactive UI state
+- `nuqs` URL state
+- browser APIs
+
+Do not move server-only logic into client components just to simplify imports.
+
+## Review Checklist
+
+Every frontend PR should pass this checklist:
+
+1. No raw internal route strings were introduced.
+2. No new backend/BFF path literals were introduced outside `src/api-routes.ts`.
+3. No DAL route alias files or API const mirrors were introduced.
+4. No direct `lucide-react` imports were introduced in feature code.
+5. No backend DTOs were duplicated outside DAL.
+6. No type re-exports were introduced.
+7. Route-local code stayed with its owning route segment.
+8. Client-owned query state uses `nuqs`.
+9. New conditionals use enum-like domain constants instead of raw strings when values are shared.
+10. No new empty wrappers or pass-through provider aliases were introduced.
+
+## Validation Commands
+
+Run from `fe/`:
+
+```bash
+npm run check:types
+npm run lint
+npm run test
+npm run build
 ```
 
-## Service Layer Pattern
+For spot checks:
 
-### Service Structure
-
-Each service should have if needed:
-1. **Service file** (`product.service.ts`) - API calls and business logic
-2. **Types file** (`product.types.ts`) - Service-specific types
-3. **Hooks file** (`product.hooks.ts`) - React Query hooks
-
-
-### Component Location
-
-1. **Page-specific components**: Place in `_components/` folder within the page directory
-   ```
-   app/[locale]/(marketing)/products/
-   ├── _components/
-   │   ├── product-list.tsx
-   │   └── product-filters.tsx
-   ├── layout.tsx
-   └── page.tsx
-   ```
-
-2. **Feature-specific components**: Place in `features/[feature]/components/`
-   ```
-   features/product/
-   ├── components/
-   │   ├── product-card.tsx
-   │   └── product-details.tsx
-   ```
-
-3. **Reusable UI components**: Place in `components/ui/` (shadcn/ui)
-4. **Shared components**: Place in `components/`
-
-## URL State Management with nuqs
-
-Use nuqs for URL query parameters:
-
-```typescript
-'use client';
-
-import { useQueryStates } from 'nuqs';
-import { parseAsInteger, parseAsString, parseAsStringEnum } from 'nuqs';
-
-const filters = {
-  page: parseAsInteger.withDefault(1),
-  category: parseAsString,
-  sort: parseAsStringEnum(['price-asc', 'price-desc', 'name-asc']).withDefault('name-asc'),
-};
-
-export const ProductFilters = () => {
-  const [params, setParams] = useQueryStates(filters);
-
-  return (
-    <div>
-      <select value={params.sort} onChange={(e) => setParams({ sort: e.target.value })}>
-        {/* Options */}
-      </select>
-    </div>
-  );
-};
+```bash
+rg -n 'href="/|router\.push\('/ src
+rg -n "redirect\('/|window\.location\.assign\('/" src
+rg -n "from 'lucide-react'" src/components/flowdex src/components/layout src/components/kbar
+rg -n "useSearchParams|URLSearchParams\(" src
 ```
 
-### TypeScript Best Practices
+## Adoption Policy
 
-1. **Always use types** - Avoid `any`, use `unknown` if needed
-2. **Use utility types** - `Pick`, `Omit`, `Partial`, `Required`, etc.
-3. **Single source of truth** - Define types once, reuse everywhere
-4. **Type inference** - Let TypeScript infer types when possible
-5. **Explicit return types** - For functions that return complex types
+These standards are mandatory for new work.
 
-### Reusability
+Existing code does not need a repo-wide rewrite in one pass. When touching an existing feature:
+- migrate its internal route literals to `src/routes.ts`
+- migrate its endpoint literals to `src/api-routes.ts`
+- migrate feature icon imports to `src/icons.ts`
+- replace shared domain raw strings with enum-like constants
+- move route-local helpers toward the route segment if the feature is growing
 
-- **Extract reusable logic** into custom hooks
-- **Create utility functions** for common operations
-- **Share components** that are used in multiple places
-- **Avoid duplication** - DRY (Don't Repeat Yourself) principle
-
-### File Organization
-
-- **One component per file** (except for related small components)
-- **Co-locate related files** (component + test + story)
-- **Group by feature** when possible
-- **Keep imports organized** (external, internal, relative)
-
-## Best Practices
-
-### 1. Component Composition
-
-Break complex components into smaller, composable pieces:
-
-```typescript
-// Instead of one large component
-export const ProductPage = () => {
-  // 400+ lines of code
-};
-
-// Break into smaller components
-export const ProductPage = () => {
-  return (
-    <div>
-      <ProductHeader />
-      <ProductFilters />
-      <ProductList />
-      <ProductPagination />
-    </div>
-  );
-};
-```
-
-### 2. Custom Hooks for Reusability
-
-Extract reusable logic into custom hooks:
-
-```typescript
-// src/hooks/use-product-filters.ts
-export const useProductFilters = () => {
-  const [filters, setFilters] = useQueryStates(productFilters);
-  const { data } = useProducts(filters);
-
-  return {
-    filters,
-    setFilters,
-    products: data?.products,
-    isLoading: data?.isLoading,
-  };
-};
-```
-
-### 3. Error Handling
-
-Always handle errors gracefully:
-
-```typescript
-const { data, error, isLoading } = useProducts();
-
-if (error) {
-  return <ErrorBoundary error={error} />;
-}
-```
-
-### 4. Loading States
-
-Always show loading states:
-
-```typescript
-if (isLoading) {
-  return <SkeletonLoader />;
-}
-```
-
-### 5. Type Safety
-
-Use TypeScript strictly:
-
-```typescript
-// ✅ Good - Type-safe
-const product: Product = await getProduct(id);
-
-// ❌ Bad - No type safety
-const product = await getProduct(id);
-```
-
-
----
-
-**Remember**: Consistency is key. Follow these patterns throughout the project to maintain code quality and developer experience.
-
+Incremental standardization is required. “We will fix it later” is not acceptable for code already being modified.

@@ -1,8 +1,9 @@
 import Link from 'next/link';
-import { Scale } from 'lucide-react';
+import { Scale } from '@/icons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ROUTES } from '@/routes';
 import { MarketingContentShell, MarketingCtaBand, MarketingPageHero, MarketingSection } from './marketing-content';
 import { legalUpdateCards } from './marketing-data';
 
@@ -22,10 +23,10 @@ export function LegalHubPage() {
         actions={(
           <>
             <Button variant="glass" size="lg" asChild>
-              <Link href="/terms">Terms</Link>
+              <Link href={ROUTES.MARKETING.TERMS}>Terms</Link>
             </Button>
             <Button variant="brand" size="lg" asChild>
-              <Link href="/privacy">Privacy</Link>
+              <Link href={ROUTES.MARKETING.PRIVACY}>Privacy</Link>
             </Button>
           </>
         )}
@@ -42,7 +43,7 @@ export function LegalHubPage() {
               <Card key={card.href}>
                 <CardHeader>
                   <Badge variant="brand" className="w-fit gap-2">
-                    <Scale className="h-3.5 w-3.5" />
+                    <Scale aria-hidden="true" className="h-3.5 w-3.5" />
                     Legal
                   </Badge>
                   <CardTitle>{card.title}</CardTitle>
@@ -59,13 +60,14 @@ export function LegalHubPage() {
         </MarketingSection>
       </MarketingContentShell>
 
+      {/* TODO(flowdex): Revisit MarketingCtaBand API once the shared marketing content refactor is scheduled. */}
       <MarketingCtaBand
-        title="The legal frame is separate. The product routes are still the main experience."
-        body="Use this hub when you need the legal posture or privacy context. Use the public home, whitepaper, and buy routes for the product-facing experience."
-        primaryHref="/"
-        primaryLabel="Back to Home"
-        secondaryHref="/buy"
-        secondaryLabel="Open Buy"
+        content={{
+          title: 'The legal frame is separate. The product routes are still the main experience.',
+          body: 'Use this hub when you need the legal posture or privacy context. Use the public home, whitepaper, and buy routes for the product-facing experience.',
+          primary: { href: ROUTES.MARKETING.HOME, label: 'Back to Home' },
+          secondary: { href: ROUTES.MARKETING.BUY, label: 'Open Buy' },
+        }}
       />
     </div>
   );

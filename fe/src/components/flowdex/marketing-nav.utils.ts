@@ -14,15 +14,14 @@ export const MARKETING_NAV_ITEMS: MarketingNavItem[] = [
 
 const ACTIVE_NAV_HREFS = new Set(MARKETING_NAV_ITEMS.map(item => item.href));
 
+export function isTopLevelMarketingNavHref(href: string) {
+  return ACTIVE_NAV_HREFS.has(href);
+}
+
 export function getActiveMarketingNavHref(pathname: string): string | null {
   if (ACTIVE_NAV_HREFS.has(pathname)) {
     return pathname;
   }
 
   return null;
-}
-
-export function getMarketingNavActions(isAuthenticated: boolean): Array<'login' | 'buy'> {
-  void isAuthenticated;
-  return ['buy'];
 }
