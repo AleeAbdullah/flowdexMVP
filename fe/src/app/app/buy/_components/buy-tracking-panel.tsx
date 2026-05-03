@@ -12,76 +12,94 @@ export function BuyTrackingPanel() {
   const buyPage = useProtectedBuyPage();
 
   return (
-    <GlassPanel className="space-y-4 p-6">
+    <GlassPanel className="min-h-0 space-y-3 p-4 lg:overflow-y-auto">
       <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
-        Ledger Tracking
+        Purchase record
       </div>
 
-      <div className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--card-bg)] p-4 text-sm text-[var(--text)]">
+      <div className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--card-bg)] p-3 text-sm leading-6 text-[var(--text)]">
         {buyPage.simulationSummary}
       </div>
 
-      <FormField id="tracking-asset-code" label="Asset Code">
-        <Input
-          id="tracking-asset-code"
-          value={buyPage.assetCode}
-          onChange={event => buyPage.setAssetCode(event.target.value)}
-          placeholder="ETH"
-          className="h-12 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
-        />
-      </FormField>
+      <div className="grid gap-3 xl:grid-cols-2">
+        <FormField id="tracking-asset-code" label="Asset">
+          <Input
+            id="tracking-asset-code"
+            name="trackingAssetCode"
+            autoComplete="off"
+            spellCheck={false}
+            value={buyPage.assetCode}
+            onChange={event => buyPage.setAssetCode(event.target.value)}
+            placeholder="e.g. ETH"
+            className="h-11 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
+          />
+        </FormField>
 
-      <FormField id="tracking-amount" label="Amount">
-        <Input
+        <FormField
           id="tracking-amount"
-          value={buyPage.amount}
-          onChange={event => buyPage.setAmount(event.target.value)}
-          placeholder="0.01"
-          className="h-12 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
-        />
-      </FormField>
+          label="Purchase amount"
+          description="Amount to save in the purchase record."
+        >
+          <Input
+            id="tracking-amount"
+            name="trackingAmount"
+            autoComplete="off"
+            inputMode="decimal"
+            value={buyPage.amount}
+            onChange={event => buyPage.setAmount(event.target.value)}
+            placeholder="e.g. 0.01"
+            className="h-11 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
+          />
+        </FormField>
 
-      <FormField
-        id="tracking-operation-id"
-        label="Alchemy Operation ID"
-        description="Optional. Only provide this when you already have an Alchemy operation identifier."
-      >
-        <Input
+        <FormField
           id="tracking-operation-id"
-          value={buyPage.operationId}
-          onChange={event => buyPage.setOperationId(event.target.value)}
-          placeholder="op_123"
-          className="h-12 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
-        />
-      </FormField>
+          label="Reference ID"
+          description="Optional internal or external reference."
+        >
+          <Input
+            id="tracking-operation-id"
+            name="trackingOperationId"
+            autoComplete="off"
+            spellCheck={false}
+            value={buyPage.operationId}
+            onChange={event => buyPage.setOperationId(event.target.value)}
+            placeholder="e.g. op_123"
+            className="h-11 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
+          />
+        </FormField>
 
-      <FormField
-        id="tracking-tx-hash"
-        label="Transaction Hash"
-        description="Optional. MetaMask buys will fill this automatically after broadcast."
-      >
-        <Input
+        <FormField
           id="tracking-tx-hash"
-          value={buyPage.txHash}
-          onChange={event => buyPage.setTxHash(event.target.value)}
-          placeholder="0x"
-          className="h-12 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
-        />
-      </FormField>
+          label="Transaction hash"
+          description="Filled after MetaMask submits, or paste one manually."
+        >
+          <Input
+            id="tracking-tx-hash"
+            name="trackingTxHash"
+            autoComplete="off"
+            spellCheck={false}
+            value={buyPage.txHash}
+            onChange={event => buyPage.setTxHash(event.target.value)}
+            placeholder="e.g. 0x"
+            className="h-11 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
+          />
+        </FormField>
+      </div>
 
       <Button
         variant="brand"
-        className="w-full"
+        className="h-11 w-full"
         disabled={!buyPage.canTrack || buyPage.isTracking}
         onClick={() => { void buyPage.runTracking(); }}
       >
-        {buyPage.isTracking ? 'Tracking…' : 'Track transaction'}
+        {buyPage.isTracking ? 'Tracking...' : 'Track transaction'}
       </Button>
 
       {buyPage.selectedWallet?.provider === WALLET_PROVIDERS.METAMASK ? (
         <Button
           variant="glass"
-          className="w-full"
+          className="h-11 w-full"
           disabled={
             !buyPage.selectedWallet
             || !buyPage.treasuryRecipient.trim()
@@ -91,7 +109,7 @@ export function BuyTrackingPanel() {
           }
           onClick={() => { void buyPage.buyWithMetaMask(); }}
         >
-          {buyPage.isBroadcastingMetaMask ? 'Submitting…' : 'Buy with MetaMask'}
+          {buyPage.isBroadcastingMetaMask ? 'Submitting...' : 'Buy with MetaMask'}
         </Button>
       ) : null}
 

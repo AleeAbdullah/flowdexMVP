@@ -11,6 +11,8 @@ export const env = {
   alchemyApiKey: process.env.ALCHEMY_API_KEY ?? "",
   alchemyNotifyAuthToken: process.env.ALCHEMY_NOTIFY_AUTH_TOKEN ?? "",
   alchemyWebhookSigningKey: process.env.ALCHEMY_WEBHOOK_SIGNING_KEY ?? "",
+  coinGeckoApiKey: process.env.COINGECKO_API_KEY ?? "",
+  coinGeckoApiBaseUrl: process.env.COINGECKO_API_BASE_URL ?? "",
   appName: process.env.APP_NAME ?? "FlowDex",
   appDomain: process.env.APP_DOMAIN ?? "flowdex.app",
 };

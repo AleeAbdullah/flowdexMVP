@@ -23,6 +23,7 @@ export default function StakePage() {
     <div className="space-y-8">
       <GlassPanel className="grid gap-8 p-6 lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
         <SectionHeading
+          as="h1"
           eyebrow="Stake"
           title="Position staking as participation in the exchange economy, not passive parking."
           description="The staking route should show why protocol fees and market activity matter. It becomes more compelling when users can see the fee sources that span crypto, equities, forex, and commodities."

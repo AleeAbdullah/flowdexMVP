@@ -4,10 +4,9 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from 're
 import { toast } from 'sonner';
 import { useSimulateTransaction, useTrackTransaction } from '@/dal/app/transactions/transactions.services';
 import type { ITrackTransactionResult } from '@/dal/app/transactions/transactions.types';
-import type { IWallet, IWalletListResponse } from '@/dal/app/wallets/wallets.types';
-import { WALLET_PROVIDERS } from '@/dal/app/wallets/wallets.types';
+import { WALLET_NETWORKS, WALLET_PROVIDERS, type IWallet, type IWalletListResponse, type WalletNetwork } from '@/dal/app/wallets/wallets.types';
 import { useWallets } from '@/dal/app/wallets/wallets.services';
-import { getEthereumProvider, toHexValue } from '../_utils/ethereum-provider';
+import { formatMetaMaskNetworkSwitchMessage, getEthereumProvider, normalizeNativeTransactionValue } from '../_utils/ethereum-provider';
 import { DEFAULT_BUY_FORM } from './constants';
 import { resolveSimulationSummary, resolveTreasuryRecipient } from './utils';
 
@@ -102,7 +101,7 @@ export function ProtectedBuyPageProvider(props: {
     }
 
     if (!simulateMutation.data?.allowed || !simulateMutation.data.simulationId) {
-      toast.error('Simulation token missing. Run simulation again.');
+      toast.error('Transaction check is missing. Run the check again.');
       return null;
     }
 
@@ -168,7 +167,15 @@ export function ProtectedBuyPageProvider(props: {
       const chainHex = await ethereum.request({ method: 'eth_chainId' }) as string;
       const chainId = Number.parseInt(chainHex, 16);
       if (chainId !== selectedWallet.chainId) {
-        toast.error(`Switch MetaMask to ${selectedWallet.network}`);
+        toast.error(formatMetaMaskNetworkSwitchMessage(resolveWalletNetworkLabel(selectedWallet.network)));
+        return;
+      }
+
+      let normalizedValue: string;
+      try {
+        normalizedValue = normalizeNativeTransactionValue(value);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Transaction value is invalid.');
         return;
       }
 
@@ -177,7 +184,7 @@ export function ProtectedBuyPageProvider(props: {
         params: [{
           from: account,
           to: treasuryRecipient,
-          value: toHexValue(value),
+          value: normalizedValue,
           data: data || undefined,
         }],
       }) as string;
@@ -271,4 +278,16 @@ export function useProtectedBuyPage() {
   }
 
   return context;
+}
+
+function resolveWalletNetworkLabel(network: WalletNetwork): string {
+  if (network === WALLET_NETWORKS.BASE_SEPOLIA) {
+    return 'Base Sepolia';
+  }
+
+  if (network === WALLET_NETWORKS.ETH_SEPOLIA) {
+    return 'Ethereum Sepolia';
+  }
+
+  return network;
 }

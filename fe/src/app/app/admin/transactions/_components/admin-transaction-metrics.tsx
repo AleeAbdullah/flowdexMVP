@@ -1,5 +1,4 @@
-import type { ITransactionListItem } from '@/dal/app/transactions/transactions.types';
-import { TRANSACTION_STATUSES, isLiveTransactionStatus } from '@/dal/app/transactions/transactions.types';
+import { TRANSACTION_STATUSES, isLiveTransactionStatus, type ITransactionListItem } from '@/dal/app/transactions/transactions.types';
 
 export function AdminTransactionMetrics(props: {
   items: ITransactionListItem[];

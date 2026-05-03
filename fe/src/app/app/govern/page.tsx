@@ -23,6 +23,7 @@ export default function GovernPage() {
     <div className="space-y-8">
       <GlassPanel className="grid gap-8 p-6 lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
         <SectionHeading
+          as="h1"
           eyebrow="Govern"
           title="Governance should look like market-building, not checkbox voting."
           description="The governance direction is strongest when proposals feel close to the business of the exchange itself: new asset classes, new execution rails, and new market primitives."

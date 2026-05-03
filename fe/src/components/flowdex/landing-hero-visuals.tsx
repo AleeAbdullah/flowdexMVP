@@ -27,10 +27,10 @@ type VisualProps = {
   isActive: boolean;
 };
 
-const sceneMetricGlowClassName = 'absolute z-0 left-[-20%] top-[4%] h-[78%] w-[78%] rounded-full blur-3xl';
-const sceneMetricOrbClassName = 'absolute z-0 left-[-20%] top-[6%] flex h-[76%] w-[76%] items-center justify-center';
-const communityMetricGlowClassName = 'absolute z-0 left-[-28%] top-[5%] h-[80%] w-[80%] rounded-full blur-3xl';
-const communityMetricOrbClassName = 'absolute z-0 left-[-26%] top-[8%] flex h-[78%] w-[78%] items-center justify-center';
+const sceneMetricGlowClassName = 'absolute z-0 left-[-10%] top-[4%] h-[78%] w-[78%] rounded-full blur-3xl';
+const sceneMetricOrbClassName = 'absolute z-0 left-[-10%] top-[6%] flex h-[76%] w-[76%] items-center justify-center';
+const communityMetricGlowClassName = 'absolute z-0 left-[-16%] top-[5%] h-[80%] w-[80%] rounded-full blur-3xl';
+const communityMetricOrbClassName = 'absolute z-0 left-[-14%] top-[8%] flex h-[78%] w-[78%] items-center justify-center';
 const HeroGlobeWorld = dynamic(() => import('@/components/ui/globe').then(mod => mod.World), {
   ssr: false,
 });
@@ -137,14 +137,12 @@ export function LandingHeroGlobeVisual(props: VisualProps) {
 
       <div
         aria-hidden="true"
-        className="absolute z-0 left-[-32%] top-[-8%] h-[112%] w-[112%] opacity-95 [mask-image:radial-gradient(circle,white_58%,rgba(255,255,255,0.68)_74%,transparent_92%)]"
+        className="absolute z-0 left-[-8%] top-[-10%] h-[124%] w-[124%] overflow-visible opacity-95 xl:left-[-12%]"
       >
         <HeroGlobeWorld globeConfig={globeConfig} data={globeData} />
       </div>
 
-
-
-      <div className="absolute z-20 bottom-[3%] right-[-1%] w-[74%] max-w-[23rem]">
+      <div className="absolute z-20 bottom-[3%] left-[200px] w-[82%] max-w-[25.5rem] xl:w-[84%] xl:max-w-[26rem]">
         <HeroVisualPanelCard
           panel={props.slide.visualPanel}
           accentColor={props.accentColor}
@@ -162,7 +160,7 @@ export function LandingHeroCardsVisual(props: VisualProps) {
       title: 'Tier 1',
       value: '$0.001',
       note: 'Genesis access',
-      className: 'left-[-6%] top-[22%] -rotate-[10deg]',
+      className: 'left-[6%] top-[22%] -rotate-[10deg]',
       hoverOffsetX: -28,
       hoverOffsetY: -8,
       hoverScale: 1.04,
@@ -171,7 +169,7 @@ export function LandingHeroCardsVisual(props: VisualProps) {
       title: 'Listing Ref',
       value: '$0.05',
       note: 'Whitepaper framing',
-      className: 'left-[6%] top-[52%] rotate-[4deg]',
+      className: 'left-[18%] top-[52%] rotate-[4deg]',
       hoverOffsetX: -20,
       hoverOffsetY: -12,
       hoverScale: 1.06,
@@ -189,7 +187,7 @@ export function LandingHeroCardsVisual(props: VisualProps) {
         style={{ background: `radial-gradient(circle, ${props.glowColor} 0%, transparent 78%)` }}
       />
 
-      <div className="absolute z-0 left-[22%] top-[14%] h-[10rem] w-[15rem] rotate-[11deg] rounded-[1.9rem] border border-white/8 bg-[linear-gradient(160deg,rgba(255,255,255,0.1),rgba(255,255,255,0.03))] opacity-38 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-2xl" />
+      <div className="absolute z-0 left-[32%] top-[14%] h-[10rem] w-[15rem] rotate-[11deg] rounded-[1.9rem] border border-white/8 bg-[linear-gradient(160deg,rgba(255,255,255,0.1),rgba(255,255,255,0.03))] opacity-38 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-2xl" />
 
 
       {cardVariants.map((card, index) => (
@@ -220,7 +218,7 @@ export function LandingHeroCardsVisual(props: VisualProps) {
         </motion.div>
       ))}
 
-      <div className="absolute z-20 bottom-[3%] right-[-1%] w-[72%] max-w-[23rem]">
+      <div className="absolute z-20 bottom-[3%] left-[200px] w-[82%] max-w-[25.5rem] xl:w-[84%] xl:max-w-[26rem]">
         <HeroVisualPanelCard panel={props.slide.visualPanel} accentColor={props.accentColor} />
       </div>
     </motion.div>
@@ -247,7 +245,7 @@ function FlowchainScene(props: VisualProps) {
         className="absolute z-0 inset-[6%] rounded-[2rem] blur-3xl"
         style={{ background: `radial-gradient(circle, ${props.glowColor} 0%, transparent 74%)` }}
       />
-      <div className="absolute z-0 left-[-26%] top-[-6%] h-[86%] w-[132%] opacity-88">
+      <div className="absolute z-0 left-[-14%] top-[-6%] h-[86%] w-[132%] opacity-88">
         <WorldMap
           backgroundColor="transparent"
           className="h-full bg-transparent dark:bg-transparent"
@@ -257,7 +255,7 @@ function FlowchainScene(props: VisualProps) {
         />
       </div>
 
-      <div className="absolute z-20 bottom-[2%] right-[-1%] h-[84%] w-[72%] max-w-[23.5rem]">
+      <div className="absolute z-20 bottom-[4%] left-[200px] h-[78%] w-[78%] max-w-[25rem]">
         <HeroVisualPanelCard
           panel={props.slide.visualPanel}
           accentColor={props.accentColor}
@@ -298,7 +296,7 @@ function StakingScene(props: VisualProps) {
         </div>
       </div>
 
-      <div className="absolute z-20 bottom-[3%] right-[-1%] w-[70%] max-w-[23rem]">
+      <div className="absolute z-20 bottom-[3%] left-[200px] w-[78%] max-w-[25rem]">
         <HeroVisualPanelCard
           panel={props.slide.visualPanel}
           accentColor={props.accentColor}
@@ -312,10 +310,10 @@ function StakingScene(props: VisualProps) {
 
 function CommunityScene(props: VisualProps) {
   const badges = [
-    { icon: Landmark, label: 'No VC', className: 'left-[9%] top-[27%]' },
-    { icon: ShieldCheck, label: 'Locked Team', className: 'left-[-2%] top-[21%]' },
-    { icon: Workflow, label: 'DAO Path', className: 'left-[-4%] bottom-[22%]' },
-    { icon: Sparkles, label: 'Genesis', className: 'left-[8%] bottom-[13%]' },
+    { icon: Landmark, label: 'No VC', className: 'left-[20%] top-[27%]' },
+    { icon: ShieldCheck, label: 'Locked Team', className: 'left-[8%] top-[21%]' },
+    { icon: Workflow, label: 'DAO Path', className: 'left-[6%] bottom-[22%]' },
+    { icon: Sparkles, label: 'Genesis', className: 'left-[18%] bottom-[13%]' },
   ];
 
   return (
@@ -357,7 +355,7 @@ function CommunityScene(props: VisualProps) {
         );
       })}
 
-      <div className="absolute z-20 bottom-[3%] right-[-1%] w-[72%] max-w-[23.5rem]">
+      <div className="absolute z-20 bottom-[3%] left-[200px] w-[78%] max-w-[25rem]">
         <HeroVisualPanelCard
           panel={props.slide.visualPanel}
           accentColor={props.accentColor}
@@ -378,18 +376,24 @@ function HeroVisualPanelCard(props: {
   compact?: boolean;
   itemsWrapperClassName?: string;
 }) {
+  const isDenseStack = props.panel.layout === 'stack';
+
   return (
     <HeroDitheringCard
-      className={cn(props.compact ? 'p-3.5' : 'p-5', props.className)}
+      className={cn(props.compact ? 'p-3.5' : isDenseStack ? 'p-4' : 'p-5', props.className)}
       colorFront={props.accentColor}
-      contentClassName={cn(props.compact ? 'space-y-3' : 'space-y-4', props.contentClassName)}
+      contentClassName={cn((props.compact || isDenseStack) ? 'space-y-3' : 'space-y-4', props.contentClassName)}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-2">
           <div className="text-[10px] font-bold tracking-[0.3em] text-[var(--muted)] uppercase">{props.panel.eyebrow}</div>
           <div className={cn(
-            'font-heading max-w-[14rem] font-bold leading-[1.04] tracking-tight text-[var(--text)]',
-            props.compact ? 'text-[1.7rem]' : 'text-[2rem]',
+            'font-heading font-bold leading-[1.04] tracking-tight text-[var(--text)]',
+            props.compact
+              ? 'max-w-[14rem] text-[1.7rem]'
+              : isDenseStack
+                ? 'max-w-[16rem] text-[1.85rem]'
+                : 'max-w-[14rem] text-[2rem]',
           )}>
             {props.panel.title}
           </div>
@@ -400,9 +404,9 @@ function HeroVisualPanelCard(props: {
         </Badge>
       </div>
 
-      <p className={cn('text-[var(--muted)]', props.compact ? 'text-[13px] leading-[1.45]' : 'text-sm leading-7')}>{props.panel.body}</p>
+      <p className={cn('text-[var(--muted)]', (props.compact || isDenseStack) ? 'text-[13px] leading-[1.55]' : 'text-sm leading-7')}>{props.panel.body}</p>
       <div className={props.itemsWrapperClassName}>
-        <HeroVisualPanelItems layout={props.panel.layout} items={props.panel.items} compact={props.compact} />
+        <HeroVisualPanelItems layout={props.panel.layout} items={props.panel.items} compact={props.compact || isDenseStack} />
       </div>
     </HeroDitheringCard>
   );
@@ -456,15 +460,21 @@ function HeroVisualPanelItems(props: {
   }
 
   return (
-    <div className="grid gap-3">
+    <div className={cn('grid', props.compact ? 'gap-2' : 'gap-3')}>
       {props.items.map(item => (
-        <div key={item.label} className="rounded-[1.2rem] border border-white/10 bg-[rgba(255,255,255,0.03)] px-4 py-3">
+        <div
+          key={item.label}
+          className={cn(
+            'border border-white/10 bg-[rgba(255,255,255,0.03)]',
+            props.compact ? 'rounded-[1rem] px-3.5 py-2.5' : 'rounded-[1.2rem] px-4 py-3',
+          )}
+        >
           <div className="flex items-center justify-between gap-4">
-            <div className="text-[10px] font-semibold tracking-[0.28em] text-[var(--muted)] uppercase">{item.label}</div>
-            <div className="font-data text-right text-[1.45rem] font-semibold text-[var(--text)]">{item.value}</div>
+            <div className={cn('text-[10px] font-semibold text-[var(--muted)] uppercase', props.compact ? 'tracking-[0.22em]' : 'tracking-[0.28em]')}>{item.label}</div>
+            <div className={cn('font-data text-right font-semibold leading-none text-[var(--text)]', props.compact ? 'text-[1.3rem]' : 'text-[1.45rem]')}>{item.value}</div>
           </div>
           {item.note ? (
-            <div className="mt-2 text-xs leading-6 text-[var(--muted)]">{item.note}</div>
+            <div className={cn('text-xs text-[var(--muted)]', props.compact ? 'mt-1.5 leading-5' : 'mt-2 leading-6')}>{item.note}</div>
           ) : null}
         </div>
       ))}

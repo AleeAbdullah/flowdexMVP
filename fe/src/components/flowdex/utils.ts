@@ -1,3 +1,12 @@
+const dateTimeFormatter = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  month: 'short',
+  timeZoneName: 'short',
+  year: 'numeric',
+});
+
 export function parseDecimal(value?: string | number | null) {
   if (value === null || value === undefined) {
     return 0;
@@ -42,7 +51,7 @@ export function formatDateTime(value?: string | Date | null) {
     return 'Pending';
   }
 
-  return date.toLocaleString();
+  return dateTimeFormatter.format(date);
 }
 
 export function truncateMiddle(value: string, head = 10, tail = 8) {
@@ -50,5 +59,5 @@ export function truncateMiddle(value: string, head = 10, tail = 8) {
     return value;
   }
 
-  return `${value.slice(0, head)}...${value.slice(-tail)}`;
+  return `${value.slice(0, head)}…${value.slice(-tail)}`;
 }

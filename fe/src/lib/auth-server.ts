@@ -151,6 +151,37 @@ export async function proxyBackendRequest(
   return proxyBackendRequestWithRetry(request, pathSegments, session, false, backendBaseUrl);
 }
 
+export async function proxyPublicBackendRequest(
+  request: NextRequest,
+  pathSegments: string[],
+) {
+  const backendBaseUrl = Env.NEXT_PUBLIC_API_URL?.trim();
+  if (!backendBaseUrl) {
+    return Response.json({ message: 'NEXT_PUBLIC_API_URL is not configured' }, { status: 500 });
+  }
+
+  const upstreamUrl = `${backendBaseUrl}/${pathSegments.join('/')}${request.nextUrl.search}`;
+  const bodyText = request.method === 'GET' || request.method === 'HEAD'
+    ? undefined
+    : await request.text();
+  const upstreamResponse = await fetch(upstreamUrl, {
+    method: request.method,
+    cache: 'no-store',
+    headers: {
+      'Content-Type': request.headers.get('content-type') ?? 'application/json',
+    },
+    body: bodyText && bodyText.length > 0 ? bodyText : undefined,
+  });
+  const responseText = await upstreamResponse.text();
+
+  return new Response(responseText, {
+    status: upstreamResponse.status,
+    headers: {
+      'Content-Type': upstreamResponse.headers.get('content-type') ?? 'application/json',
+    },
+  });
+}
+
 async function fetchBackendJsonWithRetry<T>(
   path: string,
   init: Omit<RequestInit, 'headers' | 'body'> & {

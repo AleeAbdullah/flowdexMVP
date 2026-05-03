@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import type { ITransactionsResponse } from '@/dal/app/transactions/transactions.types';
-import { TRANSACTION_STATUSES, isLiveTransactionStatus } from '@/dal/app/transactions/transactions.types';
+import { TRANSACTION_STATUSES, isLiveTransactionStatus, type ITransactionsResponse } from '@/dal/app/transactions/transactions.types';
 import { useTransactions } from '@/dal/app/transactions/transactions.services';
 import { Button } from '@/components/ui/button';
 import { GlassPanel, SectionHeading, StatusPill } from '@/components/flowdex/primitives';
@@ -19,9 +18,10 @@ export function TransactionsPageClient(props: {
     <div className="space-y-8">
       <GlassPanel className="grid gap-8 p-6 lg:grid-cols-[1.1fr_0.9fr] lg:p-8">
         <SectionHeading
+          as="h1"
           eyebrow="Transactions"
-          title="Ledger-backed execution history"
-          description="This view reads durable backend ledger records updated by simulation, tracking submissions, webhook ingestion, and transfer backfill."
+          title="Transaction history"
+          description="Review tracked transactions, current statuses, confirmations, and the details connected to your wallet activity."
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <Metric label="Transactions" value={`${items.length}`} />
@@ -43,16 +43,16 @@ export function TransactionsPageClient(props: {
           ) : null}
 
           {transactionsQuery.isLoading ? (
-            <div className="px-6 py-5 text-sm text-[var(--muted)]">Loading transactions…</div>
+            <div className="px-6 py-5 text-sm text-[var(--muted)]">Loading transactions...</div>
           ) : null}
 
           {!transactionsQuery.isLoading && items.length === 0 ? (
             <div className="space-y-4 px-6 py-5">
               <p className="text-sm text-[var(--muted)]">
-                No tracked transactions yet. Run a simulation and track a new operation from protected buy.
+                No tracked transactions yet. Run a transaction check and track a new receipt from the buy workspace.
               </p>
               <Button variant="brand" asChild>
-                <Link href={ROUTES.WORKSPACE.BUY}>Go to protected buy</Link>
+                <Link href={ROUTES.WORKSPACE.BUY}>Open buy</Link>
               </Button>
             </div>
           ) : null}
@@ -67,7 +67,7 @@ export function TransactionsPageClient(props: {
                   <div className="font-semibold text-[var(--text)]">{item.assetCode} on {item.network}</div>
                   <StatusPill status={item.status} />
                 </div>
-                <div className="text-sm text-[color-mix(in_srgb,var(--text)_45%,transparent)]">Ledger id {item.id}</div>
+                <div className="text-sm text-[color-mix(in_srgb,var(--text)_45%,transparent)]">Transaction ID {item.id}</div>
                 <div className="text-sm text-[color-mix(in_srgb,var(--text)_40%,transparent)]">
                   {item.txHash ? `Tx hash: ${truncateMiddle(item.txHash)}` : item.operationId ? `Operation: ${item.operationId}` : 'Awaiting tx hash'}
                 </div>

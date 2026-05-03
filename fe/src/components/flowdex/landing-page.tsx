@@ -180,8 +180,8 @@ export function LandingPage() {
       <section id="roadmap" className="section-shell section-pad scroll-mt-28">
         <SectionHeading
           eyebrow="Roadmap"
-          title="Three phases are enough for the home page."
-          description="The roadmap route owns the full timeline. The home page only needs the sequencing logic."
+          title="A clear path from first access to a broader market network."
+          description="FlowDex starts with wallet-first access, expands into more markets and chains, then moves toward dedicated infrastructure built for always-on global trading."
         />
         <div className="mt-10 grid gap-4 lg:grid-cols-3">
           {landingRoadmapHighlights.map((item, index) => (
@@ -200,7 +200,7 @@ export function LandingPage() {
         <div className="mt-8">
           <Button variant="glass" asChild>
             <Link href={ROUTES.MARKETING.ROADMAP}>
-              Open Full Roadmap
+              Explore the Roadmap
               <ArrowRight aria-hidden="true" className="h-4 w-4" />
             </Link>
           </Button>

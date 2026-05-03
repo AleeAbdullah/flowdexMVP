@@ -5,15 +5,16 @@ import { toast } from 'sonner';
 import useAxiosAuth from '@/hooks/use-axiosAuth';
 import { extractAxiosError } from '@/lib/axios';
 import { dashboardQueryKeys } from '../dashboard/dashboard.services';
-import type {
-  ISimulateTransactionResult,
-  ITrackTransactionResult,
-  ITransactionListItem,
-  ITransactionsResponse,
-  SimulateTransactionInput,
-  TrackTransactionInput,
+import {
+  isLiveTransactionStatus,
+  isTerminalTransactionStatus,
+  type ISimulateTransactionResult,
+  type ITrackTransactionResult,
+  type ITransactionListItem,
+  type ITransactionsResponse,
+  type SimulateTransactionInput,
+  type TrackTransactionInput,
 } from './transactions.types';
-import { isLiveTransactionStatus, isTerminalTransactionStatus } from './transactions.types';
 
 export const transactionsQueryKeys = {
   transactions: ['app', 'transactions'] as const,

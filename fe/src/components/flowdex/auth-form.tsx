@@ -54,7 +54,7 @@ export function AuthForm(props: {
         {controller.formError ? <AuthErrorBanner message={controller.formError} /> : null}
 
         <Button type="submit" variant="brand" size="lg" className="w-full" disabled={controller.isPending}>
-          {controller.isPending ? 'Working...' : shellCopy.submitLabel}
+          {controller.isPending ? 'Working…' : shellCopy.submitLabel}
           <ArrowRight aria-hidden className="h-4 w-4" />
         </Button>
       </form>

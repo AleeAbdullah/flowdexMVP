@@ -23,6 +23,7 @@ export default function FlowChainPage() {
     <div className="space-y-8">
       <GlassPanel className="grid gap-8 p-6 lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
         <SectionHeading
+          as="h1"
           eyebrow="FlowChain"
           title="Show the chain layer as the proof and throughput engine for a multi-asset network."
           description="FlowChain should not read like a generic L1 landing page. It should feel like infrastructure designed around multi-asset execution, observable settlement, and market-specific activity."

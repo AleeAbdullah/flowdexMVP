@@ -1,6 +1,5 @@
 import type { ISimulateTransactionResult } from '@/dal/app/transactions/transactions.types';
-import type { WalletNetwork } from '@/dal/app/wallets/wallets.types';
-import { WALLET_NETWORKS } from '@/dal/app/wallets/wallets.types';
+import { WALLET_NETWORKS, type WalletNetwork } from '@/dal/app/wallets/wallets.types';
 import { Env } from '@/libs/Env';
 
 export function resolveTreasuryRecipient(network: WalletNetwork | null | undefined) {
@@ -18,9 +17,9 @@ export function resolveTreasuryRecipient(network: WalletNetwork | null | undefin
 export function resolveSimulationSummary(result?: ISimulateTransactionResult | null) {
   if (result) {
     return result.allowed
-      ? 'Simulation passed. This transaction can be tracked.'
-      : `Simulation blocked: ${result.reason ?? 'Unknown risk'}`;
+      ? 'Check passed. This transaction is ready to track.'
+      : `Check blocked: ${result.reason ?? 'Unknown risk'}`;
   }
 
-  return 'Run simulation before tracking a submitted operation.';
+  return 'Run a transaction check before tracking a receipt.';
 }

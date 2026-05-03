@@ -24,28 +24,28 @@ export function AdminTransactionsFilters(props: {
           id="admin-filter-status"
           label="Status"
           value={props.filters.status ?? ''}
-          placeholder={TRANSACTION_STATUSES.CONFIRMED}
+          placeholder={`e.g. ${TRANSACTION_STATUSES.CONFIRMED}...`}
           onChange={value => props.onUpdateFilters({ status: value })}
         />
         <TextFilterField
           id="admin-filter-network"
           label="Network"
           value={props.filters.network ?? ''}
-          placeholder={WALLET_NETWORKS.BASE_SEPOLIA}
+          placeholder={`e.g. ${WALLET_NETWORKS.BASE_SEPOLIA}...`}
           onChange={value => props.onUpdateFilters({ network: value })}
         />
         <TextFilterField
           id="admin-filter-asset-code"
           label="Asset Code"
           value={props.filters.assetCode ?? ''}
-          placeholder="USDT_ERC20"
+          placeholder="e.g. USDT_ERC20..."
           onChange={value => props.onUpdateFilters({ assetCode: value })}
         />
         <TextFilterField
           id="admin-filter-user-id"
           label="User ID"
           value={props.filters.userId ?? ''}
-          placeholder="phase2-user"
+          placeholder="e.g. user_123..."
           onChange={value => props.onUpdateFilters({ userId: value })}
         />
         <DateTimeFilterField
@@ -82,6 +82,9 @@ function TextFilterField(props: {
     <FormField id={props.id} label={props.label}>
       <Input
         id={props.id}
+        name={props.id}
+        autoComplete="off"
+        spellCheck={false}
         value={props.value}
         onChange={event => { void props.onChange(event.target.value); }}
         placeholder={props.placeholder}
@@ -101,6 +104,8 @@ function DateTimeFilterField(props: {
     <FormField id={props.id} label={props.label}>
       <Input
         id={props.id}
+        name={props.id}
+        autoComplete="off"
         type="datetime-local"
         value={props.value}
         onChange={event => { void props.onChange(event.target.value); }}

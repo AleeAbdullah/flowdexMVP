@@ -77,19 +77,19 @@ export const marketingFeatureCards = [
 
 export const marketingRoadmap = [
   {
-    phase: 'Phase 1',
-    title: 'Ethereum Foundation',
-    body: 'Launch the presale, protected wallet flows, and first-wave exchange positioning on Ethereum.',
+    phase: 'Step 1',
+    title: 'Open Wallet-First Access',
+    body: 'Begin with presale access, wallet-connected accounts, and a focused exchange experience built around user control instead of custodial lock-in.',
   },
   {
-    phase: 'Phase 2',
-    title: 'Multi-Chain Expansion',
-    body: 'Add broader asset support, execution rails, and chain coverage for a wider market surface.',
+    phase: 'Step 2',
+    title: 'Unlock More Global Markets',
+    body: 'Expand from crypto into tokenized equities, forex, commodities, and other market categories while supporting more chains and liquidity paths.',
   },
   {
-    phase: 'Phase 3',
-    title: 'FlowChain',
-    body: 'Move toward a dedicated appchain built around execution, routing, and settlement visibility.',
+    phase: 'Step 3',
+    title: 'Power the FlowDex Network',
+    body: 'Evolve toward FlowChain as the dedicated layer for faster execution, clearer settlement, and a market experience designed specifically for FlowDex users.',
   },
 ];
 

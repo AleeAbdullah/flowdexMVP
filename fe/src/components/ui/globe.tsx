@@ -8,7 +8,7 @@ import { Color, Fog, PerspectiveCamera, Scene, Vector3 } from 'three';
 import countries from '@/data/globe.json';
 
 const RING_PROPAGATION_SPEED = 3;
-const CAMERA_Z = 300;
+const CAMERA_Z = 360;
 
 export type GlobeArcDatum = {
   order: number;

@@ -23,6 +23,7 @@ export default function PortfolioPage() {
     <div className="space-y-8">
       <GlassPanel className="grid gap-8 p-6 lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
         <SectionHeading
+          as="h1"
           eyebrow="Portfolio"
           title="A holdings view that understands asset class context, not just ticker symbols."
           description="The portfolio direction is built around cross-asset clarity. Every line item should explain what it is, where it settles, and why it belongs in the broader FlowDex picture."

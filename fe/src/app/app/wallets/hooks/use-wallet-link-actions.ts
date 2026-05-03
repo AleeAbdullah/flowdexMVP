@@ -1,9 +1,8 @@
 'use client';
 
-import type { WalletNetwork, WalletProvider } from '@/dal/app/wallets/wallets.types';
-import { WALLET_PROVIDERS } from '@/dal/app/wallets/wallets.types';
+import { WALLET_PROVIDERS, type WalletNetwork, type WalletProvider } from '@/dal/app/wallets/wallets.types';
 import { useCreateWalletChallenge, useDeleteWallet, useLinkWallet } from '@/dal/app/wallets/wallets.services';
-import { getEthereumProvider } from '../../_utils/ethereum-provider';
+import { formatMetaMaskNetworkSwitchMessage, getMetaMaskProvider } from '../../_utils/ethereum-provider';
 import { NETWORK_CHAIN_IDS, NETWORK_LABELS } from '../constants';
 
 type AccountUser = {
@@ -41,7 +40,7 @@ export function useWalletLinkActions(input: {
       return;
     }
 
-    const ethereum = getEthereumProvider();
+    const ethereum = getMetaMaskProvider();
     if (!ethereum) {
       throw new Error('MetaMask not available');
     }
@@ -55,7 +54,7 @@ export function useWalletLinkActions(input: {
     const chainHex = await ethereum.request({ method: 'eth_chainId' }) as string;
     const detectedChainId = Number.parseInt(chainHex, 16);
     if (detectedChainId !== chainId) {
-      throw new Error(`Switch MetaMask to ${NETWORK_LABELS[input.network]}`);
+      throw new Error(formatMetaMaskNetworkSwitchMessage(NETWORK_LABELS[input.network]));
     }
 
     const challenge = await challengeMutation.mutateAsync({
