@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { useAccount, useUser } from '@account-kit/react';
-import type { IWalletListResponse } from '@/dal/app/wallets/wallets.types';
-import { WALLET_NETWORKS, WALLET_PROVIDERS, type WalletNetwork, type WalletProvider } from '@/dal/app/wallets/wallets.types';
+import { WALLET_NETWORKS, WALLET_PROVIDERS, type IWalletListResponse, type WalletNetwork, type WalletProvider } from '@/dal/app/wallets/wallets.types';
 import { useWallets } from '@/dal/app/wallets/wallets.services';
 import { LinkedWalletsPanel } from './_components/linked-wallets-panel';
 import { WalletLinkPanel } from './_components/wallet-link-panel';
@@ -30,9 +29,18 @@ export function WalletsPageClient(props: {
     canLinkAlchemy,
     accountUser: user,
   });
+  const isLinking = actions.linkMutation.isPending || actions.challengeMutation.isPending;
+  const linkWalletBlockReason = getLinkWalletBlockReason({
+    accountUser: user,
+    embeddedAddress: address,
+    isLoadingAccount,
+    isLinking,
+    isMetaMaskAvailable: metaMask.isAvailable,
+    provider,
+  });
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+    <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
       <WalletLinkPanel
         state={{
           embeddedAddress: address,
@@ -44,7 +52,8 @@ export function WalletsPageClient(props: {
         }}
         metaMask={metaMask}
         actions={{
-          isLinking: actions.linkMutation.isPending || actions.challengeMutation.isPending,
+          isLinking,
+          linkWalletBlockReason,
           onLinkWallet: actions.handleLinkWallet,
         }}
       />
@@ -64,4 +73,37 @@ export function WalletsPageClient(props: {
       />
     </div>
   );
+}
+
+function getLinkWalletBlockReason(input: {
+  accountUser: { id?: string; userId?: string } | null;
+  embeddedAddress: string | null | undefined;
+  isLoadingAccount: boolean;
+  isLinking: boolean;
+  isMetaMaskAvailable: boolean;
+  provider: WalletProvider;
+}) {
+  if (input.isLinking) {
+    return 'Linking is already in progress. Wait for the current wallet link request to finish.';
+  }
+
+  if (input.provider === WALLET_PROVIDERS.METAMASK) {
+    return input.isMetaMaskAvailable
+      ? null
+      : 'MetaMask is not available in this browser. Install or enable MetaMask, then try again.';
+  }
+
+  if (input.isLoadingAccount) {
+    return 'Your embedded wallet address is still being prepared. Wait a moment, then try again.';
+  }
+
+  if (!input.accountUser) {
+    return 'Sign in with Alchemy embedded wallet access before linking this wallet to FlowDex.';
+  }
+
+  if (!input.embeddedAddress) {
+    return 'Alchemy has not returned an embedded wallet address yet. Complete the signup or sign-in step first.';
+  }
+
+  return null;
 }

@@ -8,30 +8,41 @@ import {
 } from '@/icons';
 import { cn } from '@/lib/utils';
 import { FlowdexWordmark } from '@/components/flowdex/primitives';
+import { ThemeToggle } from '@/components/flowdex/theme-toggle';
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarRail,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { ROUTES } from '@/routes';
 import { appNavItems, filterNavItemsByRole, type NavItem } from './app-nav';
 
+const appSidebarButtonClassName = [
+  'rounded-lg font-medium text-[color-mix(in_srgb,var(--text)_74%,transparent)]',
+  'hover:bg-[color-mix(in_srgb,var(--accent-strong)_8%,transparent)] hover:text-[var(--text)]',
+  'hover:shadow-[inset_2px_0_0_color-mix(in_srgb,var(--accent-strong)_36%,transparent)]',
+  'data-[active=true]:bg-[linear-gradient(90deg,color-mix(in_srgb,var(--accent-strong)_16%,transparent),color-mix(in_srgb,var(--accent-strong)_5%,transparent))]',
+  'data-[active=true]:text-[var(--text)]',
+  'data-[active=true]:shadow-[inset_2px_0_0_var(--accent-strong),0_10px_28px_color-mix(in_srgb,var(--accent-strong)_10%,transparent)]',
+  '[&>svg]:text-[color-mix(in_srgb,var(--text)_58%,transparent)]',
+  'hover:[&>svg]:text-[var(--accent-strong)] data-[active=true]:[&>svg]:text-[var(--accent-strong)]',
+].join(' ');
+
 export function AppSidebar(props: {
   profile: IAuthMe;
 }) {
+  const { state } = useSidebar();
   const segments = useSelectedLayoutSegments().filter(segment => !segment.startsWith('('));
   const visibleNavItems = filterNavItemsByRole(appNavItems, props.profile.role);
+  const isCompact = state === 'collapsed';
 
   return (
     <Sidebar
@@ -41,20 +52,29 @@ export function AppSidebar(props: {
       )}
     >
       <SidebarHeader className="gap-4 px-4 py-5">
-        <Link href={ROUTES.DASHBOARD.HOME} className="inline-flex items-center gap-3">
-          <FlowdexWordmark compact />
+        <Link href={ROUTES.MARKETING.HOME} className="inline-flex items-center gap-3" aria-label="FlowDex public home">
+          <FlowdexWordmark compact={isCompact} />
         </Link>
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-3">
-        {visibleNavItems.map(item => (
-          <NavSection key={item.title} item={item} currentSegments={segments} />
-        ))}
+        <SidebarGroup className="px-1">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {visibleNavItems.map(item => (
+                <NavNode key={item.title} item={item} currentSegments={segments} />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="px-4 pb-5 pt-2">
-        <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card-bg)] p-3 text-xs text-[var(--muted)]">
-          Collapse the sidebar when you want more room for the current view.
+      <SidebarFooter className="px-4 pb-5 pt-2 group-data-[collapsible=icon]:px-1">
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-[color-mix(in_srgb,var(--accent-strong)_14%,var(--card-border))] bg-[color-mix(in_srgb,var(--bg)_72%,var(--card-bg))] p-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0">
+          <span className="min-w-0 truncate px-1 text-xs font-semibold text-[color-mix(in_srgb,var(--text)_60%,transparent)] group-data-[collapsible=icon]:hidden">
+            Theme
+          </span>
+          <ThemeToggle />
         </div>
       </SidebarFooter>
       <SidebarRail />
@@ -62,85 +82,12 @@ export function AppSidebar(props: {
   );
 }
 
-function NavSection(props: {
-  item: NavItem;
-  currentSegments: string[];
-}) {
-  const isActive = isItemActive(props.item, props.currentSegments);
-  const Icon = icons[props.item.icon];
-  const hasChildren = props.item.items.length > 0;
-
-  if (!hasChildren) {
-    return (
-      <SidebarGroup className="px-1">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={isActive}
-              tooltip={props.item.title}
-              className="font-medium"
-            >
-              <Link href={props.item.url}>
-                <Icon className="h-4 w-4" />
-                <span>{props.item.title}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarGroup>
-    );
-  }
-
-  return (
-    <SidebarGroup className="px-1">
-      <SidebarGroupLabel asChild>
-        <Link
-          href={props.item.url}
-          className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_60%,transparent)]"
-        >
-          <Icon className="h-3.5 w-3.5" />
-          <span>{props.item.title}</span>
-        </Link>
-      </SidebarGroupLabel>
-
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {props.item.items.map(child => (
-            <NavNode key={child.title} item={child} currentSegments={props.currentSegments} depth={0} />
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  );
-}
-
 function NavNode(props: {
   item: NavItem;
   currentSegments: string[];
-  depth: number;
 }) {
   const isActive = isItemActive(props.item, props.currentSegments);
   const Icon = icons[props.item.icon];
-  const hasChildren = props.item.items.length > 0;
-
-  if (!hasChildren) {
-    return (
-      <SidebarMenuItem>
-        <SidebarMenuButton
-          asChild
-          isActive={isActive}
-          size={props.depth > 0 ? 'sm' : 'default'}
-          tooltip={props.item.title}
-        >
-          <Link href={props.item.url}>
-            <Icon className="h-4 w-4" />
-            <span>{props.item.title}</span>
-          </Link>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-    );
-  }
 
   return (
     <SidebarMenuItem>
@@ -148,29 +95,13 @@ function NavNode(props: {
         asChild
         isActive={isActive}
         tooltip={props.item.title}
-        className="font-medium"
+        className={appSidebarButtonClassName}
       >
         <Link href={props.item.url}>
           <Icon className="h-4 w-4" />
           <span>{props.item.title}</span>
         </Link>
       </SidebarMenuButton>
-      <SidebarMenuSub>
-        {props.item.items.map(child => {
-          const ChildIcon = icons[child.icon];
-
-          return (
-            <SidebarMenuSubItem key={child.title}>
-              <SidebarMenuSubButton asChild isActive={isItemActive(child, props.currentSegments)}>
-                <Link href={child.url}>
-                  <ChildIcon className="h-4 w-4" />
-                  <span>{child.title}</span>
-                </Link>
-              </SidebarMenuSubButton>
-            </SidebarMenuSubItem>
-          );
-        })}
-      </SidebarMenuSub>
     </SidebarMenuItem>
   );
 }
@@ -187,11 +118,7 @@ function isItemActive(item: NavItem, currentSegments: string[]): boolean {
     return true;
   }
 
-  if (item.items.length === 0) {
-    return false;
-  }
-
-  return item.items.some(child => isItemActive(child, currentSegments));
+  return false;
 }
 
 function getAppSegments(url: string) {

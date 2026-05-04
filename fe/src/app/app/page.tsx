@@ -16,9 +16,10 @@ export default async function AppIndex() {
     <div className="space-y-8">
       <GlassPanel className="grid gap-8 p-6 lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
         <SectionHeading
+          as="h1"
           eyebrow="Dashboard"
-          title="Operate the Alchemy-managed wallet and ledger surface."
-          description="All core metrics are now driven by backend ledger records and rollup snapshots, not direct chain reads from the frontend."
+          title="Manage your wallet activity."
+          description="Review linked wallets, transaction volume, current activity, and the next action for your account."
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <DataKicker label="Profile Role" value={summary.profile.role} />
@@ -29,22 +30,26 @@ export default async function AppIndex() {
       </GlassPanel>
 
       {!hasWallet ? (
-        <GlassPanel className="border border-amber-300/20 bg-amber-400/10 p-6">
-          <div className="flex items-start gap-4">
-            <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-3 text-amber-700">
-              <AlertTriangle className="h-5 w-5" />
+        <div className="rounded-xl border border-amber-300/20 bg-amber-400/10 px-4 py-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-300/20 bg-amber-300/10 text-amber-600">
+                <AlertTriangle className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-bold text-[var(--text)]">No wallet linked yet</div>
+                <p className="mt-1 text-sm leading-6 text-amber-700">
+                  Link a wallet to run transaction checks and track your activity.
+                </p>
+              </div>
             </div>
-            <div className="space-y-3">
-              <div className="text-lg font-bold text-[var(--text)]">No wallet linked yet</div>
-              <p className="text-sm leading-7 text-amber-700">
-                Authenticate and link an embedded wallet to enable simulation and transaction tracking.
-              </p>
-              <Button variant="brand" asChild>
+            <div className="shrink-0 sm:pl-4">
+              <Button variant="brand" size="sm" asChild>
                 <Link href={ROUTES.WORKSPACE.WALLETS}>Link wallet</Link>
               </Button>
             </div>
           </div>
-        </GlassPanel>
+        </div>
       ) : null}
 
       <div className="grid gap-4 xl:grid-cols-3">
@@ -56,7 +61,7 @@ export default async function AppIndex() {
           <div className="font-data mt-4 text-2xl text-[var(--text)]">
             {formatPlainNumber(summary.totalTrackedVolume, 6)}
           </div>
-          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Confirmed ledger volume across tracked transactions.</p>
+          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Confirmed volume across tracked transactions.</p>
         </GlassPanel>
         <GlassPanel className="p-5">
           <div className="flex items-center gap-3 text-cyan-200">
@@ -76,7 +81,7 @@ export default async function AppIndex() {
             <span className="text-xs font-semibold tracking-[0.24em] uppercase">Next Action</span>
           </div>
           <div className="mt-4 text-lg font-bold text-[var(--text)]">
-            {hasWallet ? 'Run simulation and track transaction' : 'Complete wallet linking'}
+            {hasWallet ? 'Run a transaction check' : 'Connect a wallet'}
           </div>
           <div className="mt-4">
             <Button variant="glass" asChild>
@@ -96,7 +101,7 @@ export default async function AppIndex() {
           {summary.recentTransactions.length === 0 ? (
             <div className="space-y-4 px-6 py-5">
               <p className="text-sm text-[var(--muted)]">
-                No ledger transactions yet. Run simulation and track your first transaction.
+                No tracked transactions yet. Run a transaction check and track your first receipt.
               </p>
               <Button variant="brand" asChild>
                 <Link href={hasWallet ? ROUTES.WORKSPACE.BUY : ROUTES.WORKSPACE.WALLETS}>

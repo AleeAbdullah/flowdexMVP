@@ -1,7 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { alchemy, baseSepolia } from '@account-kit/infra';
 import { AlchemyAccountProvider, createConfig } from '@account-kit/react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -26,8 +25,10 @@ export function AlchemyProvider(props: {
       },
       {
         auth: {
+          hideSignInText: true,
           sections: [[{ type: 'email' }]],
         },
+        uiMode: 'embedded',
       },
     );
   }, [apiKey]);

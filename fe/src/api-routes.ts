@@ -1,4 +1,7 @@
 export const API_ROUTES = {
+  proxy: {
+    publicBackend: '/api/public',
+  },
   bff: {
     auth: {
       me: '/api/bff/auth/me',
@@ -29,6 +32,16 @@ export const API_ROUTES = {
   },
   public: {
     pricing: '/pricing',
+    markets: {
+      crypto: (params: { quote: string; limit: number }) => {
+        const searchParams = new URLSearchParams({
+          quote: params.quote,
+          limit: String(params.limit),
+        });
+        return `/markets/crypto?${searchParams.toString()}`;
+      },
+      cryptoQuoteCurrencies: '/markets/crypto/quote-currencies',
+    },
     presale: {
       stats: '/presale/stats',
       tiers: '/presale/tiers',

@@ -2,7 +2,15 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { GlassPanel } from '@/components/flowdex/primitives';
+import { truncateMiddle } from '@/components/flowdex/utils';
 import { FormField } from '../../_components/form-field';
 import { useProtectedBuyPage } from '../buy-page-context';
 
@@ -10,24 +18,27 @@ export function BuySetupPanel() {
   const buyPage = useProtectedBuyPage();
 
   return (
-    <GlassPanel className="space-y-4 p-6">
+    <GlassPanel className="min-h-0 space-y-3 p-4 lg:overflow-y-auto">
       <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
-        Buy Setup
+        Payment details
       </div>
 
       <FormField id="buy-wallet" label="Wallet">
-        <select
-          id="buy-wallet"
+        <Select
           value={buyPage.selectedWalletId}
-          onChange={event => buyPage.setSelectedWalletId(event.target.value)}
-          className="h-12 w-full rounded-md border border-[var(--card-border)] bg-[var(--card-bg)] px-3 text-[var(--text)]"
+          onValueChange={buyPage.setSelectedWalletId}
         >
-          {buyPage.wallets.map(wallet => (
-            <option key={wallet.id} value={wallet.id}>
-              {wallet.network} • {wallet.address}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger id="buy-wallet" className="h-11 rounded-xl border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]">
+            <SelectValue placeholder="Choose wallet" />
+          </SelectTrigger>
+          <SelectContent>
+            {buyPage.wallets.map(wallet => (
+              <SelectItem key={wallet.id} value={wallet.id}>
+                {wallet.network} / {truncateMiddle(wallet.address)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </FormField>
 
       <FormField
@@ -37,47 +48,58 @@ export function BuySetupPanel() {
       >
         <Input
           id="buy-recipient"
+          name="buyRecipient"
+          autoComplete="off"
+          spellCheck={false}
           value={buyPage.treasuryRecipient}
           readOnly
-          className="h-12 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
+          className="h-11 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
         />
       </FormField>
 
-      <FormField
-        id="buy-value"
-        label="Value"
-        description="Enter a decimal string or hex wei amount for the simulated transaction."
-      >
-        <Input
+      <div className="grid gap-3 xl:grid-cols-2">
+        <FormField
           id="buy-value"
-          value={buyPage.value}
-          onChange={event => buyPage.setValue(event.target.value)}
-          placeholder="0.01 or 0x2386f26fc10000"
-          className="h-12 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
-        />
-      </FormField>
+          label="Payment"
+          description="Amount sent with this transaction."
+        >
+          <Input
+            id="buy-value"
+            name="buyValue"
+            autoComplete="off"
+            inputMode="decimal"
+            value={buyPage.value}
+            onChange={event => buyPage.setValue(event.target.value)}
+            placeholder="e.g. 0.01"
+            className="h-11 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
+          />
+        </FormField>
 
-      <FormField
-        id="buy-calldata"
-        label="Calldata"
-        description="Optional calldata for contract calls. Leave blank for a simple value transfer."
-      >
-        <Input
+        <FormField
           id="buy-calldata"
-          value={buyPage.data}
-          onChange={event => buyPage.setData(event.target.value)}
-          placeholder="0x"
-          className="h-12 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
-        />
-      </FormField>
+          label="Advanced data"
+          description="Optional contract call data."
+        >
+          <Input
+            id="buy-calldata"
+            name="buyCalldata"
+            autoComplete="off"
+            spellCheck={false}
+            value={buyPage.data}
+            onChange={event => buyPage.setData(event.target.value)}
+            placeholder="e.g. 0x"
+            className="h-11 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
+          />
+        </FormField>
+      </div>
 
       <Button
         variant="brand"
-        className="w-full"
+        className="h-11 w-full"
         disabled={!buyPage.canSimulate || buyPage.isSimulating || !buyPage.selectedWallet}
         onClick={() => { void buyPage.runSimulation(); }}
       >
-        {buyPage.isSimulating ? 'Running simulation…' : 'Run simulation'}
+        {buyPage.isSimulating ? 'Checking...' : 'Run check'}
       </Button>
     </GlassPanel>
   );

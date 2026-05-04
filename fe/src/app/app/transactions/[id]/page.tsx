@@ -28,9 +28,10 @@ export default async function TransactionDetailRoute(props: {
     <div className="space-y-8">
       <GlassPanel className="grid gap-8 p-6 lg:grid-cols-[1.1fr_0.9fr] lg:p-8">
         <SectionHeading
+          as="h1"
           eyebrow="Transaction Detail"
-          title={`${transaction.assetCode} ledger lifecycle`}
-          description="Canonical receipt and status view for backend-ledger transactions sourced from simulation, tracking submissions, webhook ingestion, and transfer backfill."
+          title={`${transaction.assetCode} transaction detail`}
+          description="Review the receipt, status, wallet, and confirmation details for this tracked transaction."
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
@@ -46,7 +47,7 @@ export default async function TransactionDetailRoute(props: {
       <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <GlassPanel className="p-6">
           <div className="grid gap-4 md:grid-cols-2">
-            <DataKicker label="Ledger ID" value={transaction.id} />
+            <DataKicker label="Transaction ID" value={transaction.id} />
             <DataKicker label="Wallet" value={transaction.walletAddress ? truncateMiddle(transaction.walletAddress) : 'Unavailable'} />
             <DataKicker label="Operation ID" value={transaction.operationId ?? 'Not set'} />
             <DataKicker label="Tx Hash" value={transaction.txHash ? truncateMiddle(transaction.txHash) : 'Pending'} />
@@ -67,7 +68,7 @@ export default async function TransactionDetailRoute(props: {
           <div className="space-y-3">
             <div className="text-lg font-bold text-[var(--text)]">Lifecycle notes</div>
             <p className="text-sm leading-7 text-[var(--muted)]">
-              Submitted and pending statuses are expected before webhook confirmations arrive. Once confirmed, the block metadata is persisted in this ledger record.
+              Submitted and pending statuses are expected before confirmation. Once confirmed, block details appear here.
             </p>
           </div>
         </GlassPanel>

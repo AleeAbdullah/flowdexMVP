@@ -38,7 +38,7 @@ const DropdownMenuSubContent = React.forwardRef<
   <DropdownMenuPrimitive.SubContent
     ref={ref}
     className={cn(
-      'z-50 min-w-[12rem] overflow-hidden rounded-xl border border-[var(--card-border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] p-1 text-[var(--text)] shadow-[0_24px_90px_rgba(0,0,0,0.22)] backdrop-blur-2xl data-[state=open]:animate-in data-[state=closed]:animate-out',
+      'z-50 min-w-[12rem] overflow-hidden rounded-xl border border-[var(--card-border)] bg-[var(--surface-elevated)] p-1 text-[var(--text)] shadow-[0_24px_90px_rgba(0,0,0,0.32)] backdrop-blur-xl data-[state=open]:animate-in data-[state=closed]:animate-out',
       className,
     )}
     {...props}
@@ -55,7 +55,7 @@ const DropdownMenuContent = React.forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        'z-50 min-w-[12rem] overflow-hidden rounded-[1.15rem] border border-[var(--card-border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] p-1 text-[var(--text)] shadow-[0_24px_90px_rgba(0,0,0,0.22)] backdrop-blur-2xl data-[state=open]:animate-in data-[state=closed]:animate-out',
+        'z-50 min-w-[12rem] overflow-hidden rounded-[1.15rem] border border-[var(--card-border)] bg-[var(--surface-elevated)] p-1 text-[var(--text)] shadow-[0_24px_90px_rgba(0,0,0,0.32)] backdrop-blur-xl data-[state=open]:animate-in data-[state=closed]:animate-out',
         className,
       )}
       {...props}

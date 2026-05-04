@@ -259,7 +259,7 @@ export function LandingHeroCarousel(props: {
                   ) : null}
                 </div>
 
-                <div className="relative hidden h-[27rem] w-full md:h-[32rem] lg:block lg:h-[34rem] xl:h-[38rem]">
+                <div className="relative z-0 hidden h-[27rem] w-full md:h-[32rem] lg:block lg:h-[34rem] xl:h-[38rem]">
                   <Suspense fallback={<HeroVisualFallback glowColor={theme.glowColor} />}>
                     <SlideVisual
                       slide={slide}

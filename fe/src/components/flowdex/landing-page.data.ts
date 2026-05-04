@@ -133,7 +133,7 @@ export const landingHeroSlides: LandingHeroSlide[] = [
       layout: 'phase',
       items: [
         { label: 'Phase 1', value: 'Ethereum', note: 'Launch foundation' },
-        { label: 'Phase 2', value: 'Routing Rails', note: 'Broader execution coverage' },
+        { label: 'Phase 2', value: 'Routing', note: 'Broader execution coverage' },
         { label: 'Phase 3', value: 'FlowChain', note: 'Dedicated execution layer' },
       ],
     },

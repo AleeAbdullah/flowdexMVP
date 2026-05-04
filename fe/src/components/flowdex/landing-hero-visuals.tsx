@@ -1,7 +1,6 @@
 'use client';
 
 import { type ReactNode, useMemo, useState } from 'react';
-import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import {
   ArrowRight,
@@ -14,10 +13,10 @@ import {
   Workflow,
 } from '@/icons';
 import { Badge } from '@/components/ui/badge';
+import { GlobeInteractive, type GlobeArc, type InteractiveMarker } from '@/components/ui/cobe-globe-interactive';
 import { HeroDitheringCard } from '@/components/ui/hero-dithering-card';
 import WorldMap from '@/components/ui/world-map';
 import { cn } from '@/lib/utils';
-import type { GlobeArcDatum, GlobeConfig } from '@/components/ui/globe';
 import type { LandingHeroVisualItem, LandingHeroVisualPanel, LandingHeroSlide } from './landing-page.data';
 
 type VisualProps = {
@@ -27,13 +26,10 @@ type VisualProps = {
   isActive: boolean;
 };
 
-const sceneMetricGlowClassName = 'absolute z-0 left-[-20%] top-[4%] h-[78%] w-[78%] rounded-full blur-3xl';
-const sceneMetricOrbClassName = 'absolute z-0 left-[-20%] top-[6%] flex h-[76%] w-[76%] items-center justify-center';
-const communityMetricGlowClassName = 'absolute z-0 left-[-28%] top-[5%] h-[80%] w-[80%] rounded-full blur-3xl';
-const communityMetricOrbClassName = 'absolute z-0 left-[-26%] top-[8%] flex h-[78%] w-[78%] items-center justify-center';
-const HeroGlobeWorld = dynamic(() => import('@/components/ui/globe').then(mod => mod.World), {
-  ssr: false,
-});
+const sceneMetricGlowClassName = 'absolute z-0 left-[-10%] top-[4%] h-[78%] w-[78%] rounded-full blur-3xl';
+const sceneMetricOrbClassName = 'absolute z-0 left-[-10%] top-[6%] flex h-[76%] w-[76%] items-center justify-center';
+const communityMetricGlowClassName = 'absolute z-0 left-[-16%] top-[5%] h-[80%] w-[80%] rounded-full blur-3xl';
+const communityMetricOrbClassName = 'absolute z-0 left-[-14%] top-[8%] flex h-[78%] w-[78%] items-center justify-center';
 const flowchainMapRoutes = [
   {
     start: { lat: 40.7128, lng: -74.006, label: 'New York' },
@@ -56,77 +52,26 @@ const flowchainMapRoutes = [
     end: { lat: 40.7128, lng: -74.006, label: 'New York' },
   },
 ];
+const heroGlobeMarkers: InteractiveMarker[] = [
+  { id: 'nyc', location: [40.7128, -74.006], name: 'Crypto', users: 240 },
+  { id: 'london', location: [51.5072, -0.1276], name: 'Forex', users: 72 },
+  { id: 'dubai', location: [25.2048, 55.2708], name: 'Commods', users: 58 },
+  { id: 'singapore', location: [1.3521, 103.8198], name: 'RWA', users: 86 },
+  { id: 'tokyo', location: [35.6762, 139.6503], name: 'Equities', users: 130 },
+  { id: 'sao-paulo', location: [-23.5505, -46.6333], name: 'LATAM', users: 44 },
+];
+const heroGlobeArcs: GlobeArc[] = [
+  { id: 'nyc-london', from: [40.7128, -74.006], to: [51.5072, -0.1276] },
+  { id: 'london-dubai', from: [51.5072, -0.1276], to: [25.2048, 55.2708] },
+  { id: 'dubai-singapore', from: [25.2048, 55.2708], to: [1.3521, 103.8198] },
+  { id: 'singapore-tokyo', from: [1.3521, 103.8198], to: [35.6762, 139.6503] },
+  { id: 'sao-paulo-nyc', from: [-23.5505, -46.6333], to: [40.7128, -74.006] },
+];
+const heroGlobeBaseColor: [number, number, number] = [0.08, 0.19, 0.32];
+const heroGlobeGlowColor: [number, number, number] = [0.24, 0.78, 0.91];
 
 export function LandingHeroGlobeVisual(props: VisualProps) {
-  const globeConfig = useMemo<GlobeConfig>(() => ({
-    ambientLight: props.accentColor,
-    arcLength: 0.84,
-    arcTime: 2200,
-    atmosphereAltitude: 0.18,
-    atmosphereColor: props.accentColor,
-    autoRotate: props.isActive,
-    autoRotateSpeed: 0.75,
-    directionalLeftLight: '#8DDCE8',
-    directionalTopLight: '#FFFFFF',
-    emissive: '#0B3156',
-    emissiveIntensity: 0.42,
-    globeColor: '#0A2748',
-    maxRings: 4,
-    pointLight: props.accentColor,
-    pointSize: 1.4,
-    polygonColor: 'rgba(141, 220, 232, 0.72)',
-    rings: 2,
-    shininess: 0.85,
-    showAtmosphere: true,
-  }), [props.accentColor, props.isActive]);
-
-  const globeData = useMemo<GlobeArcDatum[]>(() => [
-    {
-      order: 1,
-      startLat: 40.7128,
-      startLng: -74.006,
-      endLat: 51.5072,
-      endLng: -0.1276,
-      arcAlt: 0.34,
-      color: props.accentColor,
-    },
-    {
-      order: 2,
-      startLat: 51.5072,
-      startLng: -0.1276,
-      endLat: 25.2048,
-      endLng: 55.2708,
-      arcAlt: 0.26,
-      color: '#8DDCE8',
-    },
-    {
-      order: 3,
-      startLat: 1.3521,
-      startLng: 103.8198,
-      endLat: 35.6762,
-      endLng: 139.6503,
-      arcAlt: 0.2,
-      color: props.accentColor,
-    },
-    {
-      order: 4,
-      startLat: -23.5505,
-      startLng: -46.6333,
-      endLat: 40.7128,
-      endLng: -74.006,
-      arcAlt: 0.38,
-      color: '#FFFFFF',
-    },
-    {
-      order: 5,
-      startLat: 25.2048,
-      startLng: 55.2708,
-      endLat: 1.3521,
-      endLng: 103.8198,
-      arcAlt: 0.22,
-      color: props.accentColor,
-    },
-  ], [props.accentColor]);
+  const globeAccentColor = useMemo(() => hexToCobeColor(props.accentColor), [props.accentColor]);
 
   return (
     <div className="relative h-full w-full overflow-visible">
@@ -135,16 +80,20 @@ export function LandingHeroGlobeVisual(props: VisualProps) {
         style={{ background: `radial-gradient(circle, ${props.glowColor} 0%, transparent 72%)` }}
       />
 
-      <div
-        aria-hidden="true"
-        className="absolute z-0 left-[-32%] top-[-8%] h-[112%] w-[112%] opacity-95 [mask-image:radial-gradient(circle,white_58%,rgba(255,255,255,0.68)_74%,transparent_92%)]"
-      >
-        <HeroGlobeWorld globeConfig={globeConfig} data={globeData} />
+      <div className="absolute z-0 left-[-15%] top-[-10%] flex h-[126%] w-[126%] items-center justify-center overflow-visible xl:left-[-18%]">
+        <GlobeInteractive
+          markers={heroGlobeMarkers}
+          arcs={heroGlobeArcs}
+          accentColor={globeAccentColor}
+          baseColor={heroGlobeBaseColor}
+          glowColor={heroGlobeGlowColor}
+          label="markets"
+          speed={props.isActive ? 0.0028 : 0}
+          className="w-full max-w-[31.5rem] opacity-95 drop-shadow-[0_28px_90px_rgba(60,200,232,0.16)] xl:max-w-[34rem]"
+        />
       </div>
 
-
-
-      <div className="absolute z-20 bottom-[3%] right-[-1%] w-[74%] max-w-[23rem]">
+      <div className="absolute z-20 bottom-[3%] left-[200px] w-[82%] max-w-[25.5rem] xl:w-[84%] xl:max-w-[26rem]">
         <HeroVisualPanelCard
           panel={props.slide.visualPanel}
           accentColor={props.accentColor}
@@ -155,6 +104,15 @@ export function LandingHeroGlobeVisual(props: VisualProps) {
   );
 }
 
+function hexToCobeColor(hex: string): [number, number, number] {
+  const value = hex.replace('#', '');
+  const red = Number.parseInt(value.slice(0, 2), 16) / 255;
+  const green = Number.parseInt(value.slice(2, 4), 16) / 255;
+  const blue = Number.parseInt(value.slice(4, 6), 16) / 255;
+
+  return [red, green, blue];
+}
+
 export function LandingHeroCardsVisual(props: VisualProps) {
   const [isHovered, setIsHovered] = useState(false);
   const cardVariants = [
@@ -162,7 +120,7 @@ export function LandingHeroCardsVisual(props: VisualProps) {
       title: 'Tier 1',
       value: '$0.001',
       note: 'Genesis access',
-      className: 'left-[-6%] top-[22%] -rotate-[10deg]',
+      className: 'left-[6%] top-[22%] -rotate-[10deg]',
       hoverOffsetX: -28,
       hoverOffsetY: -8,
       hoverScale: 1.04,
@@ -171,7 +129,7 @@ export function LandingHeroCardsVisual(props: VisualProps) {
       title: 'Listing Ref',
       value: '$0.05',
       note: 'Whitepaper framing',
-      className: 'left-[6%] top-[52%] rotate-[4deg]',
+      className: 'left-[18%] top-[52%] rotate-[4deg]',
       hoverOffsetX: -20,
       hoverOffsetY: -12,
       hoverScale: 1.06,
@@ -189,7 +147,7 @@ export function LandingHeroCardsVisual(props: VisualProps) {
         style={{ background: `radial-gradient(circle, ${props.glowColor} 0%, transparent 78%)` }}
       />
 
-      <div className="absolute z-0 left-[22%] top-[14%] h-[10rem] w-[15rem] rotate-[11deg] rounded-[1.9rem] border border-white/8 bg-[linear-gradient(160deg,rgba(255,255,255,0.1),rgba(255,255,255,0.03))] opacity-38 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-2xl" />
+      <div className="absolute z-0 left-[32%] top-[14%] h-[10rem] w-[15rem] rotate-[11deg] rounded-[1.9rem] border border-white/8 bg-[linear-gradient(160deg,rgba(255,255,255,0.1),rgba(255,255,255,0.03))] opacity-38 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-2xl" />
 
 
       {cardVariants.map((card, index) => (
@@ -220,7 +178,7 @@ export function LandingHeroCardsVisual(props: VisualProps) {
         </motion.div>
       ))}
 
-      <div className="absolute z-20 bottom-[3%] right-[-1%] w-[72%] max-w-[23rem]">
+      <div className="absolute z-20 bottom-[3%] left-[200px] w-[82%] max-w-[25.5rem] xl:w-[84%] xl:max-w-[26rem]">
         <HeroVisualPanelCard panel={props.slide.visualPanel} accentColor={props.accentColor} />
       </div>
     </motion.div>
@@ -247,7 +205,7 @@ function FlowchainScene(props: VisualProps) {
         className="absolute z-0 inset-[6%] rounded-[2rem] blur-3xl"
         style={{ background: `radial-gradient(circle, ${props.glowColor} 0%, transparent 74%)` }}
       />
-      <div className="absolute z-0 left-[-26%] top-[-6%] h-[86%] w-[132%] opacity-88">
+      <div className="absolute z-0 left-[-14%] top-[-6%] h-[86%] w-[132%] opacity-88">
         <WorldMap
           backgroundColor="transparent"
           className="h-full bg-transparent dark:bg-transparent"
@@ -257,7 +215,7 @@ function FlowchainScene(props: VisualProps) {
         />
       </div>
 
-      <div className="absolute z-20 bottom-[2%] right-[-1%] h-[84%] w-[72%] max-w-[23.5rem]">
+      <div className="absolute z-20 bottom-[4%] left-[200px] h-[78%] w-[78%] max-w-[25rem]">
         <HeroVisualPanelCard
           panel={props.slide.visualPanel}
           accentColor={props.accentColor}
@@ -298,7 +256,7 @@ function StakingScene(props: VisualProps) {
         </div>
       </div>
 
-      <div className="absolute z-20 bottom-[3%] right-[-1%] w-[70%] max-w-[23rem]">
+      <div className="absolute z-20 bottom-[3%] left-[200px] w-[78%] max-w-[25rem]">
         <HeroVisualPanelCard
           panel={props.slide.visualPanel}
           accentColor={props.accentColor}
@@ -312,10 +270,10 @@ function StakingScene(props: VisualProps) {
 
 function CommunityScene(props: VisualProps) {
   const badges = [
-    { icon: Landmark, label: 'No VC', className: 'left-[9%] top-[27%]' },
-    { icon: ShieldCheck, label: 'Locked Team', className: 'left-[-2%] top-[21%]' },
-    { icon: Workflow, label: 'DAO Path', className: 'left-[-4%] bottom-[22%]' },
-    { icon: Sparkles, label: 'Genesis', className: 'left-[8%] bottom-[13%]' },
+    { icon: Landmark, label: 'No VC', className: 'left-[20%] top-[27%]' },
+    { icon: ShieldCheck, label: 'Locked Team', className: 'left-[8%] top-[21%]' },
+    { icon: Workflow, label: 'DAO Path', className: 'left-[6%] bottom-[22%]' },
+    { icon: Sparkles, label: 'Genesis', className: 'left-[18%] bottom-[13%]' },
   ];
 
   return (
@@ -357,7 +315,7 @@ function CommunityScene(props: VisualProps) {
         );
       })}
 
-      <div className="absolute z-20 bottom-[3%] right-[-1%] w-[72%] max-w-[23.5rem]">
+      <div className="absolute z-20 bottom-[3%] left-[200px] w-[78%] max-w-[25rem]">
         <HeroVisualPanelCard
           panel={props.slide.visualPanel}
           accentColor={props.accentColor}
@@ -378,18 +336,24 @@ function HeroVisualPanelCard(props: {
   compact?: boolean;
   itemsWrapperClassName?: string;
 }) {
+  const isDenseStack = props.panel.layout === 'stack';
+
   return (
     <HeroDitheringCard
-      className={cn(props.compact ? 'p-3.5' : 'p-5', props.className)}
+      className={cn(props.compact ? 'p-3.5' : isDenseStack ? 'p-4' : 'p-5', props.className)}
       colorFront={props.accentColor}
-      contentClassName={cn(props.compact ? 'space-y-3' : 'space-y-4', props.contentClassName)}
+      contentClassName={cn((props.compact || isDenseStack) ? 'space-y-3' : 'space-y-4', props.contentClassName)}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-2">
           <div className="text-[10px] font-bold tracking-[0.3em] text-[var(--muted)] uppercase">{props.panel.eyebrow}</div>
           <div className={cn(
-            'font-heading max-w-[14rem] font-bold leading-[1.04] tracking-tight text-[var(--text)]',
-            props.compact ? 'text-[1.7rem]' : 'text-[2rem]',
+            'font-heading font-bold leading-[1.04] tracking-tight text-[var(--text)]',
+            props.compact
+              ? 'max-w-[14rem] text-[1.7rem]'
+              : isDenseStack
+                ? 'max-w-[16rem] text-[1.85rem]'
+                : 'max-w-[14rem] text-[2rem]',
           )}>
             {props.panel.title}
           </div>
@@ -400,9 +364,9 @@ function HeroVisualPanelCard(props: {
         </Badge>
       </div>
 
-      <p className={cn('text-[var(--muted)]', props.compact ? 'text-[13px] leading-[1.45]' : 'text-sm leading-7')}>{props.panel.body}</p>
+      <p className={cn('text-[var(--muted)]', (props.compact || isDenseStack) ? 'text-[13px] leading-[1.55]' : 'text-sm leading-7')}>{props.panel.body}</p>
       <div className={props.itemsWrapperClassName}>
-        <HeroVisualPanelItems layout={props.panel.layout} items={props.panel.items} compact={props.compact} />
+        <HeroVisualPanelItems layout={props.panel.layout} items={props.panel.items} compact={props.compact || isDenseStack} />
       </div>
     </HeroDitheringCard>
   );
@@ -456,15 +420,21 @@ function HeroVisualPanelItems(props: {
   }
 
   return (
-    <div className="grid gap-3">
+    <div className={cn('grid', props.compact ? 'gap-2' : 'gap-3')}>
       {props.items.map(item => (
-        <div key={item.label} className="rounded-[1.2rem] border border-white/10 bg-[rgba(255,255,255,0.03)] px-4 py-3">
+        <div
+          key={item.label}
+          className={cn(
+            'border border-white/10 bg-[rgba(255,255,255,0.03)]',
+            props.compact ? 'rounded-[1rem] px-3.5 py-2.5' : 'rounded-[1.2rem] px-4 py-3',
+          )}
+        >
           <div className="flex items-center justify-between gap-4">
-            <div className="text-[10px] font-semibold tracking-[0.28em] text-[var(--muted)] uppercase">{item.label}</div>
-            <div className="font-data text-right text-[1.45rem] font-semibold text-[var(--text)]">{item.value}</div>
+            <div className={cn('text-[10px] font-semibold text-[var(--muted)] uppercase', props.compact ? 'tracking-[0.22em]' : 'tracking-[0.28em]')}>{item.label}</div>
+            <div className={cn('font-data text-right font-semibold leading-none text-[var(--text)]', props.compact ? 'text-[1.3rem]' : 'text-[1.45rem]')}>{item.value}</div>
           </div>
           {item.note ? (
-            <div className="mt-2 text-xs leading-6 text-[var(--muted)]">{item.note}</div>
+            <div className={cn('text-xs text-[var(--muted)]', props.compact ? 'mt-1.5 leading-5' : 'mt-2 leading-6')}>{item.note}</div>
           ) : null}
         </div>
       ))}

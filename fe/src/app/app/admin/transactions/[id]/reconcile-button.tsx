@@ -1,20 +1,26 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import { useReconcileAdminTransaction } from '@/dal/app/admin/admin.services';
+import { ConfirmationDialog } from '@/components/flowdex/confirmation-dialog';
 
 export function AdminReconcileButton(props: {
+  status: string;
   transactionId: string;
 }) {
   const router = useRouter();
   const reconcileMutation = useReconcileAdminTransaction();
 
   return (
-    <Button
-      variant="glass"
+    <ConfirmationDialog
+      title="Reconcile Transaction"
+      description={`Reconcile transaction ${props.transactionId} with current status ${props.status}. This refreshes the transaction status and confirmation details.`}
+      triggerLabel="Reconcile now"
+      confirmLabel="Reconcile Transaction"
+      pendingLabel="Reconciling..."
       disabled={reconcileMutation.isPending}
-      onClick={async () => {
+      isPending={reconcileMutation.isPending}
+      onConfirm={async () => {
         try {
           await reconcileMutation.mutateAsync(props.transactionId);
           router.refresh();
@@ -22,8 +28,6 @@ export function AdminReconcileButton(props: {
           // Mutation hook owns error feedback.
         }
       }}
-    >
-      {reconcileMutation.isPending ? 'Reconciling…' : 'Reconcile now'}
-    </Button>
+    />
   );
 }

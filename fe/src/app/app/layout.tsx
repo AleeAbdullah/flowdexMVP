@@ -5,7 +5,8 @@ import { AppShell } from './_components/app-shell';
 export default async function AppLayout(props: {
   children: ReactNode;
 }) {
-  const { profile } = await getAuthenticatedAppContext();
+  const { session, profile } = await getAuthenticatedAppContext();
+  const displayName = session.user.name || profile.email;
 
-  return <AppShell profile={profile}>{props.children}</AppShell>;
+  return <AppShell profile={profile} displayName={displayName}>{props.children}</AppShell>;
 }

@@ -29,6 +29,7 @@ export default async function AdminTransactionDetailRoute(props: {
     <div className="space-y-8">
       <GlassPanel className="grid gap-8 p-6 lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
         <SectionHeading
+          as="h1"
           eyebrow="Admin Transaction Detail"
           title={`${transaction.assetCode} operational lifecycle`}
           description="This detail view is the admin counterpart to the user receipt screen with user, wallet, and lifecycle context."
@@ -43,7 +44,7 @@ export default async function AdminTransactionDetailRoute(props: {
           <DataKicker label="Network" value={transaction.network} />
         </div>
         <div>
-          <AdminReconcileButton transactionId={transaction.id} />
+          <AdminReconcileButton transactionId={transaction.id} status={transaction.status} />
         </div>
       </GlassPanel>
 
@@ -80,7 +81,7 @@ export default async function AdminTransactionDetailRoute(props: {
             <div className="space-y-3">
               <div className="text-lg font-bold text-[var(--text)]">Lifecycle posture</div>
               <p className="text-sm leading-7 text-[var(--muted)]">
-                No machine-readable failure reason is currently attached to this ledger transaction.
+                No failure reason is currently attached to this transaction.
               </p>
             </div>
           )}

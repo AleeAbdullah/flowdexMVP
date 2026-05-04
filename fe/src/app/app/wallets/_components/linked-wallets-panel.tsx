@@ -1,8 +1,9 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import type { IWallet } from '@/dal/app/wallets/wallets.types';
+import { ConfirmationDialog } from '@/components/flowdex/confirmation-dialog';
 import { GlassPanel } from '@/components/flowdex/primitives';
+import { ShieldCheck, Wallet } from '@/icons';
 import { NETWORK_LABELS } from '../constants';
 
 export function LinkedWalletsPanel(props: {
@@ -15,58 +16,77 @@ export function LinkedWalletsPanel(props: {
   isLoading: boolean;
 }) {
   return (
-    <GlassPanel className="overflow-hidden">
-      <div className="border-b border-[var(--card-border)] px-6 py-4 text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
-        Linked Wallets
+    <GlassPanel className="flex flex-col p-4">
+      <div className="flex items-start justify-between gap-3 border-b border-[var(--card-border)] pb-3">
+        <div>
+          <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
+            Linked wallets
+          </div>
+          <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+            Review wallet access for this account.
+          </p>
+        </div>
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--accent-border)] bg-[var(--accent-bg)] text-[var(--cyan)]">
+          <Wallet className="h-4 w-4" />
+        </div>
       </div>
 
       {props.errorMessage ? (
-        <div className="px-6 py-5 text-sm text-rose-200">
+        <div className="mt-3 rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
           {props.errorMessage}
         </div>
       ) : null}
 
       {props.isLoading && props.wallets.length === 0 ? (
-        <div className="px-6 py-5 text-sm text-[var(--muted)]">
-          Loading linked wallets…
+        <div className="mt-3 rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] px-3 py-2 text-sm text-[var(--muted)]">
+          Loading linked wallets...
         </div>
       ) : null}
 
       {props.wallets.length === 0 ? (
-        <div className="px-6 py-5 text-sm text-[var(--muted)]">
-          No linked wallets yet.
+        <div className="mt-3 rounded-xl border border-dashed border-[var(--card-border)] bg-[color-mix(in_srgb,var(--bg)_42%,transparent)] px-3 py-3 text-sm text-[var(--muted)]">
+          This area will show linked wallets after setup.
         </div>
-      ) : props.wallets.map(wallet => (
-        <div
-          key={wallet.id}
-          className="flex flex-col gap-4 border-b border-[var(--card-border)] px-6 py-5 last:border-b-0 md:flex-row md:items-center md:justify-between"
-        >
-          <div>
-            <div className="font-semibold text-[var(--text)]">
-              {NETWORK_LABELS[wallet.network] ?? wallet.network}
-            </div>
-            <div className="mt-1 text-sm text-[color-mix(in_srgb,var(--text)_45%,transparent)]">
-              {wallet.address}
-            </div>
-            <div className="mt-1 text-xs text-[color-mix(in_srgb,var(--text)_45%,transparent)]">
-              {wallet.provider} • {wallet.trustLevel}
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-sm text-cyan-200">{wallet.isPrimary ? 'Primary' : 'Linked'}</div>
-            <Button
-              variant="glass"
-              size="sm"
-              disabled={props.deleteState.isPending}
-              onClick={() => {
-                void props.deleteState.onDeleteWallet(wallet.id);
-              }}
+      ) : (
+        <div className="mt-3 max-h-[calc(100dvh-16rem)] space-y-3 overflow-y-auto pr-1">
+          {props.wallets.map(wallet => (
+            <div
+              key={wallet.id}
+              className="rounded-xl border border-[var(--card-border)] bg-[color-mix(in_srgb,var(--bg)_36%,var(--card-bg))] p-3"
             >
-              Remove
-            </Button>
-          </div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 font-semibold text-[var(--text)]">
+                    <ShieldCheck className="h-4 w-4 text-[var(--cyan)]" />
+                    <span>{NETWORK_LABELS[wallet.network] ?? wallet.network}</span>
+                  </div>
+                  <div className="mt-2 break-all text-xs leading-5 text-[color-mix(in_srgb,var(--text)_58%,transparent)]">
+                    {wallet.address}
+                  </div>
+                </div>
+                <div className="shrink-0 rounded-full border border-[var(--accent-border)] bg-[var(--accent-bg)] px-2 py-1 text-[10px] font-bold text-[var(--cyan)]">
+                  {wallet.isPrimary ? 'Primary' : 'Linked'}
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <div className="text-[11px] font-semibold text-[color-mix(in_srgb,var(--text)_52%,transparent)]">
+                  {wallet.provider} / {wallet.trustLevel}
+                </div>
+                <ConfirmationDialog
+                  title="Remove Linked Wallet"
+                  description={`Remove wallet ${wallet.address} from ${NETWORK_LABELS[wallet.network] ?? wallet.network}. You can link it again later if you need it.`}
+                  triggerLabel="Remove"
+                  confirmLabel="Remove Wallet"
+                  pendingLabel="Removing..."
+                  disabled={props.deleteState.isPending}
+                  isPending={props.deleteState.isPending}
+                  onConfirm={() => props.deleteState.onDeleteWallet(wallet.id)}
+                />
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </GlassPanel>
   );
 }

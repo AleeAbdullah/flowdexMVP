@@ -16,9 +16,10 @@ export default async function AdminIndexRoute() {
     <div className="space-y-8">
       <GlassPanel className="grid gap-8 p-6 lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
         <SectionHeading
+          as="h1"
           eyebrow="Admin"
-          title="Operate ledger-backed transaction state from a single surface."
-          description="This panel is focused on ledger throughput, status health, and lifecycle visibility across tracked transactions."
+          title="Monitor transaction operations."
+          description="Review tracked volume, status health, and lifecycle visibility across user transactions."
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <DataKicker label="Total Tracked" value={`${stats.totalTransactionCount}`} />
@@ -31,7 +32,7 @@ export default async function AdminIndexRoute() {
       <div className="grid gap-4 xl:grid-cols-3">
         <GlassPanel className="p-5">
           <DataKicker label="Confirmed Volume" value={formatPlainNumber(stats.totalConfirmedVolume, 2)} />
-          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">Finalized ledger volume from confirmed transactions.</p>
+          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">Finalized volume from confirmed transactions.</p>
         </GlassPanel>
         <GlassPanel className="p-5">
           <DataKicker label="Failed or Dropped" value={`${stats.failedTransactionCount}`} />
@@ -39,7 +40,7 @@ export default async function AdminIndexRoute() {
         </GlassPanel>
         <GlassPanel className="p-5">
           <DataKicker label="Last Update" value={formatDateTime(stats.lastTransactionAt)} />
-          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">Most recent ledger update time across all tracked transactions.</p>
+          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">Most recent update time across all tracked transactions.</p>
         </GlassPanel>
       </div>
 
@@ -53,7 +54,7 @@ export default async function AdminIndexRoute() {
         <ActionCard
           href={ROUTES.WORKSPACE.TRANSACTIONS}
           title="User Surface"
-          description="Open the user-facing ledger view to compare admin and end-user transaction visibility."
+          description="Open the user-facing transaction view to compare admin and end-user visibility."
           icon={<BarChart3 className="h-5 w-5" />}
         />
       </div>

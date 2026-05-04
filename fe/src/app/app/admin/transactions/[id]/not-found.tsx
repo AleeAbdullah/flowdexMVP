@@ -8,7 +8,7 @@ export default function AdminTransactionNotFound() {
     <GlassPanel className="space-y-4 border border-[var(--card-border)] p-6">
       <div className="text-lg font-bold text-[var(--text)]">Admin transaction not found</div>
       <p className="text-sm leading-7 text-[var(--muted)]">
-        The requested admin ledger record does not exist or is no longer available.
+        The requested admin transaction does not exist or is no longer available.
       </p>
       <Button variant="glass" asChild>
         <Link href={ROUTES.ADMIN.TRANSACTIONS}>Back to admin transactions</Link>

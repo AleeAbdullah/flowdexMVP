@@ -32,19 +32,22 @@ export function GlassPanel(props: {
 }
 
 export function SectionHeading(props: {
+  as?: 'h1' | 'h2';
   eyebrow: string;
   title: string;
   description: string;
   align?: 'left' | 'center';
 }) {
+  const Heading = props.as ?? 'h2';
+
   return (
     <div className={cn('max-w-3xl space-y-4', props.align === 'center' && 'mx-auto text-center')}>
       <div className="inline-flex rounded-full border border-[var(--accent-border)] bg-[var(--accent-bg)] px-4 py-1 text-[10px] font-bold tracking-[0.35em] text-[var(--cyan)] uppercase">
         {props.eyebrow}
       </div>
-      <h2 className="font-heading text-balance text-3xl font-bold tracking-tight text-[var(--text)] md:text-5xl">
+      <Heading className="font-heading text-balance text-3xl font-bold tracking-tight text-[var(--text)] md:text-5xl">
         {props.title}
-      </h2>
+      </Heading>
       <p className="text-balance text-sm leading-7 text-[var(--muted)] md:text-base">
         {props.description}
       </p>
