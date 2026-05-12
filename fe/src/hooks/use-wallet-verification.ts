@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback } from 'react';
 import { useCreateWalletChallenge, useVerifyWalletChallenge } from '@/dal/app/wallet-auth/wallet-auth.services';
 
 type WalletSigner = {
@@ -11,10 +12,10 @@ export function useWalletVerification() {
   const createChallenge = useCreateWalletChallenge();
   const verifyChallenge = useVerifyWalletChallenge();
 
-  async function verifyWallet(input: {
+  const verifyWallet = useCallback(async (input: {
     signer: WalletSigner;
     chainId: number;
-  }) {
+  }) => {
     const walletAddress = await input.signer.getAddress();
     const challenge = await createChallenge.mutateAsync({
       walletAddress,
@@ -28,15 +29,17 @@ export function useWalletVerification() {
       chainId: input.chainId,
       signature,
     });
-  }
+  }, [createChallenge, verifyChallenge]);
+
+  const reset = useCallback(() => {
+    createChallenge.reset();
+    verifyChallenge.reset();
+  }, [createChallenge, verifyChallenge]);
 
   return {
     verifyWallet,
     isPending: createChallenge.isPending || verifyChallenge.isPending,
     error: createChallenge.error ?? verifyChallenge.error ?? null,
-    reset: () => {
-      createChallenge.reset();
-      verifyChallenge.reset();
-    },
+    reset,
   };
 }

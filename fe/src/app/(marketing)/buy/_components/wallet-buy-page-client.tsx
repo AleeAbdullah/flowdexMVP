@@ -245,6 +245,21 @@ export function WalletBuyPageClient(props: {
   const simulateTransaction = useSimulateTransaction();
   const trackTransaction = useTrackTransaction();
   const walletVerification = useWalletVerification();
+  const {
+    verifyWallet,
+    isPending: isWalletVerificationPending,
+    error: walletVerificationError,
+    reset: resetWalletVerification,
+  } = walletVerification;
+  const previousConnectionStateRef = useRef<{
+    isWalletConnected: boolean;
+    providerChainId: number | null;
+    selectedAssetChainId: number | null;
+  }>({
+    isWalletConnected: false,
+    providerChainId: null,
+    selectedAssetChainId: null,
+  });
 
   const connectedWalletAddress = user?.address ?? null;
   const providerChainId = chain?.id ?? null;
@@ -354,11 +369,12 @@ export function WalletBuyPageClient(props: {
   }, [clearConnectionIssue, isWalletConnected]);
 
   useEffect(() => {
-    if (!isWalletConnected) {
-      walletVerification.reset();
+    const previousConnectionState = previousConnectionStateRef.current;
+    if (!isWalletConnected && previousConnectionState.isWalletConnected) {
+      resetWalletVerification();
       resetContributionFlow();
     }
-  }, [isWalletConnected, resetContributionFlow, walletVerification]);
+  }, [isWalletConnected, resetContributionFlow, resetWalletVerification]);
 
   useEffect(() => {
     if (connectionAttempt.status !== 'connecting' || connectWallet.isPending || isWalletConnected) {
@@ -391,8 +407,21 @@ export function WalletBuyPageClient(props: {
   }, [connectWallet.isPending, connectionAttempt.status, isWalletConnected]);
 
   useEffect(() => {
-    resetContributionFlow();
-  }, [providerChainId, resetContributionFlow, selectedAsset?.chainId]);
+    const previousConnectionState = previousConnectionStateRef.current;
+    const selectedAssetChainId = selectedAsset?.chainId ?? null;
+    const chainSelectionChanged = previousConnectionState.providerChainId !== providerChainId
+      || previousConnectionState.selectedAssetChainId !== selectedAssetChainId;
+
+    if (chainSelectionChanged) {
+      resetContributionFlow();
+    }
+
+    previousConnectionStateRef.current = {
+      isWalletConnected,
+      providerChainId,
+      selectedAssetChainId,
+    };
+  }, [isWalletConnected, providerChainId, resetContributionFlow, selectedAsset?.chainId]);
 
   async function handleConnectByName(connectorName: string) {
     const normalizedConnectorName = normalizeConnectorName(connectorName);
@@ -413,7 +442,7 @@ export function WalletBuyPageClient(props: {
       return;
     }
 
-    walletVerification.reset();
+    resetWalletVerification();
     resetContributionFlow();
     connectWallet.connect({
       connector,
@@ -427,8 +456,8 @@ export function WalletBuyPageClient(props: {
     }
 
     clearConnectionIssue();
-    walletVerification.reset();
-    await walletVerification.verifyWallet({
+    resetWalletVerification();
+    await verifyWallet({
       signer,
       chainId: selectedAsset.chainId,
     });
@@ -456,7 +485,7 @@ export function WalletBuyPageClient(props: {
     logoutWalletSession.mutate(undefined);
     queryClient.removeQueries({ queryKey: ['wallet', 'transactions'] });
     queryClient.removeQueries({ queryKey: ['wallet-auth', 'session'] });
-    walletVerification.reset();
+    resetWalletVerification();
     setConnectionAttempt({
       status: 'idle',
       connectorName: null,
@@ -613,14 +642,14 @@ export function WalletBuyPageClient(props: {
             ? 'failed'
             : 'disconnected';
 
-  const verificationErrorMessage = walletVerification.error
-    ? extractAxiosError(walletVerification.error).message || walletVerification.error.message
+  const verificationErrorMessage = walletVerificationError
+    ? extractAxiosError(walletVerificationError).message || walletVerificationError.message
     : null;
   const verificationState = walletSessionQuery.isLoading && isWalletConnected
     ? 'checking'
     : isWalletConnected && normalizedConnectedWallet && normalizedSessionWallet && normalizedConnectedWallet !== normalizedSessionWallet
         ? 'mismatch'
-        : walletVerification.isPending
+        : isWalletVerificationPending
             ? 'verifying'
             : verificationErrorMessage
                 ? 'failed'
@@ -721,7 +750,7 @@ export function WalletBuyPageClient(props: {
   }, [connectionAttempt.connectorName, connectionState, connectorMap, walletSupportRegistry]);
 
   const primaryActionDisabled = viewModel.dominantActionId === 'verifyWallet'
-    ? !selectedAsset || !signer || walletVerification.isPending
+    ? !selectedAsset || !signer || isWalletVerificationPending
     : viewModel.dominantActionId === 'switchNetwork'
       ? !selectedAsset || isSettingChain
       : viewModel.dominantActionId === 'submitContribution'
@@ -772,7 +801,7 @@ export function WalletBuyPageClient(props: {
       selectedAssetId={selectedAssetId}
       onAssetChange={(value) => {
         setSelectedAssetId(value);
-        walletVerification.reset();
+        resetWalletVerification();
         resetContributionFlow();
       }}
       amountDisplay={amountDisplay}
