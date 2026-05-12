@@ -11,8 +11,8 @@ import {
 import { getOptionalSession } from '@/lib/auth-server';
 
 export const metadata: Metadata = {
-  title: 'Login | FlowDex',
-  description: 'Sign in to continue into the protected FlowDex app and account experience.',
+  title: 'Admin Login | FlowDex',
+  description: 'Admin-only sign in for FlowDex operational access.',
 };
 
 export default async function LoginPage(props: {

@@ -27,11 +27,13 @@ type TransactionByHashResult = {
   to: string | null;
   value: string;
   blockNumber: string | null;
+  input: string | null;
 };
 
 type TransactionReceiptResult = {
   status: string | null;
   blockNumber: string | null;
+  logs: Array<Record<string, unknown>>;
 };
 
 const JSON_RPC_HEADERS = {
@@ -220,6 +222,7 @@ export class AlchemyService {
     const to = typeof result.to === 'string' ? result.to : null;
     const value = typeof result.value === 'string' ? result.value : null;
     const blockNumber = typeof result.blockNumber === 'string' ? result.blockNumber : null;
+    const input = typeof result.input === 'string' ? result.input : null;
 
     if (!hash || !from || !value) {
       return null;
@@ -231,6 +234,7 @@ export class AlchemyService {
       to,
       value,
       blockNumber,
+      input,
     };
   }
 
@@ -250,6 +254,7 @@ export class AlchemyService {
     return {
       status: typeof result.status === 'string' ? result.status : null,
       blockNumber: typeof result.blockNumber === 'string' ? result.blockNumber : null,
+      logs: Array.isArray(result.logs) ? result.logs as Array<Record<string, unknown>> : [],
     };
   }
 

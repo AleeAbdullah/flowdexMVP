@@ -3,18 +3,18 @@ import { CheckCircle2, ShieldCheck, Wallet } from '@/icons';
 const trustPoints = [
   {
     icon: ShieldCheck,
-    title: 'Session-first access',
-    body: 'Sign in first, then move into protected account and wallet actions from a stable app session.',
+    title: 'Admin-only route',
+    body: 'This email login exists only for FlowDex operators managing admin dashboards and transaction oversight.',
   },
   {
     icon: Wallet,
-    title: 'Wallet linking comes next',
-    body: 'After account access, the protected app guides wallet linking and any chain-specific flow from the right screen.',
+    title: 'Contributors use wallets',
+    body: 'Contributor access no longer uses account creation. Wallet verification and receipts live on the public buy and transaction routes.',
   },
   {
     icon: CheckCircle2,
-    title: 'Protected routes stay gated',
-    body: 'Only active sessions can move into the protected FlowDex app surface and its account workflows.',
+    title: 'Admin guards enforce access',
+    body: 'The footer login link is only navigation. Real protection comes from Better Auth admin guards and role checks.',
   },
 ];
 

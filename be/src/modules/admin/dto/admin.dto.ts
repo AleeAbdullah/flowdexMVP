@@ -15,7 +15,7 @@ export class AdminTransactionFiltersDto {
 
   @IsOptional()
   @IsString()
-  userId?: string;
+  walletAddress?: string;
 
   @IsOptional()
   @IsString()

@@ -2,9 +2,13 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 export interface AuthContext {
   sub: string;
-  email: string;
-  role: string;
+  authType: 'admin' | 'wallet';
+  email?: string;
+  role?: string;
   sessionId: string;
+  walletAddressNormalized?: string;
+  walletAddressChecksum?: string;
+  lastVerifiedChainId?: number | null;
 }
 
 export const CurrentAuth = createParamDecorator(

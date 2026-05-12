@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 
 import { AuthContext } from '../../common/decorators/current-auth.decorator';
 import { addFixed, normalizeFixed } from '../../common/utils/decimal';
-import { TransactionListItemDto } from '../transactions/dto/transactions.dto';
+import { AdminTransactionListItemDto } from '../transactions/dto/transactions.dto';
 import { LedgerTransactionEntity } from '../transactions/entities/ledger-transaction.entity';
 import { TransactionsService } from '../transactions/transactions.service';
 import { UsersService } from '../users/users.service';
@@ -22,20 +22,20 @@ export class AdminService {
     status?: string;
     network?: string;
     assetCode?: string;
-    userId?: string;
+    walletAddress?: string;
     from?: string;
     to?: string;
-  }): Promise<{ items: TransactionListItemDto[] }> {
+  }): Promise<{ items: AdminTransactionListItemDto[] }> {
     await this.usersService.syncAndRequireActive(auth);
     return this.transactionsService.listAll(filters);
   }
 
-  async getTransaction(auth: AuthContext, id: string): Promise<TransactionListItemDto> {
+  async getTransaction(auth: AuthContext, id: string): Promise<AdminTransactionListItemDto> {
     await this.usersService.syncAndRequireActive(auth);
     return this.transactionsService.getById(id);
   }
 
-  async reconcileTransaction(auth: AuthContext, id: string): Promise<TransactionListItemDto> {
+  async reconcileTransaction(auth: AuthContext, id: string): Promise<AdminTransactionListItemDto> {
     await this.usersService.syncAndRequireActive(auth);
     return this.transactionsService.reconcileById(id);
   }
@@ -61,7 +61,7 @@ export class AdminService {
     const totalConfirmedVolumeReal = normalizeFixed(
       transactions
         .filter(tx => tx.status === 'CONFIRMED')
-        .reduce((sum, tx) => addFixed(sum, tx.amount), '0'),
+        .reduce((sum, tx) => addFixed(sum, tx.amountDisplay), '0'),
     );
 
     const lastTransactionAt = transactions.length > 0

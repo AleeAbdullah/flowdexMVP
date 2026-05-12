@@ -2,18 +2,15 @@ export const API_ROUTES = {
   proxy: {
     publicBackend: '/api/public',
   },
+  walletAuth: {
+    challenge: '/api/wallet-auth/challenge',
+    verify: '/api/wallet-auth/verify',
+    logout: '/api/wallet-auth/logout',
+    session: '/api/wallet-auth/session',
+  },
   bff: {
     auth: {
       me: '/api/bff/auth/me',
-    },
-    dashboard: {
-      summary: '/api/bff/dashboard/summary',
-    },
-    wallets: {
-      root: '/api/bff/wallets',
-      detail: (id: string) => `/api/bff/wallets/${id}`,
-      challenge: '/api/bff/wallets/challenge',
-      link: '/api/bff/wallets/link',
     },
     transactions: {
       root: '/api/bff/transactions',
@@ -52,14 +49,10 @@ export const API_ROUTES = {
     auth: {
       me: '/auth/me',
     },
-    dashboard: {
-      summary: '/dashboard/summary',
-    },
-    wallets: {
-      root: '/wallets',
-    },
     transactions: {
       root: '/transactions',
+      simulate: '/transactions/simulate',
+      track: '/transactions/track',
       detail: (id: string) => `/transactions/${id}`,
     },
     admin: {

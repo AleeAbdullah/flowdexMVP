@@ -4,7 +4,7 @@ export const defaultAdminTransactionFilters = {
   status: '',
   network: '',
   assetCode: '',
-  userId: '',
+  walletAddress: '',
   from: '',
   to: '',
 } satisfies AdminTransactionFilters;
@@ -16,7 +16,7 @@ export function resolveAdminTransactionFilters(searchParams: AdminTransactionsSe
     status: readFirst(searchParams.status),
     network: readFirst(searchParams.network),
     assetCode: readFirst(searchParams.assetCode),
-    userId: readFirst(searchParams.userId),
+    walletAddress: readFirst(searchParams.walletAddress),
     from: readFirst(searchParams.from),
     to: readFirst(searchParams.to),
   };

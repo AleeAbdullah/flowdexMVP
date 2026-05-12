@@ -244,12 +244,21 @@
     color: var(--text);
   }
 
+  .flowdex-account-kit-shell--buy {
+    width: 100%;
+    max-width: none;
+  }
+
   .flowdex-account-kit {
     max-height: none;
     overflow: visible;
     width: 100%;
     padding: 0 !important;
     color: var(--text);
+  }
+
+  .flowdex-account-kit-shell--buy .flowdex-account-kit {
+    align-items: stretch;
   }
 
   .flowdex-account-kit > h3 {
@@ -260,6 +269,21 @@
     display: grid;
     width: 100%;
     gap: 0.75rem;
+  }
+
+  .flowdex-account-kit-shell--buy .flowdex-account-kit .akui-btn-group {
+    display: block !important;
+    width: 100%;
+  }
+
+  .flowdex-account-kit-shell--buy .flowdex-account-kit .akui-btn-group > div {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+    max-width: none !important;
+    align-items: stretch;
+    justify-items: stretch;
   }
 
   .flowdex-account-kit form,
@@ -342,6 +366,49 @@
     justify-content: center;
   }
 
+  .flowdex-account-kit-shell--buy .flowdex-account-kit .akui-btn {
+    min-height: 5.25rem;
+    border-color: color-mix(in srgb, var(--card-border) 68%, var(--accent-strong));
+    background: color-mix(in srgb, var(--surface-elevated) 90%, var(--card-bg));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    color: var(--text);
+    align-items: flex-start;
+    padding: 1rem;
+  }
+
+  .flowdex-account-kit-shell--buy .flowdex-account-kit .akui-btn:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--accent-strong) 46%, var(--card-border));
+    background: color-mix(in srgb, var(--surface-elevated) 94%, var(--card-bg));
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--accent-strong) 16%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .flowdex-account-kit-shell--buy .flowdex-account-kit .akui-btn-content {
+    justify-content: flex-start;
+    gap: 0.7rem;
+    text-align: left;
+    white-space: normal;
+    line-height: 1.25rem;
+  }
+
+  .flowdex-account-kit-shell--buy .flowdex-account-kit .akui-btn img,
+  .flowdex-account-kit-shell--buy .flowdex-account-kit .akui-btn svg {
+    height: 1.5rem;
+    width: 1.5rem;
+    flex: 0 0 auto;
+    object-fit: contain;
+  }
+
+  .flowdex-account-kit-shell--buy .flowdex-account-kit .akui-btn-link {
+    color: color-mix(in srgb, var(--cyan) 78%, var(--text));
+  }
+
+  .flowdex-account-kit-shell--buy .flowdex-account-kit .akui-btn-auth span:first-child,
+  .flowdex-account-kit-shell--buy .flowdex-account-kit .akui-btn > span:first-child {
+    flex: 0 0 auto;
+  }
+
   .flowdex-account-kit .akui-btn-link {
     min-height: auto;
     border: 0;
@@ -365,6 +432,18 @@
 
   .flowdex-account-kit-shell [class*='p-5'] {
     padding: 0.85rem 0 0;
+  }
+
+  @media (max-width: 640px) {
+    .flowdex-account-kit-shell--buy .flowdex-account-kit .akui-btn-group > div {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (min-width: 641px) and (max-width: 1023px) {
+    .flowdex-account-kit-shell--buy .flowdex-account-kit .akui-btn-group > div {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 }
 

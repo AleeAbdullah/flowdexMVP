@@ -3,7 +3,13 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { AuthContext, CurrentAuth } from '../../common/decorators/current-auth.decorator';
 import { InternalJwtGuard } from '../../common/guards/internal-jwt.guard';
-import { SimulateTransactionDto, TrackTransactionDto, TransactionListItemDto } from './dto/transactions.dto';
+import {
+  SimulateTransactionDto,
+  TrackTransactionDto,
+  WalletTransactionListItemDto,
+  WalletTransactionSimulationDto,
+  WalletTransactionTrackResultDto,
+} from './dto/transactions.dto';
 import { TransactionsService } from './transactions.service';
 
 @ApiTags('transactions')
@@ -17,7 +23,7 @@ export class TransactionsController {
   simulate(
     @CurrentAuth() auth: AuthContext,
     @Body() body: SimulateTransactionDto,
-  ): Promise<{ allowed: boolean; reason: string | null; simulationId: string | null }> {
+  ): Promise<WalletTransactionSimulationDto> {
     return this.transactionsService.simulate(auth, body);
   }
 
@@ -25,20 +31,20 @@ export class TransactionsController {
   track(
     @CurrentAuth() auth: AuthContext,
     @Body() body: TrackTransactionDto,
-  ): Promise<{ transactionId: string; status: string }> {
+  ): Promise<WalletTransactionTrackResultDto> {
     return this.transactionsService.track(auth, body);
   }
 
   @Get()
-  list(@CurrentAuth() auth: AuthContext): Promise<{ items: TransactionListItemDto[] }> {
-    return this.transactionsService.listForUser(auth);
+  list(@CurrentAuth() auth: AuthContext): Promise<{ items: WalletTransactionListItemDto[] }> {
+    return this.transactionsService.listForWallet(auth);
   }
 
   @Get(':id')
   getById(
     @CurrentAuth() auth: AuthContext,
     @Param('id') id: string,
-  ): Promise<TransactionListItemDto> {
-    return this.transactionsService.getForUser(auth, id);
+  ): Promise<WalletTransactionListItemDto> {
+    return this.transactionsService.getForWallet(auth, id);
   }
 }

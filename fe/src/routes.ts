@@ -47,27 +47,11 @@ export const ROUTES = {
   },
   AUTH: {
     LOGIN: '/login',
-    SIGNUP: '/signup',
   },
-  DASHBOARD: {
-    HOME: '/app',
-    ACCOUNT: '/app/account',
-  },
-  WORKSPACE: {
-    HOME: '/app',
-    WALLETS: '/app/wallets',
-    BUY: '/app/buy',
-    TRANSACTIONS: '/app/transactions',
-    transactionDetail: (id: string) => `/app/transactions/${id}`,
-  },
-  MARKETS: {
-    TRADE: '/app/trade',
-    PORTFOLIO: '/app/portfolio',
-    STAKE: '/app/stake',
-  },
-  ECOSYSTEM: {
-    GOVERN: '/app/govern',
-    FLOWCHAIN: '/app/flowchain',
+  USER: {
+    BUY: '/buy',
+    TRANSACTIONS: '/transactions',
+    transactionDetail: (id: string) => `/transaction/${id}`,
   },
   ADMIN: {
     HOME: '/app/admin',
@@ -85,12 +69,6 @@ export function getLoginRoute(nextPath?: string | null) {
     : ROUTES.AUTH.LOGIN;
 }
 
-export function getSignupRoute(nextPath?: string | null) {
-  return shouldPersistAppRedirectPath(nextPath ?? '')
-    ? buildPathname(ROUTES.AUTH.SIGNUP, { next: nextPath })
-    : ROUTES.AUTH.SIGNUP;
-}
-
 export function getPublicAuthToastRoute(input: {
   toast: AuthToast;
   userEmail?: string | null;
@@ -104,4 +82,3 @@ export function getPublicAuthToastRoute(input: {
     user_role: input.userRole,
   });
 }
-

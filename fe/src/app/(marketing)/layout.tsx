@@ -1,5 +1,4 @@
-import type { ReactNode } from 'react';
-import { Suspense } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { MarketingShell } from '@/components/flowdex/marketing-shell';
 import { PublicAuthToast } from '@/components/flowdex/public-auth-toast';
 

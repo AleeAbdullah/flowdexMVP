@@ -17,13 +17,13 @@ export function RoadmapPage() {
     <div className="pb-12">
       <MarketingPageHero
         eyebrow="Roadmap"
-        title="A dedicated roadmap route for the product path from launch to FlowChain."
-        description="The roadmap is now a standalone page rather than a section hidden deep on the landing page. It explains the product sequence and keeps the future-state narrative tied to phased delivery."
+        title="The path from presale access to the wider FlowDex market vision."
+        description="Follow the rollout from early wallet-based access to broader market coverage and the long-term network plan."
         meta={[
           { label: 'Phase 1', value: 'Ethereum Foundation' },
           { label: 'Phase 2', value: 'Multi-Chain Expansion' },
           { label: 'Phase 3', value: 'FlowChain' },
-          { label: 'Current Focus', value: 'Presale + MVP App' },
+          { label: 'Current Focus', value: 'Presale Access' },
         ]}
         actions={(
           <>
@@ -50,7 +50,7 @@ export function RoadmapPage() {
           id="phases"
           eyebrow="Phases"
           title="The roadmap is intentionally sequential."
-          description="The product should earn its more ambitious infrastructure claims by shipping the user-facing exchange surface first."
+          description="Each phase builds on the one before it, starting with a focused public experience and expanding from there."
         >
           <div className="grid gap-4">
             {marketingRoadmap.map((item, index) => (
@@ -75,15 +75,15 @@ export function RoadmapPage() {
         <MarketingSection
           id="delivery"
           eyebrow="Delivery Logic"
-          title="The roadmap should stay anchored to what the product can actually support."
-          description="This route exists partly to separate aspirational infrastructure claims from what is already live."
+          title="The roadmap stays anchored to a practical delivery path."
+          description="The sequence is designed to keep the product focused while the platform expands."
         >
           <MarketingBody>
             <p>
-              Phase 1 is about proving the exchange surface, presale infrastructure, and wallet-driven trust model. Phase 2 is about wider asset and chain coverage. FlowChain only makes sense once the application layer and routing model have earned that expansion.
+              Phase 1 focuses on presale access, wallet-based participation, and a clear purchase experience. Phase 2 expands into broader asset coverage and more chain support. FlowChain becomes relevant once the product layer has earned that next step.
             </p>
             <p>
-              Separating this roadmap into its own route makes the sequence clearer and keeps the home page focused on entry, positioning, and conversion.
+              Keeping the roadmap separate makes it easier to explore the long-term direction without slowing down the main entry and purchase flow.
             </p>
           </MarketingBody>
         </MarketingSection>

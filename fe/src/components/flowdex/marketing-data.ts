@@ -1,8 +1,8 @@
 import type { MarketingPrimaryAction } from './marketing-nav-client';
 
 export const marketingAppAction: MarketingPrimaryAction = {
-  href: '/app',
-  label: 'Open App',
+  href: '/buy',
+  label: 'Join Presale',
 };
 
 export const marketingShellBanner = {
@@ -16,7 +16,7 @@ export const marketingShellBanner = {
 };
 
 export const marketingShellFooter = {
-  brandBody: 'FlowDex is building a wallet-first market surface for crypto, tokenized equities, forex, commodities, and other tokenized real-world assets.',
+  brandBody: 'FlowDex brings crypto and tokenized global markets into one wallet-first experience.',
   columns: [
     {
       title: 'Research',
@@ -25,14 +25,6 @@ export const marketingShellFooter = {
         { label: 'Tokenomics', href: '/tokenomics' },
         { label: 'Roadmap', href: '/roadmap' },
         { label: 'FAQ', href: '/faq' },
-      ],
-    },
-    {
-      title: 'Community',
-      items: [
-        { label: 'Telegram', href: '#', note: 'Coming soon. Replace in `marketing-data.ts`.' },
-        { label: 'X', href: '#', note: 'Coming soon. Replace in `marketing-data.ts`.' },
-        { label: 'Discord', href: '#', note: 'Coming soon. Replace in `marketing-data.ts`.' },
       ],
     },
     {
@@ -45,16 +37,12 @@ export const marketingShellFooter = {
     },
   ],
   noticeTitle: 'Presale Notice',
-  noticeBody: 'This website is informational and promotional. Participation in any presale involves risk and should not be treated as legal, tax, or financial advice.',
+  noticeBody: 'Participation in the presale involves risk. Review the available materials carefully before making a purchase.',
   legalLine: '© 2026 FlowDex Network. All rights reserved.',
-  utilityLine: '$FDN is presented as a utility token within the FlowDex ecosystem.',
+  utilityLine: '$FDN is intended for access and utility across the FlowDex ecosystem.',
 };
 
-export const marketingSocialCards = [
-  { label: 'Telegram', href: '#', note: 'Coming soon. Replace in `marketing-data.ts` when the destination is ready.' },
-  { label: 'X', href: '#', note: 'Coming soon. Replace in `marketing-data.ts` when the destination is ready.' },
-  { label: 'Discord', href: '#', note: 'Coming soon. Replace in `marketing-data.ts` when the destination is ready.' },
-];
+export const marketingSocialCards = [];
 
 export const marketingFeatureCards = [
   {
@@ -63,11 +51,11 @@ export const marketingFeatureCards = [
   },
   {
     title: 'Wallet-First Trust',
-    body: 'A non-custodial flow that keeps the wallet as the primary trust boundary.',
+    body: 'A simple non-custodial flow that keeps you in control of the wallet you use to participate.',
   },
   {
     title: 'Cross-Chain Routing',
-    body: 'Multi-chain execution posture without collapsing into a single-venue product.',
+    body: 'Built to support participation across multiple chains without locking users into a single venue.',
   },
   {
     title: 'Community Utility',
@@ -100,7 +88,7 @@ export const marketingFaqs = [
   },
   {
     question: 'Does FlowDex custody user funds?',
-    answer: 'No. The product direction is non-custodial. Wallet ownership stays primary while the backend handles durable ledgering and analytics.',
+    answer: 'No. FlowDex is designed around a non-custodial flow, so you connect and confirm actions from your own wallet.',
   },
   {
     question: 'What does the token do in the product?',
@@ -108,11 +96,11 @@ export const marketingFaqs = [
   },
   {
     question: 'Why split content into separate pages?',
-    answer: 'The public site is moving to a route-first structure so each topic becomes a dedicated destination rather than forcing users through one long scrolling document.',
+    answer: 'Each topic has its own page so it is easier to explore pricing, tokenomics, product details, and support information at your own pace.',
   },
   {
     question: 'Is the current buy flow already live?',
-    answer: 'Yes. The public buy route reads pricing, tiers, and supported assets from backend market endpoints, while authenticated execution continues in the protected app flow.',
+    answer: 'Yes. You can connect a wallet, verify it, complete a purchase, and view your receipts from the public buy flow.',
   },
 ];
 
@@ -127,38 +115,38 @@ export const marketingBlogPosts = [
   {
     category: 'Presale',
     date: 'April 2026',
-    title: 'Public presale pricing and tier data now come directly from the backend.',
-    summary: 'The marketing surface no longer presents hardcoded presale numbers. Pricing, tiers, and configuration now resolve through the live backend read APIs.',
+    title: 'Presale pricing and tiers now stay in sync across the public experience.',
+    summary: 'Pricing, tiers, and purchase configuration are now kept aligned across the public buy flow and supporting pages.',
   },
   {
     category: 'Product',
     date: 'April 2026',
-    title: 'The protected app now supports wallet linking, buy flow, and transaction tracking.',
-    summary: 'Authenticated users can link an embedded wallet, run simulation checks, and monitor lifecycle state in the protected app shell.',
+    title: 'The public purchase flow now covers checkout, receipts, and activity.',
+    summary: 'Users can connect a wallet, complete a purchase, and review receipts and activity without creating a separate account.',
   },
   {
     category: 'Architecture',
     date: 'March 2026',
-    title: 'Whitepaper v6.0 clarified the product arc from Ethereum to FlowChain.',
-    summary: 'The current public whitepaper defines the universal exchange thesis, phased architecture, token utility, and market expansion strategy.',
+    title: 'Whitepaper v6.0 expands on the path from Ethereum to FlowChain.',
+    summary: 'The current whitepaper outlines the broader market vision, product roadmap, token utility, and long-term network direction.',
   },
   {
     category: 'Security',
     date: 'March 2026',
-    title: 'Operational caution remains part of the public product posture.',
-    summary: 'The site continues to emphasize wallet-first trust, verification, and cautious product language over unsupported guarantees.',
+    title: 'Wallet-first participation remains central to the FlowDex experience.',
+    summary: 'The public product experience focuses on clear wallet verification, straightforward purchase steps, and transparent product messaging.',
   },
 ];
 
 export const legalUpdateCards = [
   {
-    title: 'Launch legal posture',
-    body: 'Terms and privacy pages reflect the current launch-stage product behavior and should be replaced with jurisdiction-specific review later.',
+    title: 'Terms and legal information',
+    body: 'Review the current terms, legal notice, and other important information before participating.',
     href: '/terms',
   },
   {
-    title: 'Privacy and session model',
-    body: 'The current privacy notice covers email-first auth, session-based access, wallet linking, and backend API mediation.',
+    title: 'Privacy overview',
+    body: 'Read how FlowDex handles privacy, wallet-based access, and related account information.',
     href: '/privacy',
   },
 ];

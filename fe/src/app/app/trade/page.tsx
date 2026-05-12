@@ -1,5 +1,5 @@
-import { TradeMarketClient } from './trade-market-client';
+import { redirect } from 'next/navigation';
 
 export default function TradePage() {
-  return <TradeMarketClient />;
+  redirect('/buy');
 }

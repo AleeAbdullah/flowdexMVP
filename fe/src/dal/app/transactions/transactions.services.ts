@@ -4,38 +4,37 @@ import type { AxiosInstance } from 'axios';
 import { toast } from 'sonner';
 import useAxiosAuth from '@/hooks/use-axiosAuth';
 import { extractAxiosError } from '@/lib/axios';
-import { dashboardQueryKeys } from '../dashboard/dashboard.services';
 import {
   isLiveTransactionStatus,
   isTerminalTransactionStatus,
-  type ISimulateTransactionResult,
-  type ITrackTransactionResult,
-  type ITransactionListItem,
-  type ITransactionsResponse,
+  type IWalletTransactionListItem,
+  type IWalletTransactionsResponse,
+  type IWalletTransactionSimulationResult,
+  type IWalletTransactionTrackResult,
   type SimulateTransactionInput,
   type TrackTransactionInput,
 } from './transactions.types';
 
 export const transactionsQueryKeys = {
-  transactions: ['app', 'transactions'] as const,
-  transaction: (id: string) => ['app', 'transactions', id] as const,
+  transactions: (walletAddress: string | null | undefined) => ['wallet', 'transactions', walletAddress ?? 'anonymous'] as const,
+  transaction: (walletAddress: string | null | undefined, id: string) => ['wallet', 'transactions', walletAddress ?? 'anonymous', id] as const,
 };
 
 export const transactionsService = {
-  async simulateTransaction(client: AxiosInstance, input: SimulateTransactionInput): Promise<ISimulateTransactionResult> {
-    const response = await client.post<ISimulateTransactionResult>(API_ROUTES.bff.transactions.simulate, input);
+  async simulateTransaction(client: AxiosInstance, input: SimulateTransactionInput): Promise<IWalletTransactionSimulationResult> {
+    const response = await client.post<IWalletTransactionSimulationResult>(API_ROUTES.bff.transactions.simulate, input);
     return response.data;
   },
-  async trackTransaction(client: AxiosInstance, input: TrackTransactionInput): Promise<ITrackTransactionResult> {
-    const response = await client.post<ITrackTransactionResult>(API_ROUTES.bff.transactions.track, input);
+  async trackTransaction(client: AxiosInstance, input: TrackTransactionInput): Promise<IWalletTransactionTrackResult> {
+    const response = await client.post<IWalletTransactionTrackResult>(API_ROUTES.bff.transactions.track, input);
     return response.data;
   },
-  async getTransactions(client: AxiosInstance): Promise<ITransactionsResponse> {
-    const response = await client.get<ITransactionsResponse>(API_ROUTES.bff.transactions.root);
+  async getTransactions(client: AxiosInstance): Promise<IWalletTransactionsResponse> {
+    const response = await client.get<IWalletTransactionsResponse>(API_ROUTES.bff.transactions.root);
     return response.data;
   },
-  async getTransaction(client: AxiosInstance, id: string): Promise<ITransactionListItem> {
-    const response = await client.get<ITransactionListItem>(API_ROUTES.bff.transactions.detail(id));
+  async getTransaction(client: AxiosInstance, id: string): Promise<IWalletTransactionListItem> {
+    const response = await client.get<IWalletTransactionListItem>(API_ROUTES.bff.transactions.detail(id));
     return response.data;
   },
 };
@@ -66,11 +65,8 @@ export function useTrackTransaction() {
   return useMutation({
     mutationFn: (input: TrackTransactionInput) => transactionsService.trackTransaction(axiosAuth, input),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: transactionsQueryKeys.transactions }),
-        queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.dashboardSummary }),
-      ]);
-      toast.success('Transaction tracked');
+      await queryClient.invalidateQueries({ queryKey: ['wallet', 'transactions'] });
+      toast.success('Receipt created');
     },
     onError: (error) => {
       const details = extractAxiosError(error);
@@ -79,13 +75,16 @@ export function useTrackTransaction() {
   });
 }
 
-export function useTransactions(initialData?: ITransactionsResponse) {
+export function useTransactions(
+  walletAddress: string | null | undefined,
+  initialData?: IWalletTransactionsResponse,
+) {
   const axiosAuth = useAxiosAuth();
 
   return useQuery({
-    queryKey: transactionsQueryKeys.transactions,
+    queryKey: transactionsQueryKeys.transactions(walletAddress),
     queryFn: () => transactionsService.getTransactions(axiosAuth),
-    enabled: Boolean(axiosAuth),
+    enabled: Boolean(walletAddress),
     initialData,
     refetchInterval: (query) => {
       const items = query.state.data?.items ?? [];
@@ -95,13 +94,13 @@ export function useTransactions(initialData?: ITransactionsResponse) {
   });
 }
 
-export function useTransaction(id: string) {
+export function useTransaction(walletAddress: string | null | undefined, id: string) {
   const axiosAuth = useAxiosAuth();
 
   return useQuery({
-    queryKey: transactionsQueryKeys.transaction(id),
+    queryKey: transactionsQueryKeys.transaction(walletAddress, id),
     queryFn: () => transactionsService.getTransaction(axiosAuth, id),
-    enabled: Boolean(id),
+    enabled: Boolean(walletAddress && id),
     refetchInterval: (query) => {
       const status = query.state.data?.status;
       if (!status) {

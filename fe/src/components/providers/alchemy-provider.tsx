@@ -2,8 +2,14 @@
 
 import { useMemo, type ReactNode } from 'react';
 import { alchemy, baseSepolia } from '@account-kit/infra';
-import { AlchemyAccountProvider, createConfig } from '@account-kit/react';
+import { AlchemyAccountProvider, configForExternalWallets, createConfig } from '@account-kit/react';
 import { useQueryClient } from '@tanstack/react-query';
+import {
+  buildWalletSupportRegistry,
+  getAccountKitWalletOrder,
+  getFeaturedWalletCount,
+  getWalletSupportRuntime,
+} from '@/constants/wallet-support';
 import { Env } from '@/libs/Env';
 
 export function AlchemyProvider(props: {
@@ -17,18 +23,39 @@ export function AlchemyProvider(props: {
       return null;
     }
 
-    return createConfig(
-      {
-        transport: alchemy({ apiKey }),
-        chain: baseSepolia,
-        ssr: true,
+    const walletSupportRuntime = getWalletSupportRuntime({
+      alchemyApiKey: apiKey,
+    });
+
+    const walletSupportRegistry = buildWalletSupportRegistry({
+      walletConnectEnabled: walletSupportRuntime.walletConnectEnabled,
+    });
+    const accountKitWalletOrder = getAccountKitWalletOrder(walletSupportRegistry);
+    const featuredWalletCount = getFeaturedWalletCount(walletSupportRegistry);
+    const hideMoreButton = accountKitWalletOrder.length <= featuredWalletCount;
+    const externalWalletConfig = configForExternalWallets({
+      wallets: accountKitWalletOrder,
+      chainType: ['evm'],
+      walletConnectProjectId: walletSupportRuntime.walletConnectProjectId ?? undefined,
+      hideMoreButton,
+      numFeaturedWallets: featuredWalletCount,
+    });
+
+      return createConfig(
+        {
+          transport: alchemy({ apiKey }),
+          chain: baseSepolia,
+          ssr: true,
+        connectors: externalWalletConfig.connectors,
       },
       {
         auth: {
-          hideSignInText: true,
-          sections: [[{ type: 'email' }]],
+          sections: [[{
+            type: 'external_wallets',
+            ...externalWalletConfig.uiConfig,
+            walletConnectProjectId: walletSupportRuntime.walletConnectProjectId ?? undefined,
+          }]],
         },
-        uiMode: 'embedded',
       },
     );
   }, [apiKey]);

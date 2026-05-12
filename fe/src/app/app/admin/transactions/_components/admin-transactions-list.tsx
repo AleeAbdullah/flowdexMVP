@@ -1,9 +1,9 @@
-import type { ITransactionListItem } from '@/dal/app/transactions/transactions.types';
+import type { IAdminTransactionListItem } from '@/dal/app/admin/admin.types';
 import { GlassPanel } from '@/components/flowdex/primitives';
 import { AdminTransactionRow } from './admin-transaction-row';
 
 export function AdminTransactionsList(props: {
-  items: ITransactionListItem[];
+  items: IAdminTransactionListItem[];
   isLoading: boolean;
   errorMessage: string | null;
 }) {

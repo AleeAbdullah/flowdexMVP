@@ -24,7 +24,7 @@ export function AdminTransactionsPageClient(props: {
           as="h1"
           eyebrow="Admin Transactions"
           title="Monitor the operational lifecycle behind user-visible transaction state."
-          description="Filter transactions by status, user, network, asset, or date window for operational review."
+          description="Filter transactions by status, wallet, network, asset, or date window for operational review."
         />
         <AdminTransactionMetrics items={items} />
       </GlassPanel>

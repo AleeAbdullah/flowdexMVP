@@ -3,11 +3,10 @@ import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { CircleAlert, Send } from '@/icons';
+import { CircleAlert } from '@/icons';
 import {
   marketingShellBanner,
   marketingShellFooter,
-  marketingSocialCards,
 } from './marketing-data';
 import { MarketingNav } from './marketing-nav';
 import { FlowdexWordmark } from './primitives';
@@ -42,10 +41,6 @@ export async function MarketingShell({
                 </span>
               ))}
             </div>
-            <div className="hidden items-center gap-2 font-semibold text-[var(--accent-strong)] md:inline-flex">
-              <Send aria-hidden="true" className="h-3.5 w-3.5" />
-              Telegram Coming Soon
-            </div>
           </div>
         </div>
         <MarketingNav />
@@ -56,14 +51,14 @@ export async function MarketingShell({
       </main>
 
       <footer className="border-t border-[var(--card-border)] bg-[image:var(--footer-surface)]">
-        <div className="section-shell grid gap-10 py-10 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+        <div className="section-shell grid gap-10 py-10 md:grid-cols-[1.4fr_repeat(2,minmax(0,1fr))]">
           <div className="space-y-4">
             <FlowdexWordmark compact />
             <p className="max-w-sm text-sm leading-7 text-[color-mix(in_srgb,var(--text)_72%,transparent)]">
               {marketingShellFooter.brandBody}
             </p>
           </div>
-          {marketingShellFooter.columns.map(column => (
+          {marketingShellFooter.columns.filter(column => column.items.length > 0).map(column => (
             <FooterColumn key={column.title} title={column.title} items={column.items} />
           ))}
         </div>
@@ -81,6 +76,12 @@ export async function MarketingShell({
           <span>{marketingShellFooter.legalLine}</span>
           <div className="flex items-center gap-4">
             <span>{marketingShellFooter.utilityLine}</span>
+            <Link
+              href="/login"
+              className="text-[10px] uppercase tracking-[0.22em] text-[color-mix(in_srgb,var(--text)_38%,transparent)] hover:text-[var(--accent-strong)]"
+            >
+              Admin
+            </Link>
           </div>
         </div>
       </footer>
@@ -98,29 +99,15 @@ function FooterColumn(props: {
         {props.title}
       </div>
       <div className="space-y-3">
-        {props.items.map((item) => {
-          if (item.note) {
-            return (
-              <div
-                key={item.label}
-                className="space-y-1 text-sm text-[color-mix(in_srgb,var(--text)_72%,transparent)]"
-              >
-                <div>{item.label}</div>
-                <div className="text-xs text-[color-mix(in_srgb,var(--text)_48%,transparent)]">{item.note}</div>
-              </div>
-            );
-          }
-
-          return (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="block text-sm text-[color-mix(in_srgb,var(--text)_72%,transparent)] hover:text-[var(--accent-strong)]"
-            >
-              {item.label}
-            </Link>
-          );
-        })}
+        {props.items.map(item => (
+          <Link
+            key={item.label}
+            href={item.href}
+            className="block text-sm text-[color-mix(in_srgb,var(--text)_72%,transparent)] hover:text-[var(--accent-strong)]"
+          >
+            {item.label}
+          </Link>
+        ))}
       </div>
     </div>
   );
