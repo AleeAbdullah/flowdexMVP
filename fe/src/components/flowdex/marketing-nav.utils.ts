@@ -6,7 +6,6 @@ export type MarketingNavItem = {
 export const MARKETING_NAV_ITEMS: MarketingNavItem[] = [
   { label: 'About', href: '/about' },
   { label: 'Tokenomics', href: '/tokenomics' },
-  { label: 'Buy', href: '/buy' },
   { label: 'Roadmap', href: '/roadmap' },
   { label: 'Whitepaper', href: '/whitepaper' },
   { label: 'FAQ', href: '/faq' },
