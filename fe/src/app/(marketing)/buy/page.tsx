@@ -4,7 +4,7 @@ import { loadBuySnapshot } from './utils/load-buy-snapshot';
 
 export const metadata: Metadata = {
   title: 'Buy $FDN | FlowDex',
-  description: 'Public presale route with live pricing, tiers, and supported settlement assets.',
+  description: 'Public buy route with live pricing, tiers, and supported settlement assets.',
 };
 
 export default async function BuyRoute() {

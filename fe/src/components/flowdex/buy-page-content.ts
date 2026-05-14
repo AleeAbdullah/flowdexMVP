@@ -58,7 +58,7 @@ export const PORTFOLIO_METRICS = {
 };
 
 export const PORTFOLIO_HOLDINGS = [
-  { label: 'Presale Allocation', tokens: 210_000, note: 'Tier 1 locked' },
+  { label: 'Launch Allocation', tokens: 210_000, note: 'Tier 1 locked' },
   { label: 'Bonus Tokens', tokens: 10_832, note: 'Referral rewards' },
   { label: 'Staking Queue', tokens: 100_000, note: 'Ready on launch' },
 ];
@@ -77,4 +77,3 @@ export const FALLBACK_ASSET_PRICES: Record<string, number> = {
   BNB: 610,
   SOL: 190,
 };
-

@@ -1,12 +1,13 @@
 import type { MarketingPrimaryAction } from './marketing-nav-client';
+import type { IconName } from '@/icons';
 
 export const marketingAppAction: MarketingPrimaryAction = {
   href: '/buy',
-  label: 'Join Presale',
+  label: 'Buy Now',
 };
 
 export const marketingShellBanner = {
-  status: 'Presale Live',
+  status: 'Launch Access Live',
   stats: [
     { label: '$FDN Price', value: '$0.001' },
     { label: 'Listing Reference', value: '$0.05' },
@@ -36,17 +37,21 @@ export const marketingShellFooter = {
       ],
     },
   ],
-  noticeTitle: 'Presale Notice',
-  noticeBody: 'Participation in the presale involves risk. Review the available materials carefully before making a purchase.',
+  noticeTitle: 'Purchase Notice',
+  noticeBody: 'Token purchases involve risk. Review the available materials carefully before making a purchase.',
   legalLine: '© 2026 FlowDex Network. All rights reserved.',
   utilityLine: '$FDN is intended for access and utility across the FlowDex ecosystem.',
+  socialLinks: [
+    { label: 'Telegram', href: 'https://t.me/flowdexnetwork', icon: 'Send' },
+    { label: 'Twitter/X', href: 'https://x.com/flowdexnetwork', icon: 'Twitter' },
+  ] satisfies Array<{ label: string; href: string; icon: IconName }>,
 };
 
 export const marketingSocialCards = [];
 
 export const marketingFeatureCards = [
   {
-    title: 'Universal Exchange',
+    title: 'FlowDex Protocol',
     body: 'One market surface for crypto, tokenized stocks, forex, commodities, and indices.',
   },
   {
@@ -67,7 +72,7 @@ export const marketingRoadmap = [
   {
     phase: 'Step 1',
     title: 'Open Wallet-First Access',
-    body: 'Begin with presale access, wallet-connected accounts, and a focused exchange experience built around user control instead of custodial lock-in.',
+    body: 'Begin with launch access, wallet-connected accounts, and a focused exchange experience built around user control instead of custodial lock-in.',
   },
   {
     phase: 'Step 2',
@@ -84,7 +89,7 @@ export const marketingRoadmap = [
 export const marketingFaqs = [
   {
     question: 'What makes FlowDex different from a crypto-only exchange?',
-    answer: 'FlowDex is positioned as a universal exchange, not a crypto-only venue. The product direction spans crypto plus tokenized traditional markets such as stocks, forex, commodities, ETFs, and indices.',
+    answer: 'FlowDex is positioned as a protocol for broader market access, not a crypto-only venue. The product direction spans crypto plus tokenized traditional markets such as stocks, forex, commodities, ETFs, and indices.',
   },
   {
     question: 'Does FlowDex custody user funds?',
@@ -113,9 +118,9 @@ export const marketingTokenomics = [
 
 export const marketingBlogPosts = [
   {
-    category: 'Presale',
+    category: 'Buy',
     date: 'April 2026',
-    title: 'Presale pricing and tiers now stay in sync across the public experience.',
+    title: 'Buy pricing and tiers now stay in sync across the public experience.',
     summary: 'Pricing, tiers, and purchase configuration are now kept aligned across the public buy flow and supporting pages.',
   },
   {

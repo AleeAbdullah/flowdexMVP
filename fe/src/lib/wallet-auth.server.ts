@@ -78,43 +78,48 @@ if (process.env.NODE_ENV !== 'production') {
 async function ensureWalletAuthTables() {
   if (!globalForWalletAuth.flowdexWalletAuthEnsurePromise) {
     globalForWalletAuth.flowdexWalletAuthEnsurePromise = (async () => {
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS wallet_auth_challenges (
-          id uuid PRIMARY KEY,
-          wallet_address_normalized varchar(64) NOT NULL,
-          wallet_address_checksum varchar(64) NOT NULL,
-          chain_id int NOT NULL,
-          domain varchar(255) NOT NULL,
-          uri text NOT NULL,
-          nonce varchar(128) NOT NULL,
-          statement text NOT NULL,
-          message text NOT NULL,
-          issued_at timestamptz NOT NULL,
-          expires_at timestamptz NOT NULL,
-          used_at timestamptz,
-          created_at timestamptz NOT NULL DEFAULT now()
-        )
-      `);
-      await pool.query(`
-        CREATE INDEX IF NOT EXISTS idx_wallet_auth_challenges_wallet_created
-        ON wallet_auth_challenges (wallet_address_normalized, created_at)
-      `);
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS wallet_auth_sessions (
-          id uuid PRIMARY KEY,
-          wallet_address_normalized varchar(64) NOT NULL,
-          wallet_address_checksum varchar(64) NOT NULL,
-          last_verified_chain_id int,
-          invalidated_at timestamptz,
-          expires_at timestamptz NOT NULL,
-          created_at timestamptz NOT NULL DEFAULT now(),
-          updated_at timestamptz NOT NULL DEFAULT now()
-        )
-      `);
-      await pool.query(`
-        CREATE INDEX IF NOT EXISTS idx_wallet_auth_sessions_wallet
-        ON wallet_auth_sessions (wallet_address_normalized, created_at)
-      `);
+      try {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS wallet_auth_challenges (
+            id uuid PRIMARY KEY,
+            wallet_address_normalized varchar(64) NOT NULL,
+            wallet_address_checksum varchar(64) NOT NULL,
+            chain_id int NOT NULL,
+            domain varchar(255) NOT NULL,
+            uri text NOT NULL,
+            nonce varchar(128) NOT NULL,
+            statement text NOT NULL,
+            message text NOT NULL,
+            issued_at timestamptz NOT NULL,
+            expires_at timestamptz NOT NULL,
+            used_at timestamptz,
+            created_at timestamptz NOT NULL DEFAULT now()
+          )
+        `);
+        await pool.query(`
+          CREATE INDEX IF NOT EXISTS idx_wallet_auth_challenges_wallet_created
+          ON wallet_auth_challenges (wallet_address_normalized, created_at)
+        `);
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS wallet_auth_sessions (
+            id uuid PRIMARY KEY,
+            wallet_address_normalized varchar(64) NOT NULL,
+            wallet_address_checksum varchar(64) NOT NULL,
+            last_verified_chain_id int,
+            invalidated_at timestamptz,
+            expires_at timestamptz NOT NULL,
+            created_at timestamptz NOT NULL DEFAULT now(),
+            updated_at timestamptz NOT NULL DEFAULT now()
+          )
+        `);
+        await pool.query(`
+          CREATE INDEX IF NOT EXISTS idx_wallet_auth_sessions_wallet
+          ON wallet_auth_sessions (wallet_address_normalized, created_at)
+        `);
+      } catch (error) {
+        globalForWalletAuth.flowdexWalletAuthEnsurePromise = undefined;
+        throw error;
+      }
     })();
   }
 

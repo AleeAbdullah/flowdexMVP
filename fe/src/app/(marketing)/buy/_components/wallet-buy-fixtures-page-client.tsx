@@ -8,7 +8,6 @@ import {
   buildWalletSupportRegistry,
   getApprovedDirectWalletDisplayNames,
   getBuyWalletPickerEntries,
-  getWalletConnectCompatibleDisplayNames,
   getWalletSupportSummary,
 } from '@/constants/wallet-support';
 import { Badge } from '@/components/ui/badge';
@@ -39,19 +38,15 @@ export function WalletBuyFixturesPageClient(props: {
     () => getApprovedDirectWalletDisplayNames(walletSupportRegistry),
     [walletSupportRegistry],
   );
-  const walletConnectCompatibleDisplayNames = useMemo(
-    () => getWalletConnectCompatibleDisplayNames(walletSupportRegistry),
-    [walletSupportRegistry],
-  );
   const fixtureWalletButtons = useMemo(() => {
     return getBuyWalletPickerEntries(walletSupportRegistry).map(entry => {
-      const mode: 'direct' | 'fallback' = entry.releaseTier === 'fallback' ? 'fallback' : 'direct';
+      const mode: 'direct' | 'session-gated' = entry.releaseTier === 'fallback' ? 'session-gated' : 'direct';
 
       return {
         id: entry.id,
         label: entry.displayName,
         caption: entry.releaseTier === 'fallback'
-          ? 'Fixture-only WalletConnect entry.'
+          ? 'Fixture-only WalletConnect entry with post-connect capability gating.'
           : 'Fixture-only direct connector.',
         mode,
         onClick: noop,
@@ -103,6 +98,7 @@ export function WalletBuyFixturesPageClient(props: {
         connectedWalletAddress={fixture.connectedWalletAddress}
         sessionWalletChecksum={fixture.sessionWalletChecksum}
         verifiedChainLabel={fixture.verifiedChainLabel}
+        walletChainLabel={fixture.walletStatusLabel === 'Switch network' ? 'Base Sepolia' : fixture.verifiedChainLabel}
         selectedChainLabel={fixture.input.selectedChainLabel}
         selectedAsset={fixture.selectedAsset}
         supportedAssets={fixture.selectedAsset ? supportedAssets : []}
@@ -116,7 +112,6 @@ export function WalletBuyFixturesPageClient(props: {
         latestExplorerUrl={fixture.latestExplorerUrl}
         walletSupportSummary={walletSupportSummary}
         approvedDirectWalletDisplayNames={approvedDirectWalletDisplayNames}
-        walletConnectCompatibleDisplayNames={walletConnectCompatibleDisplayNames}
         walletConnectEnabled={fixture.walletConnectEnabled}
         walletButtons={fixtureWalletButtons}
         primaryActionDisabled={false}

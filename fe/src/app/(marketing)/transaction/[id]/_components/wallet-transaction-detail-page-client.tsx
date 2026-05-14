@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { AuthCard, useSigner, useSignerStatus, useUser } from '@account-kit/react';
+import { AuthCard } from '@account-kit/react';
 import {
   buildWalletSupportRegistry,
   getDirectWalletSupportCopy,
@@ -13,44 +13,27 @@ import { DataKicker, GlassPanel, SectionHeading, StatusPill } from '@/components
 import { formatDateTime, truncateMiddle } from '@/components/flowdex/utils';
 import { Button } from '@/components/ui/button';
 import { useTransaction } from '@/dal/app/transactions/transactions.services';
-import { useWalletSession } from '@/dal/app/wallet-auth/wallet-auth.services';
 import { Loader2, ReceiptText, ShieldCheck } from '@/icons';
-import { useWalletSessionSync } from '@/hooks/use-wallet-session-sync';
+import { useMarketingWalletStore } from '@/hooks/use-marketing-wallet-store';
+import { useMarketingWalletSync } from '@/hooks/use-marketing-wallet-sync';
 import { ROUTES } from '@/routes';
-
-function normalizeWalletAddress(address: string | null | undefined) {
-  return address?.trim().toLowerCase() ?? null;
-}
 
 export function WalletTransactionDetailPageClient(props: {
   id: string;
 }) {
-  const signerStatus = useSignerStatus();
-  const signer = useSigner();
-  const user = useUser();
-  const walletSessionQuery = useWalletSession();
-
-  const connectedWalletAddress = user?.address ?? null;
-  const walletSession = walletSessionQuery.data;
-  const sessionWalletAddress = walletSession?.walletAddressNormalized ?? null;
+  const marketingWallet = useMarketingWalletSync();
+  const provider = useMarketingWalletStore((state) => state.provider);
+  const verification = useMarketingWalletStore((state) => state.verification);
   const walletSupportRegistry = buildWalletSupportRegistry({
     walletConnectEnabled: getWalletSupportRuntime().walletConnectEnabled,
   });
   const primaryWalletSupportCopy = getPrimaryWalletSupportCopy(walletSupportRegistry);
   const directWalletSupportCopy = getDirectWalletSupportCopy(walletSupportRegistry);
   const walletConnectCompatibilityCopy = getWalletConnectCompatibilityCopy(walletSupportRegistry);
-  const normalizedConnected = normalizeWalletAddress(connectedWalletAddress);
-  const normalizedSession = normalizeWalletAddress(sessionWalletAddress);
-  const isWalletVerified = Boolean(normalizedConnected && normalizedSession && normalizedConnected === normalizedSession);
+  const isWalletConnected = provider.status === 'connected';
+  const isWalletVerified = verification.status === 'verified' && Boolean(verification.walletAddress);
 
-  useWalletSessionSync({
-    connectedWalletAddress,
-    connectedSignerReference: signer,
-    sessionWalletAddress,
-    isWalletConnected: Boolean(signerStatus.isConnected && connectedWalletAddress),
-  });
-
-  const transactionQuery = useTransaction(walletSession?.walletAddressNormalized, props.id);
+  const transactionQuery = useTransaction(isWalletVerified ? verification.walletAddress : null, props.id);
   const transaction = transactionQuery.data;
 
   return (
@@ -65,12 +48,12 @@ export function WalletTransactionDetailPageClient(props: {
         <div className="grid gap-4 sm:grid-cols-2">
           <DataKicker label="Wallet Status" value={isWalletVerified ? 'Verified' : 'Verification required'} />
           <DataKicker label="Receipt ID" value={props.id} />
-          <DataKicker label="Connected Wallet" value={connectedWalletAddress ? truncateMiddle(connectedWalletAddress) : 'Not connected'} />
+          <DataKicker label="Connected Wallet" value={provider.address ? truncateMiddle(provider.address) : 'Not connected'} />
           <DataKicker label="Status" value={transaction?.status ?? 'Pending lookup'} />
         </div>
       </GlassPanel>
 
-      {!signerStatus.isConnected ? (
+      {!isWalletConnected ? (
         <GlassPanel className="p-6">
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text)]">
@@ -87,7 +70,7 @@ export function WalletTransactionDetailPageClient(props: {
         </GlassPanel>
       ) : null}
 
-      {signerStatus.isConnected && !isWalletVerified ? (
+      {isWalletConnected && !isWalletVerified ? (
         <GlassPanel className="p-6">
           <p className="text-sm leading-7 text-[var(--muted)]">
             Verify this wallet before opening receipts.
@@ -102,7 +85,7 @@ export function WalletTransactionDetailPageClient(props: {
 
       {isWalletVerified ? (
         <>
-          {walletSessionQuery.isLoading || transactionQuery.isLoading ? (
+          {marketingWallet.walletSessionQuery.isLoading || transactionQuery.isLoading ? (
             <GlassPanel className="p-6">
               <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
                 <Loader2 className="h-4 w-4 animate-spin" />

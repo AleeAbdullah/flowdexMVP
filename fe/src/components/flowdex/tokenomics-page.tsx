@@ -43,7 +43,7 @@ export function TokenomicsPage() {
           { label: 'Ticker', value: '$FDN' },
           { label: 'Utility', value: 'Staking • Governance • Fee Participation' },
           { label: 'Community Allocation', value: '75%' },
-          { label: 'Presale Context', value: 'Public launch-stage distribution' },
+          { label: 'Buy Context', value: 'Public launch-stage distribution' },
         ]}
         actions={(
           <>

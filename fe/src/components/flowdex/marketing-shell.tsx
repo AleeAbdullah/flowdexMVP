@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { CircleAlert } from '@/icons';
+import { CircleAlert, icons } from '@/icons';
 import {
   marketingShellBanner,
   marketingShellFooter,
@@ -57,6 +57,24 @@ export async function MarketingShell({
             <p className="max-w-sm text-sm leading-7 text-[color-mix(in_srgb,var(--text)_72%,transparent)]">
               {marketingShellFooter.brandBody}
             </p>
+            <div className="flex flex-wrap gap-3">
+              {marketingShellFooter.socialLinks.map(item => {
+                const Icon = icons[item.icon];
+
+                return (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] px-3 py-2 text-xs font-semibold text-[color-mix(in_srgb,var(--text)_72%,transparent)] hover:border-[var(--accent-border)] hover:text-[var(--accent-strong)]"
+                  >
+                    <Icon aria-hidden="true" className="h-3.5 w-3.5" />
+                    {item.label}
+                  </a>
+                );
+              })}
+            </div>
           </div>
           {marketingShellFooter.columns.filter(column => column.items.length > 0).map(column => (
             <FooterColumn key={column.title} title={column.title} items={column.items} />

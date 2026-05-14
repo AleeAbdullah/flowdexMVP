@@ -14,7 +14,7 @@ import { HealthModule } from './infrastructure/health/health.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true }),
     JwtModule.register({ global: true }),
     ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({

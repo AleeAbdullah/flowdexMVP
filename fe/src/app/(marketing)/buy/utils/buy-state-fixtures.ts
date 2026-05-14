@@ -2,17 +2,13 @@ import type { BuyViewModelInput, SupportedAssetOption } from '../types/buy-view-
 
 export type BuyFixtureId =
   | 'disconnected'
-  | 'walletconnect-unavailable'
-  | 'walletconnect-canceled'
-  | 'session-checking'
+  | 'connection-failed'
+  | 'connection-canceled'
+  | 'checking-wallet'
   | 'verify-wallet'
-  | 'verify-pending'
   | 'verify-failed'
-  | 'wallet-mismatch'
   | 'wrong-chain'
-  | 'switch-pending'
-  | 'manual-chain-switch'
-  | 'no-valid-option'
+  | 'unsupported-wallet'
   | 'simulate-pending'
   | 'simulate-failed'
   | 'send-pending'
@@ -55,25 +51,16 @@ const baseAsset: SupportedAssetOption = {
 const baseAddresses = {
   connected: '0x4b0897b0513fdc7c541b6d9d7e929c4e5364d2db',
   sessionChecksum: '0x4b0897b0513FdC7C541B6d9D7E929C4E5364D2dB',
-  mismatchConnected: '0x583031d1113ad414f02576bd6afabfb302140225',
-  mismatchSessionChecksum: '0x583031D1113aD414F02576BD6afaBfb302140225',
 } as const;
 
 function baseInput(): BuyViewModelInput {
   return {
-    connectionState: 'connected',
-    verificationState: 'verified',
-    networkState: 'correct',
-    contributionState: 'idle',
+    flowState: 'ready',
+    submissionState: 'idle',
     issueReason: null,
-    primaryWalletSupportCopy: 'Connect a supported EVM wallet or use WalletConnect for additional EVM wallets.',
+    primaryWalletSupportCopy: 'Choose a wallet to continue.',
     selectedAssetCode: baseAsset.code,
     selectedChainLabel: 'Base Sepolia',
-    walletConnectEnabled: true,
-    needsChainVerification: false,
-    manualChainSwitchHelp: null,
-    connectedWalletAddress: baseAddresses.connected,
-    sessionWalletAddress: baseAddresses.connected,
     contributionErrorMessage: null,
   };
 }
@@ -82,10 +69,7 @@ type BuyFixtureOverrides = Omit<Partial<BuyFixtureDefinition>, 'input'> & {
   input?: Partial<BuyViewModelInput>;
 };
 
-function createFixture(
-  id: BuyFixtureId,
-  overrides: BuyFixtureOverrides,
-): BuyFixtureDefinition {
+function createFixture(id: BuyFixtureId, overrides: BuyFixtureOverrides): BuyFixtureDefinition {
   const input = {
     ...baseInput(),
     ...overrides.input,
@@ -111,7 +95,7 @@ function createFixture(
     estimatedTokensDisplay: overrides.estimatedTokensDisplay ?? '625000',
     latestExplorerUrl: overrides.latestExplorerUrl !== undefined ? overrides.latestExplorerUrl : null,
     contributionEnabled: overrides.contributionEnabled ?? true,
-    walletConnectEnabled: overrides.walletConnectEnabled ?? input.walletConnectEnabled,
+    walletConnectEnabled: overrides.walletConnectEnabled ?? true,
     input,
   };
 }
@@ -129,56 +113,44 @@ export const buyStateFixtures: BuyFixtureDefinition[] = [
     estimatedContributionUsdDisplay: '$0.00',
     estimatedTokensDisplay: '0',
     input: {
-      connectionState: 'disconnected',
-      verificationState: 'unverified',
-      connectedWalletAddress: null,
-      sessionWalletAddress: null,
+      flowState: 'disconnected',
     },
   }),
-  createFixture('walletconnect-unavailable', {
-    label: 'WalletConnect unavailable',
-    description: 'Environment without WalletConnect configured.',
-    walletStatusLabel: 'Not connected',
-    connectedWalletAddress: null,
-    sessionWalletChecksum: null,
-    verifiedChainLabel: null,
-    contributionEnabled: false,
-    walletConnectEnabled: false,
-    input: {
-      connectionState: 'failed',
-      verificationState: 'unverified',
-      issueReason: 'walletConnectUnavailable',
-      walletConnectEnabled: false,
-      primaryWalletSupportCopy: 'Connect a supported EVM wallet to continue.',
-      connectedWalletAddress: null,
-      sessionWalletAddress: null,
-      contributionErrorMessage: 'WalletConnect is not configured for this environment.',
-    },
-  }),
-  createFixture('walletconnect-canceled', {
-    label: 'WalletConnect canceled',
-    description: 'User closed the WalletConnect flow before session creation.',
+  createFixture('connection-failed', {
+    label: 'Connection failed',
+    description: 'Provider connection failed before checkout started.',
     walletStatusLabel: 'Not connected',
     connectedWalletAddress: null,
     sessionWalletChecksum: null,
     verifiedChainLabel: null,
     contributionEnabled: false,
     input: {
-      connectionState: 'failed',
-      verificationState: 'unverified',
-      issueReason: 'walletConnectCanceled',
-      connectedWalletAddress: null,
-      sessionWalletAddress: null,
-      contributionErrorMessage: 'The wallet picker closed before a session was established.',
+      flowState: 'disconnected',
+      issueReason: 'connectionFailed',
+      contributionErrorMessage: 'Connector already connected.',
     },
   }),
-  createFixture('session-checking', {
-    label: 'Session checking',
-    description: 'Connected wallet while the access check is still loading.',
-    walletStatusLabel: 'Checking session',
+  createFixture('connection-canceled', {
+    label: 'Connection canceled',
+    description: 'User closed the wallet connection request.',
+    walletStatusLabel: 'Not connected',
+    connectedWalletAddress: null,
+    sessionWalletChecksum: null,
+    verifiedChainLabel: null,
     contributionEnabled: false,
     input: {
-      verificationState: 'checking',
+      flowState: 'disconnected',
+      issueReason: 'connectionCanceled',
+      contributionErrorMessage: 'The wallet picker closed before the connection finished.',
+    },
+  }),
+  createFixture('checking-wallet', {
+    label: 'Checking wallet',
+    description: 'Wallet capability or provider state is still resolving.',
+    walletStatusLabel: 'Checking wallet',
+    contributionEnabled: false,
+    input: {
+      flowState: 'checking_wallet',
     },
   }),
   createFixture('verify-wallet', {
@@ -188,19 +160,7 @@ export const buyStateFixtures: BuyFixtureDefinition[] = [
     sessionWalletChecksum: null,
     verifiedChainLabel: null,
     input: {
-      verificationState: 'unverified',
-      sessionWalletAddress: null,
-    },
-  }),
-  createFixture('verify-pending', {
-    label: 'Verify pending',
-    description: 'Wallet signature challenge in progress.',
-    walletStatusLabel: 'Verification required',
-    sessionWalletChecksum: null,
-    verifiedChainLabel: null,
-    input: {
-      verificationState: 'verifying',
-      sessionWalletAddress: null,
+      flowState: 'unverified',
     },
   }),
   createFixture('verify-failed', {
@@ -210,21 +170,9 @@ export const buyStateFixtures: BuyFixtureDefinition[] = [
     sessionWalletChecksum: null,
     verifiedChainLabel: null,
     input: {
-      verificationState: 'failed',
-      sessionWalletAddress: null,
+      flowState: 'unverified',
+      issueReason: 'verificationFailed',
       contributionErrorMessage: 'The signed challenge did not match the connected wallet.',
-    },
-  }),
-  createFixture('wallet-mismatch', {
-    label: 'Wallet mismatch',
-    description: 'Session wallet and provider wallet disagree.',
-    walletStatusLabel: 'Wallet mismatch',
-    connectedWalletAddress: baseAddresses.mismatchConnected,
-    sessionWalletChecksum: baseAddresses.sessionChecksum,
-    input: {
-      verificationState: 'mismatch',
-      connectedWalletAddress: baseAddresses.mismatchConnected,
-      sessionWalletAddress: baseAddresses.connected,
     },
   }),
   createFixture('wrong-chain', {
@@ -233,119 +181,98 @@ export const buyStateFixtures: BuyFixtureDefinition[] = [
     walletStatusLabel: 'Switch network',
     verifiedChainLabel: 'Base Sepolia',
     input: {
-      networkState: 'wrong',
-      selectedChainLabel: 'Ethereum Sepolia',
-      selectedAssetCode: 'ETH',
-    },
-  }),
-  createFixture('switch-pending', {
-    label: 'Switch pending',
-    description: 'Programmatic chain switch in progress.',
-    walletStatusLabel: 'Switching network',
-    verifiedChainLabel: 'Base Sepolia',
-    input: {
-      networkState: 'switch-pending',
+      flowState: 'wrong_chain',
+      issueReason: 'wrongChain',
       selectedChainLabel: 'Ethereum Sepolia',
     },
   }),
-  createFixture('manual-chain-switch', {
-    label: 'Manual chain switch',
-    description: 'Programmatic switching failed; user must switch in wallet.',
-    walletStatusLabel: 'Manual switch required',
-    verifiedChainLabel: 'Base Sepolia',
+  createFixture('unsupported-wallet', {
+    label: 'Unsupported wallet',
+    description: 'Wallet is connected, but checkout cannot continue on this route.',
+    walletStatusLabel: 'Verification required',
     input: {
-      networkState: 'switch-failed-manual',
-      selectedChainLabel: 'Ethereum Sepolia',
-      manualChainSwitchHelp: 'Open the wallet and switch to Ethereum Sepolia before retrying.',
-    },
-  }),
-  createFixture('no-valid-option', {
-    label: 'No valid option',
-    description: 'No supported public native route is available.',
-    walletStatusLabel: 'Contribution unavailable',
-    contributionEnabled: false,
-    selectedAsset: null,
-    amountDisplay: '',
-    input: {
-      contributionState: 'no-valid-option',
-      selectedAssetCode: null,
-      selectedChainLabel: 'No chain selected',
+      flowState: 'unsupported_wallet',
+      issueReason: 'unsupportedWallet',
+      contributionErrorMessage: 'This wallet session is missing the approved methods or account permissions required for checkout.',
     },
   }),
   createFixture('simulate-pending', {
-    label: 'Simulate pending',
-    description: 'Server-side simulation is running.',
-    walletStatusLabel: 'Submitting',
+    label: 'Simulating',
+    description: 'Contribution simulation is in progress.',
     input: {
-      contributionState: 'simulate-pending',
+      flowState: 'submitting',
+      submissionState: 'simulating',
     },
   }),
   createFixture('simulate-failed', {
-    label: 'Simulate failed',
-    description: 'Server-side simulation rejected the contribution.',
-    walletStatusLabel: 'Contribution blocked',
+    label: 'Simulation failed',
+    description: 'Contribution validation was rejected before wallet approval.',
     input: {
-      contributionState: 'simulate-failed',
-      contributionErrorMessage: 'The expected treasury recipient did not match the configured route.',
+      flowState: 'failed',
+      issueReason: 'simulateFailed',
+      submissionState: 'failed',
+      contributionErrorMessage: 'The transaction would revert on chain.',
     },
   }),
   createFixture('send-pending', {
-    label: 'Send pending',
-    description: 'Awaiting wallet signature and broadcast.',
-    walletStatusLabel: 'Awaiting signature',
-    latestExplorerUrl: 'https://sepolia.basescan.org/tx/0x123',
+    label: 'Awaiting wallet approval',
+    description: 'The wallet has not approved the transaction yet.',
     input: {
-      contributionState: 'send-pending',
+      flowState: 'submitting',
+      submissionState: 'awaiting_wallet_approval',
     },
   }),
   createFixture('send-canceled', {
     label: 'Send canceled',
-    description: 'User rejected or canceled the wallet signature.',
-    walletStatusLabel: 'Signature canceled',
+    description: 'User rejected the transaction in the wallet.',
     input: {
-      contributionState: 'send-canceled',
-      contributionErrorMessage: 'The wallet signature request was canceled before the transaction was broadcast.',
+      flowState: 'failed',
+      issueReason: 'sendCanceled',
+      submissionState: 'failed',
+      contributionErrorMessage: 'The transaction request was canceled in the wallet.',
     },
   }),
   createFixture('send-failed', {
     label: 'Send failed',
-    description: 'Transaction failed before broadcast.',
-    walletStatusLabel: 'Send failed',
+    description: 'Wallet send RPC failed after simulation.',
     input: {
-      contributionState: 'send-failed',
-      contributionErrorMessage: 'The connected wallet could not broadcast the transaction.',
+      flowState: 'failed',
+      issueReason: 'sendFailed',
+      submissionState: 'failed',
+      contributionErrorMessage: 'The wallet returned an RPC error while sending the transaction.',
     },
   }),
   createFixture('track-pending', {
-    label: 'Track pending',
-    description: 'Transaction sent; receipt tracking is pending.',
-    walletStatusLabel: 'Tracking receipt',
-    latestExplorerUrl: 'https://sepolia.basescan.org/tx/0x456',
+    label: 'Tracking receipt',
+    description: 'Transaction hash exists and receipt tracking is running.',
+    latestExplorerUrl: 'https://sepolia.basescan.org/tx/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     input: {
-      contributionState: 'track-pending',
+      flowState: 'submitting',
+      submissionState: 'tracking',
     },
   }),
   createFixture('track-failed', {
-    label: 'Track failed',
-    description: 'Transaction sent but receipt creation failed.',
-    walletStatusLabel: 'Receipt retry needed',
-    latestExplorerUrl: 'https://sepolia.basescan.org/tx/0x789',
+    label: 'Receipt tracking failed',
+    description: 'The transaction was sent, but receipt creation is retryable.',
+    latestExplorerUrl: 'https://sepolia.basescan.org/tx/0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
     input: {
-      contributionState: 'track-failed',
-      contributionErrorMessage: 'The transaction was sent, but the receipt has not been finalized yet.',
+      flowState: 'failed',
+      issueReason: 'trackFailed',
+      submissionState: 'failed',
+      contributionErrorMessage: 'Receipt tracking timed out.',
     },
   }),
   createFixture('receipt-ready', {
     label: 'Receipt ready',
-    description: 'Receipt was created and redirect is imminent.',
-    walletStatusLabel: 'Receipt ready',
-    latestExplorerUrl: 'https://sepolia.basescan.org/tx/0xabc',
+    description: 'The transaction and receipt flow completed successfully.',
+    latestExplorerUrl: 'https://sepolia.basescan.org/tx/0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
     input: {
-      contributionState: 'receipt-ready',
+      flowState: 'success',
+      submissionState: 'success',
     },
   }),
 ];
 
-export function getBuyFixtureById(id: string | null | undefined) {
-  return buyStateFixtures.find(fixture => fixture.id === id) ?? buyStateFixtures[0];
+export function getBuyFixtureById(id: string) {
+  return buyStateFixtures.find((fixture) => fixture.id === id) ?? buyStateFixtures[0];
 }

@@ -1,9 +1,11 @@
 'use client';
 
 import { useMemo, type ReactNode } from 'react';
-import { alchemy, baseSepolia } from '@account-kit/infra';
+import { alchemy, baseSepolia, sepolia } from '@account-kit/infra';
 import { AlchemyAccountProvider, configForExternalWallets, createConfig } from '@account-kit/react';
 import { useQueryClient } from '@tanstack/react-query';
+import type { CreateConnectorFn } from 'wagmi';
+import { coinbaseWallet, metaMask } from 'wagmi/connectors';
 import {
   buildWalletSupportRegistry,
   getAccountKitWalletOrder,
@@ -40,13 +42,35 @@ export function AlchemyProvider(props: {
       hideMoreButton,
       numFeaturedWallets: featuredWalletCount,
     });
+    const connectors: CreateConnectorFn[] = [];
 
-      return createConfig(
-        {
-          transport: alchemy({ apiKey }),
-          chain: baseSepolia,
-          ssr: true,
-        connectors: externalWalletConfig.connectors,
+    accountKitWalletOrder.forEach((walletName) => {
+      switch (walletName) {
+        case 'metamask':
+          connectors.push(
+            metaMask({
+              enableAnalytics: false,
+            }) as CreateConnectorFn,
+          );
+          break;
+        case 'coinbase wallet':
+          connectors.push(coinbaseWallet() as CreateConnectorFn);
+          break;
+        default:
+          break;
+      }
+    });
+
+    return createConfig(
+      {
+        transport: alchemy({ apiKey }),
+        chain: baseSepolia,
+        chains: [
+          { chain: baseSepolia },
+          { chain: sepolia },
+        ],
+        ssr: true,
+        connectors,
       },
       {
         auth: {

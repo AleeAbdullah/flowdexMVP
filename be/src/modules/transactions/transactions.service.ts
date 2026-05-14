@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { getAddress, Interface, isAddress } from 'ethers';
+import { getAddress, Interface, isAddress, toBeHex } from 'ethers';
 import { Repository } from 'typeorm';
 
 import { AuthContext } from '../../common/decorators/current-auth.decorator';
@@ -29,6 +29,7 @@ import { SimulationIntentEntity } from './entities/simulation-intent.entity';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const TX_HASH_PATTERN = /^0x[a-fA-F0-9]{64}$/;
+const RESERVED_TREASURY_ADDRESS_MAX = 0xffffn;
 const ERC20_INTERFACE = new Interface([
   'event Transfer(address indexed from, address indexed to, uint256 value)',
   'function transfer(address to, uint256 value)',
@@ -44,6 +45,10 @@ type TransactionRequest = {
   chainId: number;
   value: string;
   data: string;
+  gas?: string;
+  gasPrice?: string;
+  maxFeePerGas?: string;
+  maxPriorityFeePerGas?: string;
 };
 
 type VerificationResult = {
@@ -73,7 +78,29 @@ export class TransactionsService {
   ): Promise<WalletTransactionSimulationDto> {
     const wallet = this.requireWalletAuth(auth);
     const network = networkForChainId(input.chainId);
-    const request = this.buildTransactionRequest(input, this.getTreasuryAddress(network));
+    const treasuryAddress = this.getTreasuryAddress(network);
+
+    if (normalizeAddress(treasuryAddress) === wallet.normalized) {
+      this.logger.warn(`Treasury address matches connected wallet for ${network}`);
+      return {
+        allowed: false,
+        reason: 'TREASURY_ADDRESS_MATCHES_CONNECTED_WALLET',
+        simulationId: null,
+        request: null,
+      };
+    }
+
+    if (this.isReservedTreasuryAddress(treasuryAddress)) {
+      this.logger.warn(`Treasury address is reserved/system address for ${network}: ${treasuryAddress}`);
+      return {
+        allowed: false,
+        reason: 'TREASURY_ADDRESS_RESERVED',
+        simulationId: null,
+        request: null,
+      };
+    }
+
+    const request = this.buildTransactionRequest(input, treasuryAddress);
 
     const result = await this.alchemyService.simulateTransaction({
       network: this.toAlchemyNetwork(network),
@@ -592,7 +619,7 @@ export class TransactionsService {
       return {
         to: getAddress(treasuryAddress),
         chainId: input.chainId,
-        value: input.amountBaseUnits,
+        value: toBeHex(BigInt(input.amountBaseUnits)),
         data: '0x',
       };
     }
@@ -606,7 +633,7 @@ export class TransactionsService {
     return {
       to: token.checksum,
       chainId: input.chainId,
-      value: '0',
+      value: '0x0',
       data,
     };
   }
@@ -621,6 +648,10 @@ export class TransactionsService {
       : env.treasuryAddressEthSepolia;
 
     return this.normalizeAndChecksum(address).checksum;
+  }
+
+  private isReservedTreasuryAddress(address: string): boolean {
+    return BigInt(normalizeAddress(address)) <= RESERVED_TREASURY_ADDRESS_MAX;
   }
 
   private toAlchemyNetwork(network: string): 'eth-sepolia' | 'base-sepolia' {

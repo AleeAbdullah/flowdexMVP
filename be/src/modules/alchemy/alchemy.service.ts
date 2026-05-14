@@ -13,6 +13,11 @@ type SimulateTransactionInput = {
   data?: string;
 };
 
+type RpcErrorShape = {
+  code?: unknown;
+  message?: unknown;
+};
+
 type TransfersInput = {
   network: AlchemyNetwork;
   address: string;
@@ -90,9 +95,19 @@ export class AlchemyService {
       : null;
 
     if (simulationError) {
+      const fallback = await this.simulateViaEstimateGasIfPossible(input, simulationError);
+      if (fallback) {
+        return fallback;
+      }
+
+      const simulationErrorMessage = this.extractRpcErrorMessage(simulationError);
       return {
         allowed: false,
-        reason: 'SIMULATION_REVERTED',
+        reason: simulationErrorMessage.includes('insufficient funds')
+          ? 'SIMULATION_INSUFFICIENT_FUNDS'
+          : this.isProviderInternalSimulationError(simulationError)
+            ? 'SIMULATION_PROVIDER_INTERNAL_ERROR'
+            : 'SIMULATION_REVERTED',
         raw: response,
       };
     }
@@ -136,6 +151,96 @@ export class AlchemyService {
 
     // Let upstream simulation return a clear validation error for unsupported formats.
     return trimmed;
+  }
+
+  private async simulateViaEstimateGasIfPossible(
+    input: SimulateTransactionInput,
+    simulationError: unknown,
+  ): Promise<{
+    allowed: boolean;
+    reason: string | null;
+    raw: Record<string, unknown> | null;
+  } | null> {
+    if (!this.isProviderInternalSimulationError(simulationError)) {
+      return null;
+    }
+
+    const estimateResponse = await this.callRpc(input.network, 'eth_estimateGas', [
+      {
+        from: input.from,
+        to: input.to,
+        value: this.toRpcQuantity(input.value),
+        data: input.data,
+      },
+    ]);
+
+    if (!estimateResponse || typeof estimateResponse !== 'object') {
+      return {
+        allowed: false,
+        reason: 'SIMULATION_PROVIDER_INTERNAL_ERROR',
+        raw: {
+          simulationError,
+          estimateGas: estimateResponse,
+        },
+      };
+    }
+
+    const estimateError = typeof (estimateResponse as { error?: unknown }).error === 'object'
+      && (estimateResponse as { error?: unknown }).error
+      ? (estimateResponse as { error: unknown }).error
+      : null;
+
+    if (estimateError) {
+      const estimateErrorMessage = this.extractRpcErrorMessage(estimateError);
+      return {
+        allowed: false,
+        reason: estimateErrorMessage.includes('insufficient funds')
+          ? 'SIMULATION_INSUFFICIENT_FUNDS'
+          : 'SIMULATION_REVERTED',
+        raw: {
+          simulationError,
+          estimateGas: estimateResponse,
+        },
+      };
+    }
+
+    return {
+      allowed: true,
+      reason: null,
+      raw: {
+        simulationError,
+        estimateGas: estimateResponse,
+      },
+    };
+  }
+
+  private extractRpcErrorMessage(error: unknown): string {
+    if (typeof error === 'string') {
+      return error.toLowerCase();
+    }
+
+    if (!error || typeof error !== 'object') {
+      return '';
+    }
+
+    const maybeError = error as RpcErrorShape;
+    return typeof maybeError.message === 'string'
+      ? maybeError.message.toLowerCase()
+      : '';
+  }
+
+  private isProviderInternalSimulationError(error: unknown): boolean {
+    if (!error || typeof error !== 'object') {
+      return false;
+    }
+
+    const maybeError = error as RpcErrorShape;
+    const code = typeof maybeError.code === 'number' ? maybeError.code : null;
+    const message = this.extractRpcErrorMessage(error);
+
+    return code === -32603
+      || message.includes('bigint is not defined')
+      || message.includes('internal error');
   }
 
   async getAssetTransfers(input: TransfersInput): Promise<{

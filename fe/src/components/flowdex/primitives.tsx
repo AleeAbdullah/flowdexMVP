@@ -1,18 +1,25 @@
 import type { ReactNode } from 'react';
+import Image from 'next/image';
 import { TRANSACTION_STATUSES } from '@/dal/app/transactions/transactions.types';
 import { cn } from '@/lib/utils';
 
 export function FlowdexWordmark({ compact = false }: { compact?: boolean }) {
   return (
     <div className="flex items-center gap-3">
-      <div className={cn('flex items-center justify-center bg-[linear-gradient(135deg,var(--accent-strong),var(--accent-deep))] text-[var(--primary-foreground-solid)] shadow-[0_0_32px_var(--accent-shadow)]', compact ? 'h-6 w-6 rounded-md' : 'h-8 w-8 rounded-lg')}>
-        <span className={cn('font-heading font-bold leading-none', compact ? 'text-xs' : 'text-base')}>F</span>
-      </div>
+      <Image
+        src="/icon.svg"
+        alt=""
+        aria-hidden="true"
+        width={64}
+        height={64}
+        priority={!compact}
+        className={cn('shrink-0 object-contain', compact ? 'h-10 w-10' : 'h-16 w-16')}
+      />
       {!compact ? (
         <div className="leading-none">
           <div className="font-heading text-lg font-bold tracking-tight text-[var(--text)]">FlowDex</div>
           <div className="text-[10px] font-semibold tracking-[0.28em] text-[var(--cyan)] uppercase">
-            Universal Exchange
+            FlowDex Protocol
           </div>
         </div>
       ) : null}

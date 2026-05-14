@@ -14,11 +14,11 @@ import {
 } from './marketing-content';
 
 const keyFacts = [
-  { label: 'Product', value: 'Universal Exchange', note: 'Crypto, tokenized stocks, forex, commodities, ETFs, options, futures, indices, and CFDs.' },
+  { label: 'Product', value: 'FlowDex Protocol', note: 'Crypto, tokenized stocks, forex, commodities, ETFs, options, futures, indices, and CFDs.' },
   { label: 'Coverage Goal', value: '500+ Assets', note: 'Across 10+ blockchains and multiple tokenization and routing sources.' },
   { label: 'Token', value: '$FDN', note: 'ERC-20 on Ethereum at launch with a fixed 10 billion supply.' },
-  { label: 'Listing Target', value: '$0.05', note: 'Framed in the whitepaper as the target listing price, not a guarantee.' },
-  { label: 'Presale', value: '$80M / 8 Tiers', note: 'Tier 1 begins at $0.001 with zero venture capital allocation in the whitepaper model.' },
+  { label: 'Listing Reference', value: '$0.05', note: 'Framed in the whitepaper as a reference price, not a guarantee.' },
+  { label: 'Buy Structure', value: '8 Tiers', note: 'Tier 1 begins at $0.001 with zero venture capital allocation in the whitepaper model.' },
   { label: 'Staking', value: '40% Fee Sharing', note: 'Stakers participate in protocol fee revenue and emission-based rewards.' },
 ];
 
@@ -63,26 +63,25 @@ const architecturePhases = [
   {
     label: 'Phase 3',
     value: 'FlowChain Appchain',
-    note: 'Purpose-built application chain targeting faster finality, routing optimization, and native validator staking.',
+    note: 'Purpose-built application chain for faster finality, routing optimization, and native validator staking.',
   },
 ];
 
 const tokenomicsStats = [
   { label: 'Total Supply', value: '10B $FDN', note: 'Fixed, non-inflationary supply per the whitepaper narrative.' },
-  { label: 'Community Facing', value: '75%', note: 'Community and ecosystem, presale, staking rewards, and airdrop allocations dominate the token split.' },
+  { label: 'Community Facing', value: '75%', note: 'Community and ecosystem, public buy, staking rewards, and airdrop allocations dominate the token split.' },
   { label: 'Staking Pool', value: '1.25B', note: 'Distributed on a declining emission schedule over ten years.' },
   { label: 'Fee Share', value: '40%', note: 'Protocol fee participation for stakers across major fee categories.' },
   { label: 'Core Team Vesting', value: '1Y + 4Y', note: 'One-year cliff followed by four-year vesting in the document.' },
   { label: 'Initial Liquidity', value: '5%', note: 'Reserved for DEX/CEX pair support at launch.' },
 ];
 
-const presaleStats = [
-  { label: 'Raise Target', value: '$80M', note: 'Structured across eight public tiers.' },
+const buyStats = [
   { label: 'Tier 1', value: '$0.001', note: 'Framed as the whitelist tier and deepest discount level.' },
-  { label: 'Tier 8', value: '$0.05', note: 'Aligned to the target listing reference in the document.' },
-  { label: 'Tokens In Presale', value: '22.5%', note: '2,251,875,000 $FDN allocated across the tier structure.' },
+  { label: 'Tier 8', value: '$0.05', note: 'Aligned to the listing reference in the document.' },
+  { label: 'Tokens In Public Buy', value: '22.5%', note: '2,251,875,000 $FDN allocated across the tier structure.' },
   { label: 'Treasury Model', value: '4-of-7 Multisig', note: 'Quarterly on-chain transparency reports are part of the public framing.' },
-  { label: 'Min Raise Protection', value: '$20M Threshold', note: 'Investor-protection language is included in the vesting and protections section.' },
+  { label: 'Launch Safeguards', value: 'Published Protections', note: 'Investor-protection language is included in the vesting and protections section.' },
 ];
 
 const competitiveRows = [
@@ -96,16 +95,16 @@ const competitiveRows = [
 
 const roadmapRows = [
   { label: 'Phase 0', value: 'Q1 2026', note: 'Whitepaper v6.0, website and whitelist, community channels, security audits, RWA partnerships, strategic partnerships.' },
-  { label: 'Phase 1', value: 'Q2 2026', note: 'Presale, ERC-20 deployment, TGE, Ethereum aggregator, tokenized stocks, forex pairs, gold and commodities, staking, listings.' },
+  { label: 'Phase 1', value: 'Q2 2026', note: 'Buy flow, ERC-20 deployment, TGE, Ethereum aggregator, tokenized stocks, forex pairs, gold and commodities, staking, listings.' },
   { label: 'Phase 2', value: 'Q3–Q4 2026', note: 'Multi-chain rollout, 500+ assets, options and futures, cross-chain swaps, DAO, mobile app, institutional API.' },
-  { label: 'Phase 3', value: '2027', note: 'FlowChain testnet, validator onboarding, token migration, faster execution, cross-asset margin, larger monthly volume target.' },
+  { label: 'Phase 3', value: '2027', note: 'FlowChain testnet, validator onboarding, token migration, faster execution, cross-asset margin, larger monthly volume goal.' },
   { label: 'Phase 4', value: '2028+', note: 'Maturity stage with validators, DAO handoff, structured products, analytics, and broader compliance posture.' },
 ];
 
 const riskFactors = [
   'Technology risk around contracts, routing logic, cross-chain operations, and RWA integrations.',
   'Regulatory risk across jurisdictions and the possibility of changing treatment of tokenized assets or utility tokens.',
-  'Market risk, including the possibility that the target listing price is never reached and that token value falls materially.',
+  'Market risk, including the possibility that the listing reference is never reached and that token value falls materially.',
   'RWA counterparty risk tied to the solvency and operation of tokenization providers.',
   'Competitive risk from centralized exchanges and other DeFi platforms expanding their asset coverage.',
   'Execution risk tied to project scope, delivery complexity, and the pseudonymous team structure.',
@@ -122,13 +121,13 @@ export function WhitepaperPage() {
           { label: 'Version', value: 'v6.0' },
           { label: 'Date', value: 'March 2026' },
           { label: 'Status', value: 'Public Release' },
-          { label: 'Stage', value: 'Presale Live' },
+          { label: 'Stage', value: 'Buy Flow Live' },
         ]}
         actions={(
           <>
             <Button variant="brand" size="lg" asChild>
               <Link href={ROUTES.MARKETING.BUY}>
-                Go to Presale
+                Buy Now
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -151,7 +150,7 @@ export function WhitepaperPage() {
           { id: 'architecture', label: 'Architecture' },
           { id: 'infrastructure', label: 'Asset Infrastructure' },
           { id: 'tokenomics', label: 'Tokenomics' },
-          { id: 'presale', label: 'Presale Structure' },
+          { id: 'buy-structure', label: 'Buy Structure' },
           { id: 'governance', label: 'Governance & Security' },
           { id: 'competition', label: 'Competitive Analysis' },
           { id: 'team-roadmap', label: 'Team & Roadmap' },
@@ -162,7 +161,7 @@ export function WhitepaperPage() {
         <MarketingSection
           id="summary"
           eyebrow="Executive Summary"
-          title="A non-custodial universal exchange that bridges blockchain rails and tokenized traditional assets."
+          title="A non-custodial protocol that bridges blockchain rails and tokenized traditional assets."
           description="The whitepaper positions FlowDex as a single on-chain interface for crypto, tokenized equities, forex, commodities, ETFs, options, futures, and indices."
         >
           <MarketingBody>
@@ -170,7 +169,7 @@ export function WhitepaperPage() {
               The document argues that the key market trend of 2026 is the convergence of DeFi and tokenized traditional finance. FlowDex is framed as the missing non-custodial layer: a platform where users retain control of their wallets while still accessing broader market exposure across multiple asset classes.
             </p>
             <p>
-              The product thesis combines smart order routing, cross-chain infrastructure, tokenized asset providers, and fee-sharing token utility into a phased roadmap that starts on Ethereum, expands to multi-chain coverage, and eventually targets a dedicated application chain called FlowChain.
+              The product thesis combines smart order routing, cross-chain infrastructure, tokenized asset providers, and fee-sharing token utility into a phased roadmap that starts on Ethereum, expands to multi-chain coverage, and eventually moves toward a dedicated application chain called FlowChain.
             </p>
           </MarketingBody>
         </MarketingSection>
@@ -203,7 +202,7 @@ export function WhitepaperPage() {
             items={[
               { label: 'Crypto Exchange Market', value: '$85.75B', note: 'Whitepaper estimate for the 2026 market value of the broader crypto exchange category.' },
               { label: 'DEX Opportunity', value: '$100B–$260B / month', note: 'Aggregation-focused opportunity highlighted in the market section.' },
-              { label: 'Global Forex', value: '$9.6T / day', note: 'The largest market in the world and a major part of the universal exchange thesis.' },
+              { label: 'Global Forex', value: '$9.6T / day', note: 'The largest market in the world and a major part of the FlowDex Protocol thesis.' },
               { label: 'Tokenized RWAs', value: '$18.5B → $50B+', note: 'Projected acceleration of the tokenized real-world asset category.' },
             ]}
           />
@@ -263,16 +262,16 @@ export function WhitepaperPage() {
         </MarketingSection>
 
         <MarketingSection
-          id="presale"
-          eyebrow="Presale Structure"
-          title="An eight-tier public presale with zero venture capital allocation."
-          description="The public document frames the presale as community-led, heavily tiered, and paired with treasury transparency and vesting protections."
+          id="buy-structure"
+          eyebrow="Buy Structure"
+          title="An eight-tier public buy structure with zero venture capital allocation."
+          description="The public document frames launch access as community-led, heavily tiered, and paired with treasury transparency and vesting protections."
         >
-          <MarketingStatsGrid items={presaleStats} />
+          <MarketingStatsGrid items={buyStats} />
           <div className="mt-6">
             <MarketingBody>
               <p>
-                The whitepaper positions Tier 1 at $0.001 and Tier 8 at $0.05, using that spread to illustrate early-access incentive and listing-price framing. It also ties the presale to a 4-of-7 multisig treasury, quarterly transparency reports, and investor-protection language such as audits, vesting discipline, and a minimum raise threshold.
+                The whitepaper positions Tier 1 at $0.001 and Tier 8 at $0.05, using that spread to illustrate early-access incentive and listing-reference framing. It also ties launch access to a 4-of-7 multisig treasury, quarterly transparency reports, and investor-protection language such as audits and vesting discipline.
               </p>
             </MarketingBody>
           </div>
@@ -350,9 +349,9 @@ export function WhitepaperPage() {
 
       <MarketingCtaBand
         content={{
-          title: 'Read the thesis, then move to the live public presale surface.',
+          title: 'Read the thesis, then move to the live public buy surface.',
           body: 'The whitepaper gives the full strategic narrative. The buy page is where that narrative already starts connecting to live backend-fed pricing and tier data.',
-          primary: { href: '/buy', label: 'Go to Buy' },
+          primary: { href: '/buy', label: 'Buy Now' },
           secondary: { href: '/about', label: 'About FlowDex' },
         }}
       />

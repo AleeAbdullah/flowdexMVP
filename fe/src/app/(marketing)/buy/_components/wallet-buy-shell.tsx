@@ -21,13 +21,14 @@ import {
   Wallet,
   Workflow,
 } from '@/icons';
+import { VESTING_LABELS } from '@/components/flowdex/buy-page-content';
 import type { BuyActionId, BuyInlineAlert, BuyUiTone, BuyViewModel, SupportedAssetOption } from '../types/buy-view-model';
 
 type WalletTrayButton = {
   id: string;
   label: string;
   caption: string;
-  mode: 'direct' | 'fallback';
+  mode: 'direct' | 'session-gated';
   busy?: boolean;
   disabled?: boolean;
   onClick: () => void;
@@ -39,12 +40,20 @@ type WalletSupportSummary = {
   primarySupportCopy: string;
 };
 
+const vestingStageColorClasses = [
+  'bg-[var(--token-bar-community)]',
+  'bg-[var(--token-bar-staking)]',
+  'bg-[var(--token-bar-contributors)]',
+  'bg-[var(--token-bar-treasury)]',
+];
+
 export type WalletBuyShellProps = {
   viewModel: BuyViewModel;
   walletStatusLabel: string;
   connectedWalletAddress: string | null;
   sessionWalletChecksum: string | null;
   verifiedChainLabel: string | null;
+  walletChainLabel: string | null;
   selectedChainLabel: string;
   selectedAsset: SupportedAssetOption | null;
   supportedAssets: SupportedAssetOption[];
@@ -58,7 +67,6 @@ export type WalletBuyShellProps = {
   latestExplorerUrl: string | null;
   walletSupportSummary: WalletSupportSummary;
   approvedDirectWalletDisplayNames: string[];
-  walletConnectCompatibleDisplayNames: string[];
   walletConnectEnabled: boolean;
   walletButtons: WalletTrayButton[];
   primaryActionDisabled: boolean;
@@ -212,7 +220,7 @@ function WalletTrayCard(props: {
       <div className="flex items-start justify-between gap-3">
         <WalletBrandIcon id={props.button.id} />
         <Badge variant={props.button.mode === 'direct' ? 'brand' : 'subtle'} className="px-3 py-1 normal-case tracking-normal">
-          {props.button.mode === 'direct' ? 'Direct' : 'Fallback'}
+          {props.button.mode === 'direct' ? 'Direct' : 'Session-gated'}
         </Badge>
       </div>
 
@@ -234,6 +242,7 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
     connectedWalletAddress,
     sessionWalletChecksum,
     verifiedChainLabel,
+    walletChainLabel,
     selectedChainLabel,
     selectedAsset,
     supportedAssets,
@@ -247,7 +256,6 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
     latestExplorerUrl,
     walletSupportSummary,
     approvedDirectWalletDisplayNames,
-    walletConnectCompatibleDisplayNames,
     walletConnectEnabled,
     walletButtons,
     primaryActionDisabled,
@@ -271,7 +279,7 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="brand" className="w-fit gap-2 px-4 py-2">
                     <Wallet className="h-3.5 w-3.5" />
-                    Presale Buy
+                    Buy $FDN
                   </Badge>
                   <StatusPill status={walletStatusLabel.toUpperCase()} />
                   {selectedAsset ? (
@@ -283,7 +291,7 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
 
                 <div className="space-y-2">
                   <h1 className="font-heading text-3xl font-bold tracking-tight text-[var(--text)] md:text-[3.2rem]">
-                    Buy into the presale.
+                    Buy $FDN with your connected wallet.
                   </h1>
                   <p className="max-w-2xl text-sm leading-7 text-[var(--muted)]">
                     {walletSupportSummary.primarySupportCopy}
@@ -307,7 +315,7 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
                       Progress
                     </div>
                     <div className="mt-1 text-sm font-semibold text-[var(--text)]">
-                      Presale raised {raisedDisplay}
+                      Raised {raisedDisplay}
                     </div>
                   </div>
                   <div className="text-sm font-semibold text-[var(--cyan)]">{Math.round(raisedProgressPercent)}%</div>
@@ -398,17 +406,8 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
                         </div>
 
                         <div className="space-y-2">
-                          <div className="font-semibold text-[var(--text)]">Also works with WalletConnect</div>
+                          <div className="font-semibold text-[var(--text)]">WalletConnect checkout</div>
                           <p>{walletSupportSummary.walletConnectCompatibilityCopy}</p>
-                          {walletConnectEnabled && walletConnectCompatibleDisplayNames.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                              {walletConnectCompatibleDisplayNames.map(walletName => (
-                                <Badge key={walletName} variant="subtle" className="px-3 py-1 normal-case tracking-normal">
-                                  {walletName}
-                                </Badge>
-                              ))}
-                            </div>
-                          ) : null}
                         </div>
                       </div>
                     </details>
@@ -486,6 +485,23 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
                       Minimum {selectedAsset ? `${selectedAsset.minAmount} ${selectedAsset.code}` : 'N/A'} on {selectedChainLabel}. Your connected wallet will be used for this purchase and its receipt.
                     </div>
 
+                    {walletChainLabel && walletChainLabel !== selectedChainLabel ? (
+                      <div className="grid gap-3 rounded-[1rem] border border-amber-300/30 bg-amber-300/10 px-4 py-4 text-sm md:grid-cols-2">
+                        <div>
+                          <div className="text-[10px] font-bold tracking-[0.24em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
+                            Wallet network
+                          </div>
+                          <div className="mt-1 font-semibold text-[var(--text)]">{walletChainLabel}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-bold tracking-[0.24em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
+                            Payment network
+                          </div>
+                          <div className="mt-1 font-semibold text-[var(--text)]">{selectedChainLabel}</div>
+                        </div>
+                      </div>
+                    ) : null}
+
                     <div className="flex flex-wrap items-center gap-3">
                       {viewModel.dominantActionLabel && viewModel.dominantActionId ? (
                         <Button
@@ -558,6 +574,27 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
           <GlassPanel className="p-5">
             <div className="space-y-5">
               <div className="flex items-center gap-3 text-[var(--text)]">
+                <Workflow className="h-5 w-5 text-[var(--cyan)]" />
+                <div className="text-lg font-bold">Vesting Preview</div>
+              </div>
+
+              <div className="overflow-hidden rounded-[1rem] border border-[var(--card-border)] bg-[var(--surface)]">
+                {VESTING_LABELS.map((label, index) => (
+                  <div
+                    key={label}
+                    className="flex min-h-12 items-center gap-3 border-b border-[var(--card-border)] px-4 py-3 text-sm font-semibold text-[var(--text)] last:border-b-0"
+                  >
+                    <span className={cn('h-3 w-3 rounded-sm', vestingStageColorClasses[index % vestingStageColorClasses.length])} />
+                    {label}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </GlassPanel>
+
+          <GlassPanel className="p-5">
+            <div className="space-y-5">
+              <div className="flex items-center gap-3 text-[var(--text)]">
                 <Globe2 className="h-5 w-5 text-[var(--cyan)]" />
                 <div className="text-lg font-bold">Wallet</div>
               </div>
@@ -572,7 +609,7 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
                 <div className="flex items-start gap-3">
                   {viewModel.isBusy
                     ? <Loader2 className="mt-0.5 h-4 w-4 animate-spin text-[var(--cyan)]" />
-                    : viewModel.step === 'receiptReady'
+                    : viewModel.state === 'success'
                       ? <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-300" />
                       : <ArrowRight className="mt-0.5 h-4 w-4 text-[var(--cyan)]" />}
                   <div className="space-y-1 text-sm">
@@ -595,7 +632,7 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
                 <p>{walletSupportSummary.directSupportCopy}</p>
                 <p>
                   {walletConnectEnabled
-                    ? `Use WalletConnect if you prefer another supported wallet, including ${walletConnectCompatibleDisplayNames.slice(0, 3).join(', ')}${walletConnectCompatibleDisplayNames.length > 3 ? ' and more' : ''}.`
+                    ? 'Use WalletConnect if you prefer another wallet. Checkout only continues after that wallet approves the required account, chain, and `eth_sendTransaction` session permissions.'
                     : 'WalletConnect is not available right now, so only the direct options are shown.'}
                 </p>
               </div>

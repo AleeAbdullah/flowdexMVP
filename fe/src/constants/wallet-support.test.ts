@@ -37,8 +37,9 @@ describe('wallet support registry', () => {
   it('degrades unsupported direct targets to WalletConnect compatibility when WalletConnect is enabled', () => {
     const registry = buildWalletSupportRegistry({ walletConnectEnabled: true });
 
-    expect(getWalletConnectCompatibilityCopy(registry)).toContain('Trust Wallet');
-    expect(getWalletConnectCompatibilityCopy(registry)).toContain('Kraken Wallet');
+    expect(getWalletConnectCompatibilityCopy(registry)).toBe(
+      'WalletConnect support is checked after connection. Only wallets that approve checkout transaction sending for this chain can continue.',
+    );
     expect(getPrimaryWalletSupportCopy(registry)).toBe('Choose a wallet to continue.');
   });
 

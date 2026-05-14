@@ -26,10 +26,14 @@ export type SimulateTransactionInput = {
 };
 
 export type IWalletTransactionRequest = {
-  to: string;
+  to: `0x${string}`;
   chainId: number;
-  value: string;
-  data: string;
+  value: `0x${string}`;
+  data: `0x${string}`;
+  gas?: `0x${string}`;
+  gasPrice?: `0x${string}`;
+  maxFeePerGas?: `0x${string}`;
+  maxPriorityFeePerGas?: `0x${string}`;
 };
 
 export type IWalletTransactionSimulationResult = {

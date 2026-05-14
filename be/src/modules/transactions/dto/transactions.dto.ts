@@ -60,6 +60,18 @@ export class WalletTransactionRequestDto {
 
   @ApiProperty()
   data!: string;
+
+  @ApiProperty({ required: false, nullable: true })
+  gas?: string;
+
+  @ApiProperty({ required: false, nullable: true })
+  gasPrice?: string;
+
+  @ApiProperty({ required: false, nullable: true })
+  maxFeePerGas?: string;
+
+  @ApiProperty({ required: false, nullable: true })
+  maxPriorityFeePerGas?: string;
 }
 
 export class WalletTransactionSimulationDto {

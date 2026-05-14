@@ -17,13 +17,13 @@ export function RoadmapPage() {
     <div className="pb-12">
       <MarketingPageHero
         eyebrow="Roadmap"
-        title="The path from presale access to the wider FlowDex market vision."
+        title="The path from launch access to the wider FlowDex market vision."
         description="Follow the rollout from early wallet-based access to broader market coverage and the long-term network plan."
         meta={[
           { label: 'Phase 1', value: 'Ethereum Foundation' },
           { label: 'Phase 2', value: 'Multi-Chain Expansion' },
           { label: 'Phase 3', value: 'FlowChain' },
-          { label: 'Current Focus', value: 'Presale Access' },
+          { label: 'Current Focus', value: 'Buy Flow' },
         ]}
         actions={(
           <>
@@ -80,7 +80,7 @@ export function RoadmapPage() {
         >
           <MarketingBody>
             <p>
-              Phase 1 focuses on presale access, wallet-based participation, and a clear purchase experience. Phase 2 expands into broader asset coverage and more chain support. FlowChain becomes relevant once the product layer has earned that next step.
+              Phase 1 focuses on launch access, wallet-based participation, and a clear purchase experience. Phase 2 expands into broader asset coverage and more chain support. FlowChain becomes relevant once the product layer has earned that next step.
             </p>
             <p>
               Keeping the roadmap separate makes it easier to explore the long-term direction without slowing down the main entry and purchase flow.
@@ -94,7 +94,7 @@ export function RoadmapPage() {
           title: 'Roadmap context is useful. The whitepaper goes deeper.',
           body: 'If you need the wider architecture and market framing behind these phases, move to the whitepaper. If you’re ready for action, go straight to the buy flow.',
           primary: { href: ROUTES.MARKETING.WHITEPAPER, label: 'Open Whitepaper' },
-          secondary: { href: ROUTES.MARKETING.BUY, label: 'Go to Buy' },
+          secondary: { href: ROUTES.MARKETING.BUY, label: 'Buy Now' },
         }}
       />
     </div>

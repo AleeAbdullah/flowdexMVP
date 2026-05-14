@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { AuthCard, useLogout, useSigner, useSignerStatus, useUser } from '@account-kit/react';
-import { useQueryClient } from '@tanstack/react-query';
+import { AuthCard } from '@account-kit/react';
 import {
   buildWalletSupportRegistry,
   getDirectWalletSupportCopy,
@@ -14,55 +13,28 @@ import { DataKicker, GlassPanel, SectionHeading, StatusPill } from '@/components
 import { formatDateTime, truncateMiddle } from '@/components/flowdex/utils';
 import { Button } from '@/components/ui/button';
 import { useTransactions } from '@/dal/app/transactions/transactions.services';
-import { useLogoutWalletSession, useWalletSession } from '@/dal/app/wallet-auth/wallet-auth.services';
 import { Loader2, ReceiptText, ShieldCheck } from '@/icons';
-import { useWalletSessionSync } from '@/hooks/use-wallet-session-sync';
+import { useMarketingWalletStore } from '@/hooks/use-marketing-wallet-store';
+import { useMarketingWalletSync } from '@/hooks/use-marketing-wallet-sync';
 import { ROUTES } from '@/routes';
 
-function normalizeWalletAddress(address: string | null | undefined) {
-  return address?.trim().toLowerCase() ?? null;
-}
-
 export function WalletTransactionsPageClient() {
-  const signerStatus = useSignerStatus();
-  const signer = useSigner();
-  const user = useUser();
-  const { logout: disconnectWallet, isLoggingOut } = useLogout();
-  const walletSessionQuery = useWalletSession();
-  const logoutWalletSession = useLogoutWalletSession();
-  const queryClient = useQueryClient();
-
-  const connectedWalletAddress = user?.address ?? null;
-  const walletSession = walletSessionQuery.data;
-  const sessionWalletAddress = walletSession?.walletAddressNormalized ?? null;
+  const marketingWallet = useMarketingWalletSync();
+  const provider = useMarketingWalletStore((state) => state.provider);
+  const verification = useMarketingWalletStore((state) => state.verification);
   const walletSupportRegistry = buildWalletSupportRegistry({
     walletConnectEnabled: getWalletSupportRuntime().walletConnectEnabled,
   });
   const primaryWalletSupportCopy = getPrimaryWalletSupportCopy(walletSupportRegistry);
   const directWalletSupportCopy = getDirectWalletSupportCopy(walletSupportRegistry);
   const walletConnectCompatibilityCopy = getWalletConnectCompatibilityCopy(walletSupportRegistry);
-  const normalizedConnected = normalizeWalletAddress(connectedWalletAddress);
-  const normalizedSession = normalizeWalletAddress(sessionWalletAddress);
-  const isWalletVerified = Boolean(normalizedConnected && normalizedSession && normalizedConnected === normalizedSession);
+  const isWalletConnected = provider.status === 'connected';
+  const isWalletVerified = verification.status === 'verified' && Boolean(verification.walletAddress);
 
-  useWalletSessionSync({
-    connectedWalletAddress,
-    connectedSignerReference: signer,
-    sessionWalletAddress,
-    isWalletConnected: Boolean(signerStatus.isConnected && connectedWalletAddress),
-  });
-
-  const transactionsQuery = useTransactions(walletSession?.walletAddressNormalized);
+  const transactionsQuery = useTransactions(isWalletVerified ? verification.walletAddress : null);
   const items = transactionsQuery.data?.items ?? [];
   const confirmedCount = items.filter(item => item.status === 'CONFIRMED').length;
   const pendingCount = items.filter(item => item.status === 'PENDING').length;
-
-  function handleDisconnect() {
-    disconnectWallet(undefined);
-    logoutWalletSession.mutate(undefined);
-    queryClient.removeQueries({ queryKey: ['wallet', 'transactions'] });
-    queryClient.removeQueries({ queryKey: ['wallet-auth', 'session'] });
-  }
 
   return (
     <div className="section-shell section-pad space-y-8">
@@ -74,14 +46,14 @@ export function WalletTransactionsPageClient() {
           description="View recent purchase activity and open each receipt from the connected wallet."
         />
         <div className="grid gap-4 sm:grid-cols-2">
-          <DataKicker label="Connected Wallet" value={connectedWalletAddress ? truncateMiddle(connectedWalletAddress) : 'Not connected'} />
+          <DataKicker label="Connected Wallet" value={provider.address ? truncateMiddle(provider.address) : 'Not connected'} />
           <DataKicker label="Wallet Status" value={isWalletVerified ? 'Verified' : 'Verification required'} />
           <DataKicker label="Receipts Loaded" value={`${items.length}`} />
           <DataKicker label="Pending" value={`${pendingCount}`} />
         </div>
       </GlassPanel>
 
-      {!signerStatus.isConnected ? (
+      {!isWalletConnected ? (
         <GlassPanel className="p-6">
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text)]">
@@ -98,7 +70,7 @@ export function WalletTransactionsPageClient() {
         </GlassPanel>
       ) : null}
 
-      {signerStatus.isConnected && !isWalletVerified ? (
+      {isWalletConnected && !isWalletVerified ? (
         <GlassPanel className="p-6">
           <p className="text-sm leading-7 text-[var(--muted)]">
             Verify this wallet before viewing your purchase history.
@@ -109,8 +81,10 @@ export function WalletTransactionsPageClient() {
             </Button>
             <Button
               variant="glass"
-              onClick={handleDisconnect}
-              disabled={isLoggingOut || logoutWalletSession.isPending}
+              onClick={() => {
+                void marketingWallet.disconnectWallet();
+              }}
+              disabled={marketingWallet.isDisconnecting}
             >
               Disconnect wallet
             </Button>
@@ -133,7 +107,7 @@ export function WalletTransactionsPageClient() {
             </div>
           </div>
 
-          {walletSessionQuery.isLoading || transactionsQuery.isLoading ? (
+          {marketingWallet.walletSessionQuery.isLoading || transactionsQuery.isLoading ? (
             <div className="flex items-center gap-2 px-6 py-5 text-sm text-[var(--muted)]">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading wallet receipts…
@@ -146,7 +120,7 @@ export function WalletTransactionsPageClient() {
             </div>
           ) : null}
 
-          {!walletSessionQuery.isLoading && !transactionsQuery.isLoading && !transactionsQuery.isError && items.length === 0 ? (
+          {!marketingWallet.walletSessionQuery.isLoading && !transactionsQuery.isLoading && !transactionsQuery.isError && items.length === 0 ? (
             <div className="px-6 py-6 text-sm text-[var(--muted)]">
               No purchases yet.
             </div>

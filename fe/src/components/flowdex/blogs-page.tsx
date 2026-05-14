@@ -7,10 +7,10 @@ export function BlogsPage() {
       <MarketingPageHero
         eyebrow="Blogs"
         title="Public updates, launch notes, and product progress in one route."
-        description="For this pass, blogs and updates are merged into one public destination. It acts as the content index for progress, architecture notes, presale momentum, and public-facing release signals."
+        description="For this pass, blogs and updates are merged into one public destination. It acts as the content index for progress, architecture notes, buy-flow momentum, and public-facing release signals."
         meta={[
           { label: 'Format', value: 'Static Route-Level Index' },
-          { label: 'Content', value: 'Product • Presale • Architecture • Security' },
+          { label: 'Content', value: 'Product • Buy Flow • Architecture • Security' },
           { label: 'Publishing Model', value: 'Curated Local Content' },
           { label: 'Audience', value: 'Community and Prospective Buyers' },
         ]}
@@ -34,7 +34,7 @@ export function BlogsPage() {
         content={{
           title: 'Read the public progress log, then move into the product-facing routes.',
           body: 'This route gives the site a real content surface without adding a CMS yet. The buy route remains the main public conversion point.',
-          primary: { href: '/buy', label: 'Open Buy Page' },
+          primary: { href: '/buy', label: 'Buy Now' },
           secondary: { href: '/whitepaper', label: 'Read Whitepaper' },
         }}
       />

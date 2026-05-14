@@ -1,49 +1,22 @@
-export type BuyConnectionState = 'disconnected' | 'connecting' | 'connected' | 'failed';
-
-export type BuyVerificationState =
-  | 'checking'
+export type BuyFlowState =
+  | 'disconnected'
+  | 'checking_wallet'
+  | 'unsupported_wallet'
   | 'unverified'
-  | 'verifying'
-  | 'verified'
-  | 'mismatch'
+  | 'wrong_chain'
+  | 'ready'
+  | 'submitting'
+  | 'success'
   | 'failed';
 
-export type BuyNetworkState =
-  | 'correct'
-  | 'wrong'
-  | 'switch-pending'
-  | 'switch-failed-manual';
-
-export type BuyContributionState =
-  | 'idle'
-  | 'no-valid-option'
-  | 'simulate-pending'
-  | 'simulate-failed'
-  | 'send-pending'
-  | 'send-canceled'
-  | 'send-failed'
-  | 'track-pending'
-  | 'track-failed'
-  | 'receipt-ready';
-
-export type BuyShellStep =
-  | 'connectWallet'
-  | 'verifyWallet'
-  | 'switchNetwork'
-  | 'readyToContribute'
-  | 'submittingContribution'
-  | 'receiptReady'
-  | 'recoverFromIssue';
+export type BuySubmissionState = 'idle' | 'simulating' | 'awaiting_wallet_approval' | 'tracking' | 'success' | 'failed';
 
 export type BuyIssueReason =
-  | 'walletConnectCanceled'
-  | 'walletConnectUnavailable'
-  | 'walletConnectionFailed'
+  | 'connectionCanceled'
+  | 'connectionFailed'
+  | 'unsupportedWallet'
   | 'verificationFailed'
-  | 'sessionWalletMismatch'
   | 'wrongChain'
-  | 'chainSwitchFailed'
-  | 'noValidContributionOption'
   | 'simulateFailed'
   | 'sendCanceled'
   | 'sendFailed'
@@ -52,10 +25,6 @@ export type BuyIssueReason =
 export type BuyUiTone = 'default' | 'info' | 'success' | 'warning' | 'danger';
 
 export type BuyActionId =
-  | 'connectMetamask'
-  | 'connectCoinbaseWallet'
-  | 'connectWalletConnect'
-  | 'retryConnection'
   | 'verifyWallet'
   | 'switchNetwork'
   | 'submitContribution'
@@ -71,7 +40,7 @@ export type BuyInlineAlert = {
 };
 
 export type BuyViewModel = {
-  step: BuyShellStep;
+  state: BuyFlowState;
   issueReason: BuyIssueReason | null;
   tone: BuyUiTone;
   status: string;
@@ -90,19 +59,12 @@ export type BuyViewModel = {
 };
 
 export type BuyViewModelInput = {
-  connectionState: BuyConnectionState;
-  verificationState: BuyVerificationState;
-  networkState: BuyNetworkState;
-  contributionState: BuyContributionState;
+  flowState: BuyFlowState;
+  submissionState: BuySubmissionState;
   issueReason: BuyIssueReason | null;
   primaryWalletSupportCopy: string;
   selectedAssetCode: string | null;
   selectedChainLabel: string;
-  walletConnectEnabled: boolean;
-  needsChainVerification: boolean;
-  manualChainSwitchHelp: string | null;
-  connectedWalletAddress: string | null;
-  sessionWalletAddress: string | null;
   contributionErrorMessage: string | null;
 };
 

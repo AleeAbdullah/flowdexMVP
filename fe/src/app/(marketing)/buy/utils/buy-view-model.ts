@@ -1,8 +1,8 @@
 import type {
   BuyActionId,
-  BuyContributionState,
   BuyInlineAlert,
   BuyIssueReason,
+  BuySubmissionState,
   BuyUiTone,
   BuyViewModel,
   BuyViewModelInput,
@@ -22,8 +22,51 @@ function createAlert(
   };
 }
 
-function getContributionFailureAlert(
-  issueReason: BuyIssueReason,
+function createActions(
+  dominantActionId: BuyActionId | null,
+  dominantActionLabel: string | null,
+  secondaryActionId: BuyActionId | null,
+  secondaryActionLabel: string | null,
+) {
+  return {
+    dominantActionId,
+    dominantActionLabel,
+    secondaryActionId,
+    secondaryActionLabel,
+  };
+}
+
+function getSubmittingCopy(submissionState: BuySubmissionState) {
+  switch (submissionState) {
+    case 'simulating':
+      return {
+        status: 'PREPARING',
+        title: 'Preparing order',
+        description: 'Checking the amount and getting the transaction ready.',
+      };
+    case 'awaiting_wallet_approval':
+      return {
+        status: 'SIGN',
+        title: 'Confirm in wallet',
+        description: 'Approve the transaction in your wallet to continue.',
+      };
+    case 'tracking':
+      return {
+        status: 'TRACKING',
+        title: 'Finishing up',
+        description: 'Your transaction was sent. We’re creating the receipt now.',
+      };
+    default:
+      return {
+        status: 'SUBMITTING',
+        title: 'Processing purchase',
+        description: 'Your purchase is moving through confirmation and receipt creation.',
+      };
+  }
+}
+
+function getFailureAlert(
+  issueReason: BuyIssueReason | null,
   message: string | null,
 ): BuyInlineAlert {
   const fallbackMessage = message ?? 'Adjust the contribution inputs and try again.';
@@ -57,9 +100,37 @@ function getContributionFailureAlert(
         fallbackMessage,
         'danger',
       );
+    case 'verificationFailed':
+      return createAlert(
+        'verification-failed',
+        'Verification failed',
+        fallbackMessage,
+        'danger',
+      );
+    case 'wrongChain':
+      return createAlert(
+        'wrong-chain',
+        'Wrong network',
+        `Switch to ${fallbackMessage} before continuing.`,
+        'warning',
+      );
+    case 'unsupportedWallet':
+      return createAlert(
+        'unsupported-wallet',
+        'Wallet unsupported',
+        fallbackMessage,
+        'danger',
+      );
+    case 'connectionCanceled':
+      return createAlert(
+        'connection-canceled',
+        'Connection canceled',
+        fallbackMessage,
+        'warning',
+      );
     default:
       return createAlert(
-        'contribution-failed',
+        'buy-flow-failed',
         'Something needs attention',
         fallbackMessage,
         'danger',
@@ -67,90 +138,14 @@ function getContributionFailureAlert(
   }
 }
 
-function getContributionPendingState(
-  contributionState: BuyContributionState,
-): Pick<BuyViewModel, 'title' | 'description' | 'status'> {
-  switch (contributionState) {
-    case 'simulate-pending':
-      return {
-        title: 'Preparing order',
-        description: 'Checking the amount and getting the transaction ready.',
-        status: 'PREPARING',
-      };
-    case 'send-pending':
-      return {
-        title: 'Confirm in wallet',
-        description: 'Approve the transaction in your wallet to continue.',
-        status: 'SIGN',
-      };
-    case 'track-pending':
-      return {
-        title: 'Finishing up',
-        description: 'Your transaction was sent. We’re creating the receipt now.',
-        status: 'TRACKING',
-      };
-    default:
-      return {
-        title: 'Processing purchase',
-        description: 'Your purchase is moving through confirmation and receipt creation.',
-        status: 'SUBMITTING',
-      };
-  }
-}
-
 export function normalizeWalletAddress(address: string | null | undefined) {
   return address?.trim().toLowerCase() ?? null;
 }
 
-export function isUserRejectedError(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error ?? '');
-  const lowered = message.toLowerCase();
-  return lowered.includes('rejected')
-    || lowered.includes('cancel')
-    || lowered.includes('closed modal')
-    || lowered.includes('denied')
-    || lowered.includes('declined');
-}
-
-export function inferConnectionIssueReason(input: {
-  connectorName: string;
-  walletConnectEnabled: boolean;
-  error: unknown;
-}): BuyIssueReason {
-  const connectorName = input.connectorName.trim().toLowerCase();
-  if (connectorName === 'walletconnect' || connectorName === 'wallet_connect') {
-    if (!input.walletConnectEnabled) {
-      return 'walletConnectUnavailable';
-    }
-
-    return isUserRejectedError(input.error)
-      ? 'walletConnectCanceled'
-      : 'walletConnectionFailed';
-  }
-
-  return 'walletConnectionFailed';
-}
-
 export function buildBuyViewModel(input: BuyViewModelInput): BuyViewModel {
-  const dominantAction = (
-    id: BuyActionId | null,
-    label: string | null,
-  ) => ({
-    dominantActionId: id,
-    dominantActionLabel: label,
-  });
-
-  const secondaryAction = (
-    id: BuyActionId | null,
-    label: string | null,
-  ) => ({
-    secondaryActionId: id,
-    secondaryActionLabel: label,
-  });
-
-  if (input.verificationState === 'checking') {
+  if (input.flowState === 'checking_wallet') {
     return {
-      step: 'connectWallet',
+      state: 'checking_wallet',
       issueReason: null,
       tone: 'info',
       status: 'CHECKING',
@@ -162,260 +157,89 @@ export function buildBuyViewModel(input: BuyViewModelInput): BuyViewModel {
       showContributionPlaceholder: true,
       showSupportDisclosure: false,
       isBusy: true,
-      ...dominantAction(null, null),
-      ...secondaryAction(null, null),
+      ...createActions(null, null, null, null),
     };
   }
 
-  if (input.connectionState === 'disconnected') {
+  if (input.flowState === 'disconnected') {
+    const isCanceled = input.issueReason === 'connectionCanceled';
+    const isConnectionFailure = input.issueReason === 'connectionFailed';
     return {
-      step: 'connectWallet',
+      state: 'disconnected',
       issueReason: input.issueReason,
-      tone: input.issueReason ? 'warning' : 'default',
-      status: input.issueReason ? 'ATTENTION' : 'PENDING',
-      title: input.issueReason === 'walletConnectCanceled'
-        ? 'Connection canceled'
-        : 'Connect wallet',
-      description: input.issueReason === 'walletConnectCanceled'
+      tone: isCanceled ? 'warning' : isConnectionFailure ? 'danger' : 'default',
+      status: isCanceled ? 'CANCELED' : isConnectionFailure ? 'FAILED' : 'PENDING',
+      title: isCanceled ? 'Connection canceled' : isConnectionFailure ? 'Couldn’t connect wallet' : 'Connect wallet',
+      description: isCanceled
         ? 'Choose a wallet to continue.'
-        : input.primaryWalletSupportCopy,
-      alerts: input.issueReason === 'walletConnectCanceled'
-        ? [
-            createAlert(
-              'walletconnect-canceled',
-              'Connection canceled',
-              'The wallet picker closed before the connection finished.',
-              'warning',
-            ),
-          ]
+        : isConnectionFailure
+          ? 'Try again or choose another wallet.'
+          : input.primaryWalletSupportCopy,
+      alerts: input.issueReason
+        ? [getFailureAlert(input.issueReason, input.contributionErrorMessage)]
         : [],
       showWalletTray: true,
       showContributionForm: false,
       showContributionPlaceholder: true,
       showSupportDisclosure: true,
       isBusy: false,
-      ...dominantAction(null, null),
-      ...secondaryAction(null, null),
+      ...createActions(null, null, null, null),
     };
   }
 
-  if (input.connectionState === 'failed') {
-    const isWalletConnectIssue = input.issueReason === 'walletConnectCanceled'
-      || input.issueReason === 'walletConnectUnavailable'
-      || input.issueReason === 'walletConnectionFailed';
-
+  if (input.flowState === 'unsupported_wallet') {
     return {
-      step: 'recoverFromIssue',
+      state: 'unsupported_wallet',
+      issueReason: 'unsupportedWallet',
+      tone: 'danger',
+      status: 'UNSUPPORTED',
+      title: 'This wallet can’t use checkout',
+      description: 'Disconnect and choose a compatible wallet to continue.',
+      alerts: [getFailureAlert('unsupportedWallet', input.contributionErrorMessage)],
+      showWalletTray: false,
+      showContributionForm: false,
+      showContributionPlaceholder: true,
+      showSupportDisclosure: false,
+      isBusy: false,
+      ...createActions(null, null, 'disconnectWallet', 'Disconnect wallet'),
+    };
+  }
+
+  if (input.flowState === 'unverified') {
+    return {
+      state: 'unverified',
       issueReason: input.issueReason,
-      tone: input.issueReason === 'walletConnectCanceled' ? 'warning' : 'danger',
-      status: input.issueReason === 'walletConnectCanceled' ? 'CANCELED' : 'FAILED',
-      title: input.issueReason === 'walletConnectUnavailable'
-        ? 'WalletConnect unavailable'
-        : input.issueReason === 'walletConnectCanceled'
-          ? 'Connection canceled'
-          : 'Couldn’t connect wallet',
-      description: input.issueReason === 'walletConnectUnavailable'
-        ? 'Use MetaMask or Coinbase Wallet to continue.'
-        : input.issueReason === 'walletConnectCanceled'
-          ? 'Choose a wallet to continue.'
-          : 'Try again or choose another wallet.',
-      alerts: [
-        createAlert(
-          'connection-failed',
-          input.issueReason === 'walletConnectCanceled' ? 'Connection canceled' : 'Connection issue',
-          input.contributionErrorMessage
-            ?? (
-              isWalletConnectIssue
-                ? 'The wallet picker closed before a connection was established.'
-                : 'The selected wallet did not finish the connection request.'
-            ),
-          input.issueReason === 'walletConnectCanceled' ? 'warning' : 'danger',
-        ),
-      ],
-      showWalletTray: true,
-      showContributionForm: false,
-      showContributionPlaceholder: true,
-      showSupportDisclosure: true,
-      isBusy: false,
-      ...dominantAction(
-        input.issueReason === 'walletConnectUnavailable' ? null : 'retryConnection',
-        input.issueReason === 'walletConnectUnavailable' ? null : 'Try again',
-      ),
-      ...secondaryAction(null, null),
-    };
-  }
-
-  if (input.connectionState === 'connecting') {
-    return {
-      step: 'connectWallet',
-      issueReason: null,
-      tone: 'info',
-      status: 'CONNECTING',
-      title: 'Open your wallet',
-      description: 'Approve the connection to continue.',
-      alerts: [],
-      showWalletTray: true,
-      showContributionForm: false,
-      showContributionPlaceholder: true,
-      showSupportDisclosure: true,
-      isBusy: true,
-      ...dominantAction(null, null),
-      ...secondaryAction(null, null),
-    };
-  }
-
-  if (input.verificationState === 'mismatch') {
-    return {
-      step: 'recoverFromIssue',
-      issueReason: 'sessionWalletMismatch',
-      tone: 'danger',
-      status: 'MISMATCH',
-      title: 'Verify this wallet',
-      description: 'The connected wallet is different from the one currently in use.',
-      alerts: [
-        createAlert(
-          'wallet-mismatch',
-          'Wallet changed',
-          'Reconnect or verify this wallet to keep going.',
-          'danger',
-        ),
-      ],
+      tone: input.issueReason === 'verificationFailed' ? 'danger' : 'warning',
+      status: input.issueReason === 'verificationFailed' ? 'FAILED' : 'VERIFY',
+      title: input.issueReason === 'verificationFailed' ? 'Couldn’t verify wallet' : 'Verify wallet',
+      description: input.issueReason === 'verificationFailed'
+        ? 'Try again to continue.'
+        : 'Approve a quick signature to continue. No funds move during this step.',
+      alerts: input.issueReason === 'verificationFailed'
+        ? [getFailureAlert('verificationFailed', input.contributionErrorMessage)]
+        : [],
       showWalletTray: false,
       showContributionForm: true,
       showContributionPlaceholder: false,
       showSupportDisclosure: false,
       isBusy: false,
-      ...dominantAction('verifyWallet', 'Verify wallet'),
-      ...secondaryAction('disconnectWallet', 'Disconnect wallet'),
+      ...createActions('verifyWallet', input.issueReason === 'verificationFailed' ? 'Retry verification' : 'Verify wallet', 'disconnectWallet', 'Disconnect wallet'),
     };
   }
 
-  if (input.verificationState === 'failed') {
+  if (input.flowState === 'wrong_chain') {
     return {
-      step: 'recoverFromIssue',
-      issueReason: 'verificationFailed',
-      tone: 'danger',
-      status: 'FAILED',
-      title: 'Couldn’t verify wallet',
-      description: 'Try again to continue.',
-      alerts: [
-        createAlert(
-          'verify-failed',
-          'Verification failed',
-          input.contributionErrorMessage ?? 'We couldn’t confirm the signature from this wallet.',
-          'danger',
-        ),
-      ],
-      showWalletTray: false,
-      showContributionForm: true,
-      showContributionPlaceholder: false,
-      showSupportDisclosure: false,
-      isBusy: false,
-      ...dominantAction('verifyWallet', 'Retry verification'),
-      ...secondaryAction('disconnectWallet', 'Disconnect wallet'),
-    };
-  }
-
-  if (input.verificationState === 'verifying') {
-    return {
-      step: 'verifyWallet',
-      issueReason: null,
-      tone: 'info',
-      status: 'VERIFYING',
-      title: input.needsChainVerification ? 'Verifying network' : 'Verifying wallet',
-      description: input.needsChainVerification
-        ? `Approve the check for ${input.selectedChainLabel} to continue.`
-        : 'Approve the verification request in your wallet. No funds move during this step.',
-      alerts: [],
-      showWalletTray: false,
-      showContributionForm: true,
-      showContributionPlaceholder: false,
-      showSupportDisclosure: false,
-      isBusy: true,
-      ...dominantAction(null, null),
-      ...secondaryAction('disconnectWallet', 'Disconnect wallet'),
-    };
-  }
-
-  if (input.verificationState === 'unverified') {
-    return {
-      step: 'verifyWallet',
-      issueReason: null,
-      tone: 'warning',
-      status: 'VERIFY',
-      title: input.needsChainVerification ? 'Verify network' : 'Verify wallet',
-      description: input.needsChainVerification
-        ? `Verify on ${input.selectedChainLabel} to continue.`
-        : 'Approve a quick signature to continue.',
-      alerts: [],
-      showWalletTray: false,
-      showContributionForm: true,
-      showContributionPlaceholder: false,
-      showSupportDisclosure: false,
-      isBusy: false,
-      ...dominantAction('verifyWallet', input.needsChainVerification ? 'Verify network' : 'Verify wallet'),
-      ...secondaryAction('disconnectWallet', 'Disconnect wallet'),
-    };
-  }
-
-  if (input.networkState === 'switch-pending') {
-    return {
-      step: 'switchNetwork',
-      issueReason: 'wrongChain',
-      tone: 'warning',
-      status: 'SWITCHING',
-      title: 'Switching network',
-      description: `Keep your wallet open while it switches to ${input.selectedChainLabel}.`,
-      alerts: [],
-      showWalletTray: false,
-      showContributionForm: true,
-      showContributionPlaceholder: false,
-      showSupportDisclosure: false,
-      isBusy: true,
-      ...dominantAction(null, null),
-      ...secondaryAction('disconnectWallet', 'Disconnect wallet'),
-    };
-  }
-
-  if (input.networkState === 'switch-failed-manual') {
-    return {
-      step: 'recoverFromIssue',
-      issueReason: 'chainSwitchFailed',
-      tone: 'warning',
-      status: 'ACTION NEEDED',
-      title: 'Switch network manually',
-      description: `Open your wallet, switch to ${input.selectedChainLabel}, then come back here.`,
-      alerts: [
-        createAlert(
-          'manual-chain-switch',
-          'Manual network change required',
-          input.manualChainSwitchHelp ?? `Switch to ${input.selectedChainLabel} in your wallet before you continue.`,
-          'warning',
-        ),
-      ],
-      showWalletTray: false,
-      showContributionForm: true,
-      showContributionPlaceholder: false,
-      showSupportDisclosure: false,
-      isBusy: false,
-      ...dominantAction('switchNetwork', `Switch to ${input.selectedChainLabel}`),
-      ...secondaryAction('disconnectWallet', 'Disconnect wallet'),
-    };
-  }
-
-  if (input.networkState === 'wrong') {
-    return {
-      step: 'switchNetwork',
+      state: 'wrong_chain',
       issueReason: 'wrongChain',
       tone: 'warning',
       status: 'WRONG CHAIN',
       title: 'Switch network',
-      description: `Switch to ${input.selectedChainLabel} to continue.`,
+      description: `Your wallet network and selected payment network are different. Switch to ${input.selectedChainLabel} to continue.`,
       alerts: [
         createAlert(
           'wrong-chain',
           'Wrong network',
-          `Switch to ${input.selectedChainLabel} before continuing.`,
+          `The wallet can only complete this purchase after it is on ${input.selectedChainLabel}.`,
           'warning',
         ),
       ],
@@ -424,109 +248,32 @@ export function buildBuyViewModel(input: BuyViewModelInput): BuyViewModel {
       showContributionPlaceholder: false,
       showSupportDisclosure: false,
       isBusy: false,
-      ...dominantAction('switchNetwork', `Switch to ${input.selectedChainLabel}`),
-      ...secondaryAction('disconnectWallet', 'Disconnect wallet'),
+      ...createActions('switchNetwork', `Switch to ${input.selectedChainLabel}`, 'disconnectWallet', 'Disconnect wallet'),
     };
   }
 
-  if (input.contributionState === 'no-valid-option') {
+  if (input.flowState === 'submitting') {
+    const submittingCopy = getSubmittingCopy(input.submissionState);
     return {
-      step: 'recoverFromIssue',
-      issueReason: 'noValidContributionOption',
-      tone: 'warning',
-      status: 'UNAVAILABLE',
-      title: 'Unavailable right now',
-      description: 'This payment route is not available at the moment.',
-      alerts: [
-        createAlert(
-          'no-valid-option',
-          'This option is unavailable',
-          'Try another asset or come back in a moment.',
-          'warning',
-        ),
-      ],
-      showWalletTray: false,
-      showContributionForm: true,
-      showContributionPlaceholder: false,
-      showSupportDisclosure: false,
-      isBusy: false,
-      ...dominantAction(null, null),
-      ...secondaryAction('viewReceipts', 'View receipts'),
-    };
-  }
-
-  if (
-    input.contributionState === 'simulate-pending'
-    || input.contributionState === 'send-pending'
-    || input.contributionState === 'track-pending'
-  ) {
-    const pendingState = getContributionPendingState(input.contributionState);
-    return {
-      step: 'submittingContribution',
+      state: 'submitting',
       issueReason: null,
       tone: 'info',
-      status: pendingState.status,
-      title: pendingState.title,
-      description: pendingState.description,
+      status: submittingCopy.status,
+      title: submittingCopy.title,
+      description: submittingCopy.description,
       alerts: [],
       showWalletTray: false,
       showContributionForm: true,
       showContributionPlaceholder: false,
       showSupportDisclosure: false,
       isBusy: true,
-      ...dominantAction(null, null),
-      ...secondaryAction('viewReceipts', 'View receipts'),
+      ...createActions(null, null, 'viewReceipts', 'View receipts'),
     };
   }
 
-  if (
-    input.contributionState === 'simulate-failed'
-    || input.contributionState === 'send-canceled'
-    || input.contributionState === 'send-failed'
-    || input.contributionState === 'track-failed'
-  ) {
-    const issueReason = (
-      input.contributionState === 'simulate-failed'
-        ? 'simulateFailed'
-        : input.contributionState === 'send-canceled'
-          ? 'sendCanceled'
-          : input.contributionState === 'send-failed'
-            ? 'sendFailed'
-            : 'trackFailed'
-    ) satisfies BuyIssueReason;
-
+  if (input.flowState === 'success') {
     return {
-      step: 'recoverFromIssue',
-      issueReason,
-      tone: issueReason === 'sendCanceled' ? 'warning' : 'danger',
-      status: issueReason === 'sendCanceled' ? 'CANCELED' : 'FAILED',
-      title: issueReason === 'trackFailed'
-        ? 'Receipt delayed'
-        : issueReason === 'sendCanceled'
-          ? 'Transaction canceled'
-          : 'Something went wrong',
-      description: issueReason === 'trackFailed'
-        ? 'Your transaction may still complete. Try loading the receipt again.'
-        : issueReason === 'sendCanceled'
-          ? 'No funds moved. You can try again whenever you’re ready.'
-          : 'Check the details and try again.',
-      alerts: [getContributionFailureAlert(issueReason, input.contributionErrorMessage)],
-      showWalletTray: false,
-      showContributionForm: true,
-      showContributionPlaceholder: false,
-      showSupportDisclosure: false,
-      isBusy: false,
-      ...dominantAction(
-        issueReason === 'trackFailed' ? 'retryTracking' : 'submitContribution',
-        issueReason === 'trackFailed' ? 'Try again' : 'Try again',
-      ),
-      ...secondaryAction('viewReceipts', 'View receipts'),
-    };
-  }
-
-  if (input.contributionState === 'receipt-ready') {
-    return {
-      step: 'receiptReady',
+      state: 'success',
       issueReason: null,
       tone: 'success',
       status: 'RECEIPT READY',
@@ -538,13 +285,40 @@ export function buildBuyViewModel(input: BuyViewModelInput): BuyViewModel {
       showContributionPlaceholder: false,
       showSupportDisclosure: false,
       isBusy: true,
-      ...dominantAction(null, null),
-      ...secondaryAction('viewReceipts', 'View receipts'),
+      ...createActions(null, null, 'viewReceipts', 'View receipts'),
+    };
+  }
+
+  if (input.flowState === 'failed') {
+    const retryAction = input.issueReason === 'trackFailed' ? 'retryTracking' : 'submitContribution';
+
+    return {
+      state: 'failed',
+      issueReason: input.issueReason,
+      tone: input.issueReason === 'sendCanceled' ? 'warning' : 'danger',
+      status: input.issueReason === 'sendCanceled' ? 'CANCELED' : 'FAILED',
+      title: input.issueReason === 'trackFailed'
+        ? 'Receipt delayed'
+        : input.issueReason === 'sendCanceled'
+          ? 'Transaction canceled'
+          : 'Something went wrong',
+      description: input.issueReason === 'trackFailed'
+        ? 'Your transaction may still complete. Try loading the receipt again.'
+        : input.issueReason === 'sendCanceled'
+          ? 'No funds moved. You can try again whenever you’re ready.'
+          : 'Check the details and try again.',
+      alerts: [getFailureAlert(input.issueReason, input.contributionErrorMessage)],
+      showWalletTray: false,
+      showContributionForm: true,
+      showContributionPlaceholder: false,
+      showSupportDisclosure: false,
+      isBusy: false,
+      ...createActions(retryAction, 'Try again', 'viewReceipts', 'View receipts'),
     };
   }
 
   return {
-    step: 'readyToContribute',
+    state: 'ready',
     issueReason: null,
     tone: 'success',
     status: 'READY',
@@ -556,7 +330,6 @@ export function buildBuyViewModel(input: BuyViewModelInput): BuyViewModel {
     showContributionPlaceholder: false,
     showSupportDisclosure: false,
     isBusy: false,
-    ...dominantAction('submitContribution', input.selectedAssetCode ? `Complete purchase` : 'Complete purchase'),
-    ...secondaryAction('viewReceipts', 'View receipts'),
+    ...createActions('submitContribution', input.selectedAssetCode ? 'Complete purchase' : 'Complete purchase', 'viewReceipts', 'View receipts'),
   };
 }

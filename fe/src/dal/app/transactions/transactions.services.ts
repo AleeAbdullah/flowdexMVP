@@ -14,6 +14,7 @@ import {
   type SimulateTransactionInput,
   type TrackTransactionInput,
 } from './transactions.types';
+import { describeTransactionSimulationReason } from './transactions.utils';
 
 export const transactionsQueryKeys = {
   transactions: (walletAddress: string | null | undefined) => ['wallet', 'transactions', walletAddress ?? 'anonymous'] as const,
@@ -48,7 +49,7 @@ export function useSimulateTransaction() {
       if (result.allowed) {
         toast.success('Simulation passed');
       } else {
-        toast.error(result.reason ?? 'Simulation blocked');
+        toast.error(describeTransactionSimulationReason(result.reason));
       }
     },
     onError: (error) => {
