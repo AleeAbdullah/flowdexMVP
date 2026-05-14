@@ -4,10 +4,12 @@ import type { AxiosInstance } from 'axios';
 import { toast } from 'sonner';
 import useAxiosAuth from '@/hooks/use-axiosAuth';
 import { extractAxiosError } from '@/lib/axios';
-import type { ITransactionListItem } from '../transactions/transactions.types';
-import { dashboardQueryKeys } from '../dashboard/dashboard.services';
-import { transactionsQueryKeys } from '../transactions/transactions.services';
-import type { IAdminStats, AdminTransactionFilters, IAdminTransactionsResponse } from './admin.types';
+import type {
+  IAdminStats,
+  AdminTransactionFilters,
+  IAdminTransactionListItem,
+  IAdminTransactionsResponse,
+} from './admin.types';
 
 export const adminQueryKeys = {
   adminStats: ['app', 'admin', 'stats'] as const,
@@ -27,12 +29,12 @@ export const adminService = {
     });
     return response.data;
   },
-  async getAdminTransaction(client: AxiosInstance, id: string): Promise<ITransactionListItem> {
-    const response = await client.get<ITransactionListItem>(API_ROUTES.bff.admin.transactions.detail(id));
+  async getAdminTransaction(client: AxiosInstance, id: string): Promise<IAdminTransactionListItem> {
+    const response = await client.get<IAdminTransactionListItem>(API_ROUTES.bff.admin.transactions.detail(id));
     return response.data;
   },
-  async reconcileAdminTransaction(client: AxiosInstance, id: string): Promise<ITransactionListItem> {
-    const response = await client.post<ITransactionListItem>(API_ROUTES.bff.admin.transactions.reconcile(id));
+  async reconcileAdminTransaction(client: AxiosInstance, id: string): Promise<IAdminTransactionListItem> {
+    const response = await client.post<IAdminTransactionListItem>(API_ROUTES.bff.admin.transactions.reconcile(id));
     return response.data;
   },
 };
@@ -80,10 +82,8 @@ export function useReconcileAdminTransaction() {
     mutationFn: (id: string) => adminService.reconcileAdminTransaction(axiosAuth, id),
     onSuccess: async (transaction) => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.adminTransactions() }),
+        queryClient.invalidateQueries({ queryKey: ['app', 'admin', 'transactions'] }),
         queryClient.invalidateQueries({ queryKey: adminQueryKeys.adminTransaction(transaction.id) }),
-        queryClient.invalidateQueries({ queryKey: transactionsQueryKeys.transactions }),
-        queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.dashboardSummary }),
       ]);
       toast.success(`Reconciliation complete: ${transaction.status}`);
     },

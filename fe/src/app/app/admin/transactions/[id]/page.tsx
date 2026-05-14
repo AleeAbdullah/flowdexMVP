@@ -1,7 +1,7 @@
 import { API_ROUTES } from '@/api-routes';
-import type { ITransactionListItem } from '@/dal/app/transactions/transactions.types';
+import type { IAdminTransactionListItem } from '@/dal/app/admin/admin.types';
 import { DataKicker, GlassPanel, SectionHeading, StatusPill } from '@/components/flowdex/primitives';
-import { formatDateTime, formatPlainNumber, truncateMiddle } from '@/components/flowdex/utils';
+import { formatDateTime, truncateMiddle } from '@/components/flowdex/utils';
 import { BackendApiError, backendFetchJson } from '@/lib/auth-server';
 import { notFound, unstable_rethrow } from 'next/navigation';
 import { AdminReconcileButton } from './reconcile-button';
@@ -12,10 +12,10 @@ export default async function AdminTransactionDetailRoute(props: {
   }>;
 }) {
   const { id } = await props.params;
-  let transaction: ITransactionListItem;
+  let transaction: IAdminTransactionListItem;
 
   try {
-    transaction = await backendFetchJson<ITransactionListItem>(API_ROUTES.backend.admin.transactions.detail(id));
+    transaction = await backendFetchJson<IAdminTransactionListItem>(API_ROUTES.backend.admin.transactions.detail(id));
   } catch (error) {
     if (error instanceof BackendApiError && error.status === 404) {
       notFound();
@@ -39,8 +39,8 @@ export default async function AdminTransactionDetailRoute(props: {
             <div className="text-[10px] font-semibold tracking-[0.32em] text-[color-mix(in_srgb,var(--text)_45%,transparent)] uppercase">Status</div>
             <StatusPill status={transaction.status} />
           </div>
-          <DataKicker label="User ID" value={transaction.userId} />
           <DataKicker label="Wallet" value={transaction.walletAddress ? truncateMiddle(transaction.walletAddress) : 'Unavailable'} />
+          <DataKicker label="Public ID" value={transaction.publicId} />
           <DataKicker label="Network" value={transaction.network} />
         </div>
         <div>
@@ -52,13 +52,13 @@ export default async function AdminTransactionDetailRoute(props: {
         <GlassPanel className="p-6">
           <div className="grid gap-4 md:grid-cols-2">
             <DataKicker label="Transaction ID" value={transaction.id} />
-            <DataKicker label="Wallet ID" value={transaction.walletId} />
             <DataKicker label="Asset" value={`${transaction.assetCode} on ${transaction.network}`} />
-            <DataKicker label="Amount" value={`${formatPlainNumber(transaction.amount, 6)} ${transaction.assetCode}`} />
-            <DataKicker label="Operation" value={transaction.operationId ?? 'Not set'} />
+            <DataKicker label="Amount" value={`${transaction.amountDisplay} ${transaction.assetCode}`} />
             <DataKicker label="Tx Hash" value={transaction.txHash ? truncateMiddle(transaction.txHash) : 'Pending'} />
             <DataKicker label="Block Number" value={transaction.blockNumber ?? 'Pending'} />
             <DataKicker label="Confirmed At" value={formatDateTime(transaction.confirmedAt)} />
+            <DataKicker label="Simulation ID" value={transaction.simulationId ?? 'Not set'} />
+            <DataKicker label="Recipient" value={truncateMiddle(transaction.expectedRecipientAddress)} />
           </div>
         </GlassPanel>
 
@@ -68,13 +68,6 @@ export default async function AdminTransactionDetailRoute(props: {
               <div className="text-lg font-bold text-[var(--text)]">Failure reason</div>
               <p className="text-sm leading-7 text-rose-100">
                 {transaction.failureReason}
-              </p>
-            </div>
-          ) : transaction.settlementDiagnostic ? (
-            <div className="space-y-3">
-              <div className="text-lg font-bold text-[var(--text)]">Settlement diagnostic</div>
-              <p className="text-sm leading-7 text-amber-100">
-                {transaction.settlementDiagnostic}
               </p>
             </div>
           ) : (
@@ -87,7 +80,7 @@ export default async function AdminTransactionDetailRoute(props: {
           )}
 
           <div className="mt-5 space-y-4">
-            <DataKicker label="Block Time" value={formatDateTime(transaction.blockTime)} />
+            <DataKicker label="Created" value={formatDateTime(transaction.createdAt)} />
             <DataKicker label="Last Updated" value={formatDateTime(transaction.updatedAt)} />
           </div>
         </GlassPanel>

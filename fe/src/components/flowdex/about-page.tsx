@@ -35,8 +35,8 @@ export function AboutPage() {
     <div className="pb-12">
       <MarketingPageHero
         eyebrow="About FlowDex"
-        title="The Universal Exchange for crypto-native and tokenized real-world markets."
-        description="FlowDex is positioned as a non-custodial universal exchange where crypto, tokenized stocks, forex, commodities, indices, and ETFs can live in one coherent market experience instead of being split across disconnected brokers and exchanges."
+        title="The FlowDex Protocol for crypto-native and tokenized real-world markets."
+        description="FlowDex is positioned as a non-custodial protocol where crypto, tokenized stocks, forex, commodities, indices, and ETFs can live in one coherent market experience instead of being split across disconnected brokers and exchanges."
         meta={aboutPageMeta}
         actions={(
           <>
@@ -74,7 +74,7 @@ export function AboutPage() {
           id="opportunity"
           eyebrow="Opportunity"
           title="FlowDex sits at the intersection of crypto, forex, tokenized equities, commodities, and RWAs."
-          description="The whitepaper frames this as a universal exchange opportunity rather than a crypto-only venue expansion."
+          description="The whitepaper frames this as a protocol opportunity rather than a crypto-only venue expansion."
         >
           <MarketingStatsGrid items={aboutPageOpportunityStats} />
           <div className="mt-6 grid gap-4 md:grid-cols-3">
@@ -119,7 +119,7 @@ export function AboutPage() {
           id="whitepaper"
           eyebrow="Whitepaper"
           title="The concise product story is here. The full operating thesis lives in the whitepaper."
-          description="Use the whitepaper when you want the longer-form treatment of the problem, architecture, token model, presale design, roadmap, and risk framing."
+          description="Use the whitepaper when you want the longer-form treatment of the problem, architecture, token model, buy structure, roadmap, and risk framing."
         >
           <div className="grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
             <MarketingBody>
@@ -127,7 +127,7 @@ export function AboutPage() {
                 The About page explains what FlowDex is and why it exists. The whitepaper goes deeper into how the platform is expected to evolve from Ethereum launch posture into a broader multi-chain exchange and, later, the FlowChain infrastructure direction.
               </p>
               <p>
-                It also consolidates tokenomics, presale structure, governance, market opportunity, and the legal and risk framing into one route so serious buyers do not need to reconstruct the product narrative from scattered sections.
+                It also consolidates tokenomics, buy structure, governance, market opportunity, and the legal and risk framing into one route so serious buyers do not need to reconstruct the product narrative from scattered sections.
               </p>
             </MarketingBody>
 

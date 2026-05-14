@@ -9,7 +9,7 @@ function isAdminPath(pathname: string) {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (!pathname.startsWith('/app')) {
+  if (!isAdminPath(pathname)) {
     return NextResponse.next();
   }
 
@@ -26,13 +26,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (isAdminPath(pathname)) {
-    return NextResponse.next();
-  }
-
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/app/:path*'],
+  matcher: ['/app/admin/:path*'],
 };

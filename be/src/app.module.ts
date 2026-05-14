@@ -6,17 +6,15 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AlchemyModule } from './modules/alchemy/alchemy.module';
 import { AuthContextModule } from './modules/auth-context/auth-context.module';
-import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { MarketsModule } from './modules/markets/markets.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
 import { UsersModule } from './modules/users/users.module';
-import { WalletsModule } from './modules/wallets/wallets.module';
 import { HealthModule } from './infrastructure/health/health.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true }),
     JwtModule.register({ global: true }),
     ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
@@ -32,9 +30,7 @@ import { HealthModule } from './infrastructure/health/health.module';
     AlchemyModule,
     UsersModule,
     AuthContextModule,
-    WalletsModule,
     TransactionsModule,
-    DashboardModule,
     MarketsModule,
     AdminModule,
   ],

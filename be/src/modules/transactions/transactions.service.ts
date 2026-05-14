@@ -3,44 +3,61 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { createHmac, timingSafeEqual } from 'node:crypto';
-import { Cron } from '@nestjs/schedule';
+import { randomUUID } from 'node:crypto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { getAddress, parseUnits } from 'ethers';
-import { addFixed, compareFixed, normalizeFixed } from '../../common/utils/decimal';
-import { In, Repository } from 'typeorm';
+import { getAddress, Interface, isAddress, toBeHex } from 'ethers';
+import { Repository } from 'typeorm';
 
 import { AuthContext } from '../../common/decorators/current-auth.decorator';
 import { LedgerTxStatus } from '../../common/enums/domain.enums';
 import { normalizeAddress } from '../../common/utils/address';
-import { assertNetworkChainPair, chainIdForNetwork, isSupportedNetwork } from '../../common/utils/network';
+import { assertNetworkChainPair, chainIdForNetwork, isSupportedNetwork, networkForChainId } from '../../common/utils/network';
 import { env } from '../../infrastructure/config/env';
 import { AlchemyService } from '../alchemy/alchemy.service';
-import { UsersService } from '../users/users.service';
-import { WalletEntity } from '../wallets/entities/wallet.entity';
-import { SimulateTransactionDto, TrackTransactionDto, TransactionListItemDto } from './dto/transactions.dto';
-import { AnalyticsSnapshotEntity } from './entities/analytics-snapshot.entity';
+import {
+  AdminTransactionListItemDto,
+  SimulateTransactionDto,
+  TrackTransactionDto,
+  WalletTransactionListItemDto,
+  WalletTransactionSimulationDto,
+  WalletTransactionTrackResultDto,
+} from './dto/transactions.dto';
 import { LedgerTransactionEntity } from './entities/ledger-transaction.entity';
-import { SyncCheckpointEntity } from './entities/sync-checkpoint.entity';
-import { WebhookDeliveryEntity } from './entities/webhook-delivery.entity';
+import { SimulationIntentEntity } from './entities/simulation-intent.entity';
 
-const ACTIVE_LEDGER_STATUSES = new Set(['SUBMITTED', 'PENDING']);
-const SUPPORTED_APP_NETWORKS = new Set(['ETH_SEPOLIA', 'BASE_SEPOLIA']);
-const SIMULATION_TOKEN_MAX_AGE_SECONDS = 10 * 60;
+const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const TX_HASH_PATTERN = /^0x[a-fA-F0-9]{64}$/;
+const RESERVED_TREASURY_ADDRESS_MAX = 0xffffn;
+const ERC20_INTERFACE = new Interface([
+  'event Transfer(address indexed from, address indexed to, uint256 value)',
+  'function transfer(address to, uint256 value)',
+]);
 
-type ActivityEvent = {
-  txHash: string | null;
-  from: string | null;
-  to: string | null;
+type WalletAuthIdentity = {
+  normalized: string;
+  checksum: string;
+};
+
+type TransactionRequest = {
+  to: string;
+  chainId: number;
   value: string;
-  asset: string;
-  network: string | null;
-  chainId: number | null;
+  data: string;
+  gas?: string;
+  gasPrice?: string;
+  maxFeePerGas?: string;
+  maxPriorityFeePerGas?: string;
+};
+
+type VerificationResult = {
+  actualToAddress: string;
+  actualAmountBaseUnits: string;
   blockNumber: string | null;
-  blockTime: Date | null;
+  confirmedAt: Date | null;
   status: string;
+  failureReason: string | null;
 };
 
 @Injectable()
@@ -50,156 +67,225 @@ export class TransactionsService {
   constructor(
     @InjectRepository(LedgerTransactionEntity)
     private readonly ledgerTransactionsRepository: Repository<LedgerTransactionEntity>,
-    @InjectRepository(WebhookDeliveryEntity)
-    private readonly webhookDeliveriesRepository: Repository<WebhookDeliveryEntity>,
-    @InjectRepository(SyncCheckpointEntity)
-    private readonly syncCheckpointsRepository: Repository<SyncCheckpointEntity>,
-    @InjectRepository(AnalyticsSnapshotEntity)
-    private readonly analyticsSnapshotsRepository: Repository<AnalyticsSnapshotEntity>,
-    @InjectRepository(WalletEntity)
-    private readonly walletsRepository: Repository<WalletEntity>,
-    private readonly usersService: UsersService,
+    @InjectRepository(SimulationIntentEntity)
+    private readonly simulationIntentsRepository: Repository<SimulationIntentEntity>,
     private readonly alchemyService: AlchemyService,
   ) {}
 
   async simulate(
     auth: AuthContext,
     input: SimulateTransactionDto,
-  ): Promise<{ allowed: boolean; reason: string | null; simulationId: string | null }> {
-    await this.usersService.syncAndRequireActive(auth);
-    assertNetworkChainPair(input.network, input.chainId);
+  ): Promise<WalletTransactionSimulationDto> {
+    const wallet = this.requireWalletAuth(auth);
+    const network = networkForChainId(input.chainId);
+    const treasuryAddress = this.getTreasuryAddress(network);
 
-    const wallet = await this.requireOwnedWallet(auth.sub, input.walletId, input.network, input.chainId);
-    const recipient = this.normalizeRecipient(input.to);
-    this.assertTreasuryRecipient(input.network, recipient);
+    if (normalizeAddress(treasuryAddress) === wallet.normalized) {
+      this.logger.warn(`Treasury address matches connected wallet for ${network}`);
+      return {
+        allowed: false,
+        reason: 'TREASURY_ADDRESS_MATCHES_CONNECTED_WALLET',
+        simulationId: null,
+        request: null,
+      };
+    }
+
+    if (this.isReservedTreasuryAddress(treasuryAddress)) {
+      this.logger.warn(`Treasury address is reserved/system address for ${network}: ${treasuryAddress}`);
+      return {
+        allowed: false,
+        reason: 'TREASURY_ADDRESS_RESERVED',
+        simulationId: null,
+        request: null,
+      };
+    }
+
+    const request = this.buildTransactionRequest(input, treasuryAddress);
+
     const result = await this.alchemyService.simulateTransaction({
-      network: this.toAlchemyNetwork(input.network),
-      from: wallet.addressNormalized,
-      to: recipient,
-      value: input.value,
-      data: input.data,
+      network: this.toAlchemyNetwork(network),
+      from: wallet.normalized,
+      to: request.to,
+      value: request.value === '0' ? undefined : request.value,
+      data: request.data === '0x' ? undefined : request.data,
     });
 
+    if (!result.allowed) {
+      return {
+        allowed: false,
+        reason: result.reason,
+        simulationId: null,
+        request: null,
+      };
+    }
+
+    const expiresAt = new Date(Date.now() + CHALLENGE_TTL_MS);
+    const intent = await this.simulationIntentsRepository.save(
+      this.simulationIntentsRepository.create({
+        walletAddressNormalized: wallet.normalized,
+        chainId: input.chainId,
+        assetType: input.assetType,
+        assetCode: input.assetCode.trim().toUpperCase(),
+        assetContractAddress: input.assetContractAddress
+          ? this.normalizeAndChecksum(input.assetContractAddress).normalized
+          : null,
+        assetDecimals: input.assetDecimals,
+        amountBaseUnits: input.amountBaseUnits,
+        amountDisplay: input.amountDisplay,
+        expectedRecipientAddress: normalizeAddress(request.to),
+        status: 'created',
+        expiresAt,
+        usedAt: null,
+        requestPayload: {
+          amountBaseUnits: input.amountBaseUnits,
+          amountDisplay: input.amountDisplay,
+          request,
+          rawSimulation: result.raw,
+        },
+      }),
+    );
+
     return {
-      allowed: result.allowed,
-      reason: result.reason,
-      simulationId: result.allowed
-        ? this.createSimulationToken(
-          auth.sub,
-          wallet.id,
-          input.network,
-          input.chainId,
-          recipient,
-          input.value,
-          input.data,
-        )
-        : null,
+      allowed: true,
+      reason: null,
+      simulationId: intent.id,
+      request,
     };
   }
 
   async track(
     auth: AuthContext,
     input: TrackTransactionDto,
-  ): Promise<{ transactionId: string; status: string }> {
-    await this.usersService.syncAndRequireActive(auth);
-    assertNetworkChainPair(input.network, input.chainId);
+  ): Promise<WalletTransactionTrackResultDto> {
+    const wallet = this.requireWalletAuth(auth);
+    const txHash = String(input.txHash ?? '').trim();
 
-    const wallet = await this.requireOwnedWallet(auth.sub, input.walletId, input.network, input.chainId);
-    const recipient = this.normalizeRecipient(input.to);
-    this.assertTreasuryRecipient(input.network, recipient);
-    this.assertSimulationToken(
-      input.simulationId,
-      auth.sub,
-      wallet.id,
-      input.network,
-      input.chainId,
-      recipient,
-      input.value,
-      input.data,
-    );
-
-    const operationId = input.operationId?.trim() || null;
-    const txHash = input.txHash?.trim() || null;
-    const normalizedAmount = normalizeFixed(input.amount);
-
-    if (!operationId && !txHash) {
-      throw new BadRequestException('Either operationId or txHash is required');
-    }
-
-    if (txHash && !TX_HASH_PATTERN.test(txHash)) {
+    if (!TX_HASH_PATTERN.test(txHash)) {
       throw new BadRequestException('txHash must be a 32-byte hex hash');
     }
 
-    if (compareFixed(normalizedAmount, '0') <= 0) {
-      throw new BadRequestException('amount must be greater than zero');
-    }
-
-    const existing = await this.findExistingTrackedTransaction(wallet.id, input.chainId, operationId, txHash);
-    if (existing) {
-      return {
-        transactionId: existing.id,
-        status: existing.status,
-      };
-    }
-
-    const entity = this.ledgerTransactionsRepository.create({
-      userId: auth.sub,
-      walletId: wallet.id,
-      network: input.network,
-      chainId: input.chainId,
-      assetCode: input.assetCode.trim().toUpperCase(),
-      amount: normalizedAmount,
-      status: txHash ? 'PENDING' : 'SUBMITTED',
-      operationId,
-      txHash,
-      failureReason: null,
-      rawTrackPayload: input as unknown as Record<string, unknown>,
+    const intent = await this.simulationIntentsRepository.findOne({
+      where: {
+        id: input.simulationId,
+        walletAddressNormalized: wallet.normalized,
+      },
     });
 
-    const saved = await this.ledgerTransactionsRepository.save(entity);
-    await this.refreshAnalyticsSnapshot(auth.sub);
+    if (!intent) {
+      throw new NotFoundException('Simulation intent not found');
+    }
+
+    this.assertIntentIsTrackable(intent);
+
+    const duplicate = await this.ledgerTransactionsRepository.findOne({
+      where: {
+        chainId: intent.chainId,
+        txHash,
+      },
+    });
+
+    if (duplicate) {
+      if (duplicate.ownerWalletAddressNormalized === wallet.normalized) {
+        return {
+          publicId: duplicate.publicId,
+          status: duplicate.status,
+        };
+      }
+
+      throw new NotFoundException('Transaction not found');
+    }
+
+    const network = networkForChainId(intent.chainId);
+    const chainTx = await this.alchemyService.getTransactionByHash(this.toAlchemyNetwork(network), txHash);
+    const receipt = await this.alchemyService.getTransactionReceipt(this.toAlchemyNetwork(network), txHash);
+
+    if (!chainTx) {
+      throw new BadRequestException('Transaction not found on chain');
+    }
+
+    const verification = this.verifyTrackedTransaction({
+      txHash,
+      wallet,
+      intent,
+      chainTx,
+      receipt,
+      expectedRecipientAddress: this.getTreasuryAddress(network),
+    });
+
+    intent.status = 'used';
+    intent.usedAt = new Date();
+    await this.simulationIntentsRepository.save(intent);
+
+    const entity = await this.ledgerTransactionsRepository.save(
+      this.ledgerTransactionsRepository.create({
+        publicId: randomUUID(),
+        ownerWalletAddressNormalized: wallet.normalized,
+        ownerWalletAddressChecksum: wallet.checksum,
+        chainId: intent.chainId,
+        network,
+        assetType: intent.assetType,
+        assetCode: intent.assetCode,
+        assetContractAddress: intent.assetContractAddress,
+        assetDecimals: intent.assetDecimals,
+        amountBaseUnits: intent.amountBaseUnits,
+        amountDisplay: intent.amountDisplay,
+        status: verification.status,
+        txHash,
+        expectedRecipientAddress: intent.expectedRecipientAddress,
+        actualFromAddress: wallet.normalized,
+        actualToAddress: verification.actualToAddress,
+        actualAmountBaseUnits: verification.actualAmountBaseUnits,
+        failureReason: verification.failureReason,
+        blockNumber: verification.blockNumber,
+        confirmedAt: verification.confirmedAt,
+        simulationId: intent.id,
+        rawTrackPayload: { txHash, simulationId: input.simulationId },
+        rawWebhookPayload: null,
+      }),
+    );
 
     return {
-      transactionId: saved.id,
-      status: saved.status,
+      publicId: entity.publicId,
+      status: entity.status,
     };
   }
 
-  async listForUser(auth: AuthContext): Promise<{ items: TransactionListItemDto[] }> {
-    await this.usersService.syncAndRequireActive(auth);
-
+  async listForWallet(auth: AuthContext): Promise<{ items: WalletTransactionListItemDto[] }> {
+    const wallet = this.requireWalletAuth(auth);
     const items = await this.ledgerTransactionsRepository.find({
-      where: { userId: auth.sub },
+      where: { ownerWalletAddressNormalized: wallet.normalized },
       order: { createdAt: 'DESC' },
     });
 
     return {
-      items: await Promise.all(items.map(item => this.toDto(item))),
+      items: items.map(item => this.toWalletDto(item)),
     };
   }
 
-  async getForUser(auth: AuthContext, id: string): Promise<TransactionListItemDto> {
-    await this.usersService.syncAndRequireActive(auth);
-
+  async getForWallet(auth: AuthContext, publicId: string): Promise<WalletTransactionListItemDto> {
+    const wallet = this.requireWalletAuth(auth);
     const item = await this.ledgerTransactionsRepository.findOne({
-      where: { id, userId: auth.sub },
+      where: {
+        publicId,
+        ownerWalletAddressNormalized: wallet.normalized,
+      },
     });
 
     if (!item) {
       throw new NotFoundException('Transaction not found');
     }
 
-    return this.toDto(item);
+    return this.toWalletDto(item);
   }
 
   async listAll(filters?: {
     status?: string;
     network?: string;
     assetCode?: string;
-    userId?: string;
+    walletAddress?: string;
     from?: string;
     to?: string;
-  }): Promise<{ items: TransactionListItemDto[] }> {
+  }): Promise<{ items: AdminTransactionListItemDto[] }> {
     const qb = this.ledgerTransactionsRepository.createQueryBuilder('tx');
 
     if (filters?.status) {
@@ -211,8 +297,10 @@ export class TransactionsService {
     if (filters?.assetCode) {
       qb.andWhere('tx.asset_code = :assetCode', { assetCode: filters.assetCode });
     }
-    if (filters?.userId) {
-      qb.andWhere('tx.user_id = :userId', { userId: filters.userId });
+    if (filters?.walletAddress) {
+      qb.andWhere('tx.owner_wallet_address_normalized = :walletAddress', {
+        walletAddress: normalizeAddress(filters.walletAddress),
+      });
     }
     if (filters?.from) {
       qb.andWhere('tx.created_at >= :from', { from: filters.from });
@@ -224,19 +312,19 @@ export class TransactionsService {
     const items = await qb.orderBy('tx.created_at', 'DESC').getMany();
 
     return {
-      items: await Promise.all(items.map(item => this.toDto(item))),
+      items: items.map(item => this.toAdminDto(item)),
     };
   }
 
-  async getById(id: string): Promise<TransactionListItemDto> {
+  async getById(id: string): Promise<AdminTransactionListItemDto> {
     const item = await this.ledgerTransactionsRepository.findOne({ where: { id } });
     if (!item) {
       throw new NotFoundException('Transaction not found');
     }
-    return this.toDto(item);
+    return this.toAdminDto(item);
   }
 
-  async reconcileById(id: string): Promise<TransactionListItemDto> {
+  async reconcileById(id: string): Promise<AdminTransactionListItemDto> {
     const tx = await this.ledgerTransactionsRepository.findOne({ where: { id } });
     if (!tx) {
       throw new NotFoundException('Transaction not found');
@@ -250,317 +338,320 @@ export class TransactionsService {
       throw new BadRequestException('Unsupported transaction network');
     }
 
-    const network = this.toAlchemyNetwork(tx.network);
-    const chainId = tx.chainId ?? chainIdForNetwork(tx.network);
-    const chainTx = await this.alchemyService.getTransactionByHash(network, tx.txHash);
-    const receipt = await this.alchemyService.getTransactionReceipt(network, tx.txHash);
+    assertNetworkChainPair(tx.network, tx.chainId);
+
+    const chainTx = await this.alchemyService.getTransactionByHash(this.toAlchemyNetwork(tx.network), tx.txHash);
+    const receipt = await this.alchemyService.getTransactionReceipt(this.toAlchemyNetwork(tx.network), tx.txHash);
 
     if (!chainTx) {
-      return this.toDto(tx);
+      return this.toAdminDto(tx);
     }
 
-    const activity: ActivityEvent = {
-      txHash: chainTx.hash,
-      from: chainTx.from,
-      to: chainTx.to,
-      value: this.hexToDecimal(chainTx.value),
-      asset: 'ETH',
-      network: tx.network,
-      chainId,
-      blockNumber: receipt?.blockNumber ?? chainTx.blockNumber,
-      blockTime: null,
-      status: receipt?.blockNumber ? 'CONFIRMED' : 'PENDING',
+    const verification = this.verifyTrackedTransaction({
+      txHash: tx.txHash,
+      wallet: {
+        normalized: tx.ownerWalletAddressNormalized,
+        checksum: tx.ownerWalletAddressChecksum,
+      },
+      intent: {
+        chainId: tx.chainId,
+        assetType: tx.assetType,
+        assetCode: tx.assetCode,
+        assetContractAddress: tx.assetContractAddress,
+        assetDecimals: tx.assetDecimals,
+        amountBaseUnits: tx.amountBaseUnits,
+        amountDisplay: tx.amountDisplay,
+        expectedRecipientAddress: tx.expectedRecipientAddress,
+      },
+      chainTx,
+      receipt,
+      expectedRecipientAddress: tx.expectedRecipientAddress,
+    });
+
+    tx.status = verification.status;
+    tx.actualFromAddress = tx.ownerWalletAddressNormalized;
+    tx.actualToAddress = verification.actualToAddress;
+    tx.actualAmountBaseUnits = verification.actualAmountBaseUnits;
+    tx.failureReason = verification.failureReason;
+    tx.blockNumber = verification.blockNumber;
+    tx.confirmedAt = verification.confirmedAt;
+
+    await this.ledgerTransactionsRepository.save(tx);
+    return this.toAdminDto(tx);
+  }
+
+  private assertIntentIsTrackable(intent: SimulationIntentEntity) {
+    if (intent.status === 'used') {
+      throw new BadRequestException('Simulation intent already used');
+    }
+
+    if (intent.status === 'cancelled') {
+      throw new BadRequestException('Simulation intent cancelled');
+    }
+
+    if (intent.expiresAt.getTime() <= Date.now()) {
+      intent.status = 'expired';
+      void this.simulationIntentsRepository.save(intent);
+      throw new BadRequestException('Simulation intent expired');
+    }
+  }
+
+  private verifyTrackedTransaction(input: {
+    txHash: string;
+    wallet: WalletAuthIdentity;
+    intent: Pick<
+      SimulationIntentEntity,
+      'chainId'
+      | 'assetType'
+      | 'assetCode'
+      | 'assetContractAddress'
+      | 'assetDecimals'
+      | 'amountBaseUnits'
+      | 'amountDisplay'
+      | 'expectedRecipientAddress'
+    >;
+    chainTx: Awaited<ReturnType<AlchemyService['getTransactionByHash']>>;
+    receipt: Awaited<ReturnType<AlchemyService['getTransactionReceipt']>>;
+    expectedRecipientAddress: string;
+  }): VerificationResult {
+    const chainTx = input.chainTx;
+    if (!chainTx) {
+      throw new BadRequestException('Transaction not found on chain');
+    }
+
+    const resolvedInput = {
+      ...input,
+      chainTx,
     };
 
-    await this.processSettlementActivity(activity, {
-      source: 'ADMIN_RECONCILE',
-      txHash: tx.txHash,
-      tx: chainTx,
-      receipt,
-    });
-
-    const refreshed = await this.ledgerTransactionsRepository.findOne({ where: { id } });
-    if (!refreshed) {
-      throw new NotFoundException('Transaction not found after reconciliation');
+    const actualFrom = this.normalizeAndChecksum(chainTx.from).normalized;
+    if (actualFrom !== input.wallet.normalized) {
+      throw new BadRequestException('Transaction sender does not match wallet session');
     }
 
-    return this.toDto(refreshed);
+    if (input.intent.assetType === 'native') {
+      return this.verifyNativeTransfer(resolvedInput);
+    }
+
+    return this.verifyErc20Transfer(resolvedInput);
   }
 
-  async ingestAddressActivityWebhook(
-    payload: Record<string, unknown>,
-    signature: string,
-  ): Promise<{ received: true; duplicate: boolean }> {
-    const dedupeKey = this.buildWebhookDedupeKey(payload);
-    const existing = await this.webhookDeliveriesRepository.findOne({
-      where: { dedupeKey },
-    });
-
-    if (existing) {
-      return { received: true, duplicate: true };
+  private verifyNativeTransfer(input: {
+    wallet: WalletAuthIdentity;
+    intent: Pick<SimulationIntentEntity, 'amountBaseUnits'>;
+    chainTx: NonNullable<Awaited<ReturnType<AlchemyService['getTransactionByHash']>>>;
+    receipt: Awaited<ReturnType<AlchemyService['getTransactionReceipt']>>;
+    expectedRecipientAddress: string;
+  }): VerificationResult {
+    if (!input.chainTx.to) {
+      throw new BadRequestException('Native transaction missing recipient');
     }
 
-    const delivery = await this.webhookDeliveriesRepository.save(
-      this.webhookDeliveriesRepository.create({
-        source: 'ALCHEMY_ADDRESS_ACTIVITY',
-        dedupeKey,
-        status: 'RECEIVED',
-        signature,
-        rawPayload: payload,
-      }),
-    );
+    const actualTo = this.normalizeAndChecksum(input.chainTx.to);
+    const expectedRecipient = this.normalizeAndChecksum(input.expectedRecipientAddress);
 
-    try {
-      const activities = this.extractActivities(payload);
-      const affectedUsers = new Set<string>();
-
-      for (const activity of activities) {
-        const userId = await this.processSettlementActivity(activity, payload);
-        if (userId) {
-          affectedUsers.add(userId);
-        }
-      }
-
-      for (const userId of affectedUsers) {
-        await this.refreshAnalyticsSnapshot(userId);
-      }
-
-      delivery.status = 'PROCESSED';
-      delivery.processedAt = new Date();
-      await this.webhookDeliveriesRepository.save(delivery);
-
-      return { received: true, duplicate: false };
-    } catch (error) {
-      delivery.status = 'FAILED';
-      delivery.processingError = error instanceof Error ? error.message : 'UNKNOWN_ERROR';
-      delivery.processedAt = new Date();
-      await this.webhookDeliveriesRepository.save(delivery);
-      throw error;
+    if (actualTo.normalized !== expectedRecipient.normalized) {
+      throw new BadRequestException('Transaction recipient does not match configured treasury');
     }
+
+    if (BigInt(input.chainTx.value) !== BigInt(input.intent.amountBaseUnits)) {
+      throw new BadRequestException('Transaction value does not match expected amount');
+    }
+
+    return {
+      actualToAddress: actualTo.normalized,
+      actualAmountBaseUnits: input.chainTx.value,
+      blockNumber: input.receipt?.blockNumber ?? input.chainTx.blockNumber,
+      confirmedAt: this.resolveConfirmedAt(input.receipt),
+      status: this.resolveLedgerStatus(input.receipt),
+      failureReason: input.receipt?.status === '0x0' ? 'CHAIN_REVERTED' : null,
+    };
   }
 
-  @Cron('0 */10 * * * *')
-  async backfillTransfers(): Promise<void> {
-    if (!this.alchemyService.hasApiKey()) {
-      return;
+  private verifyErc20Transfer(input: {
+    wallet: WalletAuthIdentity;
+    intent: Pick<SimulationIntentEntity, 'assetContractAddress' | 'amountBaseUnits'>;
+    chainTx: NonNullable<Awaited<ReturnType<AlchemyService['getTransactionByHash']>>>;
+    receipt: Awaited<ReturnType<AlchemyService['getTransactionReceipt']>>;
+    expectedRecipientAddress: string;
+  }): VerificationResult {
+    const expectedContract = input.intent.assetContractAddress
+      ? this.normalizeAndChecksum(input.intent.assetContractAddress)
+      : null;
+
+    if (!expectedContract) {
+      throw new BadRequestException('ERC-20 transaction requires token contract address');
     }
 
-    const wallets = await this.walletsRepository.find({
-      where: {
-        network: In(['ETH_SEPOLIA', 'BASE_SEPOLIA']),
-      },
-      take: 100,
-    });
+    if (!input.chainTx.to) {
+      throw new BadRequestException('ERC-20 transaction missing token contract');
+    }
 
-    for (const wallet of wallets) {
-      if (!wallet.network) {
+    const actualContract = this.normalizeAndChecksum(input.chainTx.to);
+    if (actualContract.normalized !== expectedContract.normalized) {
+      throw new BadRequestException('Transaction token contract does not match expected asset');
+    }
+
+    const pendingTransfer = this.decodeErc20TransferFromInput(input.chainTx.input, expectedContract.normalized);
+    const expectedRecipient = this.normalizeAndChecksum(input.expectedRecipientAddress);
+
+    if (pendingTransfer.to.normalized !== expectedRecipient.normalized) {
+      throw new BadRequestException('Transaction recipient does not match configured treasury');
+    }
+
+    if (BigInt(pendingTransfer.amountBaseUnits) !== BigInt(input.intent.amountBaseUnits)) {
+      throw new BadRequestException('Transaction amount does not match expected token transfer');
+    }
+
+    const settledTransfer = input.receipt?.blockNumber
+      ? this.findConfirmedErc20Transfer(input.receipt.logs, {
+          contractAddressNormalized: expectedContract.normalized,
+          fromAddressNormalized: input.wallet.normalized,
+          toAddressNormalized: expectedRecipient.normalized,
+        })
+      : null;
+
+    if (input.receipt?.blockNumber && !settledTransfer) {
+      throw new BadRequestException('Transaction receipt does not include the expected token transfer');
+    }
+
+    const actualAmount = settledTransfer?.amountBaseUnits ?? pendingTransfer.amountBaseUnits;
+
+    return {
+      actualToAddress: expectedRecipient.normalized,
+      actualAmountBaseUnits: actualAmount,
+      blockNumber: input.receipt?.blockNumber ?? input.chainTx.blockNumber,
+      confirmedAt: this.resolveConfirmedAt(input.receipt),
+      status: this.resolveLedgerStatus(input.receipt),
+      failureReason: input.receipt?.status === '0x0' ? 'CHAIN_REVERTED' : null,
+    };
+  }
+
+  private decodeErc20TransferFromInput(inputData: string | null, contractAddressNormalized: string) {
+    if (!inputData || inputData === '0x') {
+      throw new BadRequestException(`Transaction input missing for ERC-20 transfer on ${contractAddressNormalized}`);
+    }
+
+    const decoded = ERC20_INTERFACE.decodeFunctionData('transfer', inputData);
+    const recipient = this.normalizeAndChecksum(String(decoded[0]));
+    const amountBaseUnits = BigInt(decoded[1]).toString();
+
+    return {
+      to: recipient,
+      amountBaseUnits,
+    };
+  }
+
+  private findConfirmedErc20Transfer(
+    logs: Array<Record<string, unknown>>,
+    input: {
+      contractAddressNormalized: string;
+      fromAddressNormalized: string;
+      toAddressNormalized: string;
+    },
+  ): { amountBaseUnits: string } | null {
+    for (const log of logs) {
+      const address = typeof log.address === 'string' ? normalizeAddress(log.address) : null;
+      const data = typeof log.data === 'string' ? log.data : null;
+      const topics = Array.isArray(log.topics) ? log.topics.filter((value): value is string => typeof value === 'string') : [];
+
+      if (!address || !data || address !== input.contractAddressNormalized) {
         continue;
       }
 
-      const checkpoint = await this.getOrCreateCheckpoint(wallet.id, wallet.network);
-      const result = await this.alchemyService.getAssetTransfers({
-        network: this.toAlchemyNetwork(wallet.network),
-        address: wallet.addressNormalized,
-        pageKey: checkpoint.lastPageKey ?? undefined,
-      });
+      try {
+        const parsed = ERC20_INTERFACE.parseLog({ data, topics });
+        if (parsed?.name !== 'Transfer') {
+          continue;
+        }
 
-      for (const transfer of result.transfers) {
-        const activity = this.toActivityEvent(transfer, wallet.network);
-        await this.processSettlementActivity(activity, transfer);
+        const from = this.normalizeAndChecksum(String(parsed.args[0]));
+        const to = this.normalizeAndChecksum(String(parsed.args[1]));
+        if (from.normalized !== input.fromAddressNormalized || to.normalized !== input.toAddressNormalized) {
+          continue;
+        }
+
+        return {
+          amountBaseUnits: BigInt(parsed.args[2]).toString(),
+        };
+      } catch {
+        continue;
       }
-
-      checkpoint.lastPageKey = result.pageKey;
-      checkpoint.lastSyncedAt = new Date();
-      await this.syncCheckpointsRepository.save(checkpoint);
-
-      await this.refreshAnalyticsSnapshot(wallet.userId);
     }
+
+    return null;
   }
 
-  async refreshAnalyticsSnapshot(userId: string): Promise<void> {
-    const [walletCount, txs, existingSnapshot] = await Promise.all([
-      this.walletsRepository.count({
-        where: {
-          userId,
-          network: In(['ETH_SEPOLIA', 'BASE_SEPOLIA']),
-        },
-      }),
-      this.ledgerTransactionsRepository.find({
-        where: { userId },
-      }),
-      this.analyticsSnapshotsRepository.findOne({
-        where: { userId },
-      }),
+  private resolveLedgerStatus(
+    receipt: Awaited<ReturnType<AlchemyService['getTransactionReceipt']>>,
+  ): string {
+    if (!receipt?.blockNumber) {
+      return LedgerTxStatus.PENDING;
+    }
+
+    if (receipt.status === '0x0') {
+      return LedgerTxStatus.FAILED;
+    }
+
+    return LedgerTxStatus.CONFIRMED;
+  }
+
+  private resolveConfirmedAt(
+    receipt: Awaited<ReturnType<AlchemyService['getTransactionReceipt']>>,
+  ): Date | null {
+    if (!receipt?.blockNumber || receipt.status === '0x0') {
+      return null;
+    }
+
+    return new Date();
+  }
+
+  private buildTransactionRequest(input: SimulateTransactionDto, treasuryAddress: string): TransactionRequest {
+    if (!/^[0-9]+$/.test(input.amountBaseUnits)) {
+      throw new BadRequestException('amountBaseUnits must be a base-unit integer string');
+    }
+
+    if (BigInt(input.amountBaseUnits) <= 0n) {
+      throw new BadRequestException('amountBaseUnits must be greater than zero');
+    }
+
+    if (input.assetType === 'native') {
+      return {
+        to: getAddress(treasuryAddress),
+        chainId: input.chainId,
+        value: toBeHex(BigInt(input.amountBaseUnits)),
+        data: '0x',
+      };
+    }
+
+    const token = this.normalizeAndChecksum(input.assetContractAddress ?? '');
+    const data = ERC20_INTERFACE.encodeFunctionData('transfer', [
+      getAddress(treasuryAddress),
+      BigInt(input.amountBaseUnits),
     ]);
 
-    const confirmed = txs.filter(tx => tx.status === 'CONFIRMED');
-    const pending = txs.filter(tx => ACTIVE_LEDGER_STATUSES.has(tx.status));
-    const totalVolume = confirmed.reduce((sum, tx) => addFixed(sum, tx.amount), '0');
-    const lastTransactionAt = txs.length > 0
-      ? txs.reduce((latest, tx) => (tx.updatedAt > latest ? tx.updatedAt : latest), txs[0].updatedAt)
-      : null;
-
-    const snapshot = existingSnapshot ?? this.analyticsSnapshotsRepository.create({ userId });
-    snapshot.linkedWalletCount = walletCount;
-    snapshot.totalTransactionCount = txs.length;
-    snapshot.confirmedTransactionCount = confirmed.length;
-    snapshot.pendingTransactionCount = pending.length;
-    snapshot.totalVolume = totalVolume;
-    snapshot.lastTransactionAt = lastTransactionAt;
-    await this.analyticsSnapshotsRepository.save(snapshot);
-  }
-
-  private async toDto(entity: LedgerTransactionEntity): Promise<TransactionListItemDto> {
-    const wallet = await this.walletsRepository.findOne({
-      where: { id: entity.walletId },
-    });
-    const settlementDiagnostic = this.buildSettlementDiagnostic(entity, wallet);
-
     return {
-      id: entity.id,
-      userId: entity.userId,
-      walletId: entity.walletId,
-      walletAddress: wallet?.addressNormalized ?? '',
-      network: entity.network,
-      chainId: entity.chainId,
-      assetCode: entity.assetCode,
-      amount: normalizeFixed(entity.amount),
-      status: entity.status,
-      operationId: entity.operationId,
-      txHash: entity.txHash,
-      blockNumber: entity.blockNumber,
-      blockTime: entity.blockTime,
-      confirmedAt: entity.confirmedAt,
-      failureReason: entity.failureReason,
-      settlementDiagnostic,
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
+      to: token.checksum,
+      chainId: input.chainId,
+      value: '0x0',
+      data,
     };
   }
 
-  private async processSettlementActivity(
-    activity: ActivityEvent,
-    rawPayload: Record<string, unknown>,
-  ): Promise<string | null> {
-    if (!activity.txHash || !activity.network || activity.chainId === null || !activity.from || !activity.to) {
-      return null;
-    }
-    if (!isSupportedNetwork(activity.network) || !this.isNativeAsset(activity.asset)) {
-      return null;
+  private getTreasuryAddress(network: string): string {
+    if (!isSupportedNetwork(network)) {
+      throw new BadRequestException('Unsupported transaction network');
     }
 
-    const treasuryAddress = this.getTreasuryAddress(activity.network);
-    if (normalizeAddress(activity.to) !== normalizeAddress(treasuryAddress)) {
-      return null;
-    }
+    const address = network === 'BASE_SEPOLIA'
+      ? env.treasuryAddressBaseSepolia
+      : env.treasuryAddressEthSepolia;
 
-    const senderAddress = normalizeAddress(activity.from);
-    const wallet = await this.walletsRepository.findOne({
-      where: {
-        chainId: activity.chainId,
-        addressNormalized: senderAddress,
-      },
-    });
-    if (!wallet || !wallet.network) {
-      return null;
-    }
-
-    const existingByChainHash = await this.ledgerTransactionsRepository.findOne({
-      where: { chainId: activity.chainId, txHash: activity.txHash },
-    });
-    if (existingByChainHash && existingByChainHash.walletId !== wallet.id) {
-      return null;
-    }
-
-    const tracked = await this.ledgerTransactionsRepository.findOne({
-      where: {
-        walletId: wallet.id,
-        chainId: activity.chainId,
-        txHash: activity.txHash,
-      },
-      order: { createdAt: 'DESC' },
-    });
-
-    if (!tracked) {
-      if (existingByChainHash) {
-        return existingByChainHash.userId;
-      }
-      const unmatched = this.ledgerTransactionsRepository.create({
-        userId: wallet.userId,
-        walletId: wallet.id,
-        network: wallet.network,
-        chainId: activity.chainId,
-        assetCode: activity.asset,
-        amount: normalizeFixed(activity.value),
-        status: LedgerTxStatus.UNMATCHED,
-        txHash: activity.txHash,
-        blockNumber: activity.blockNumber,
-        blockTime: activity.blockTime,
-        rawWebhookPayload: rawPayload,
-      });
-      await this.ledgerTransactionsRepository.save(unmatched);
-      return wallet.userId;
-    }
-
-    const expectedTo = normalizeAddress(String(tracked.rawTrackPayload?.to ?? ''));
-    const actualAmount = normalizeFixed(activity.value);
-    const recipientMatches = expectedTo === normalizeAddress(treasuryAddress);
-    const amountMatches = this.isNativeAsset(activity.asset)
-      ? this.nativeAmountMatchesTrackedExpectation(actualAmount, tracked)
-      : normalizeFixed(tracked.amount) === actualAmount;
-    const expectationsPass = recipientMatches && amountMatches;
-
-    tracked.assetCode = activity.asset;
-    tracked.amount = actualAmount;
-    tracked.blockNumber = activity.blockNumber;
-    tracked.blockTime = activity.blockTime;
-    tracked.rawWebhookPayload = rawPayload;
-
-    if (expectationsPass) {
-      tracked.status = LedgerTxStatus.CONFIRMED;
-      tracked.failureReason = null;
-      tracked.confirmedAt = activity.blockTime ?? new Date();
-    } else {
-      tracked.status = LedgerTxStatus.FAILED;
-      tracked.failureReason = !recipientMatches
-        ? 'WEBHOOK_EXPECTATION_MISMATCH_RECIPIENT'
-        : 'WEBHOOK_EXPECTATION_MISMATCH_AMOUNT';
-      tracked.confirmedAt = null;
-    }
-
-    await this.ledgerTransactionsRepository.save(tracked);
-    return tracked.userId;
+    return this.normalizeAndChecksum(address).checksum;
   }
 
-  private async requireOwnedWallet(
-    userId: string,
-    walletId: string,
-    network: string,
-    chainId: number,
-  ): Promise<WalletEntity> {
-    const wallet = await this.walletsRepository.findOne({
-      where: {
-        id: walletId,
-        userId,
-      },
-    });
-
-    if (!wallet) {
-      throw new NotFoundException('Wallet not found');
-    }
-
-    if (!wallet.network || wallet.network !== network) {
-      throw new BadRequestException('Wallet network mismatch');
-    }
-    if (wallet.chainId !== chainId) {
-      throw new BadRequestException('Wallet chainId mismatch');
-    }
-
-    if (!SUPPORTED_APP_NETWORKS.has(network)) {
-      throw new BadRequestException('Unsupported network');
-    }
-
-    return wallet;
+  private isReservedTreasuryAddress(address: string): boolean {
+    return BigInt(normalizeAddress(address)) <= RESERVED_TREASURY_ADDRESS_MAX;
   }
 
   private toAlchemyNetwork(network: string): 'eth-sepolia' | 'base-sepolia' {
@@ -571,395 +662,86 @@ export class TransactionsService {
     return 'eth-sepolia';
   }
 
-  private isNativeAsset(assetCode: string): boolean {
-    return assetCode.trim().toUpperCase() === 'ETH';
-  }
-
-  private getTreasuryAddress(network: string): string {
-    return network === 'BASE_SEPOLIA'
-      ? env.treasuryAddressBaseSepolia
-      : env.treasuryAddressEthSepolia;
-  }
-
-  private buildSettlementDiagnostic(
-    entity: LedgerTransactionEntity,
-    wallet: WalletEntity | null,
-  ): string | null {
-    if (entity.status === LedgerTxStatus.CONFIRMED) {
-      return null;
+  private requireWalletAuth(auth: AuthContext): WalletAuthIdentity {
+    if (auth.authType !== 'wallet' || !auth.walletAddressNormalized) {
+      throw new UnauthorizedException('Wallet session required');
     }
 
-    if (entity.status === LedgerTxStatus.FAILED) {
-      return entity.failureReason
-        ? `Failed: ${entity.failureReason}`
-        : 'Failed without explicit machine-readable reason.';
-    }
-
-    if (!entity.txHash) {
-      return 'Awaiting on-chain tx hash. Track with txHash or operationId first.';
-    }
-
-    if (!wallet) {
-      return 'Linked wallet record is missing for this transaction.';
-    }
-
-    if (!wallet.network || !isSupportedNetwork(wallet.network)) {
-      return 'Wallet network is unsupported for settlement confirmation.';
-    }
-
-    if (entity.assetCode.trim().toUpperCase() !== 'ETH') {
-      return 'V1 confirms native ETH only; token-transfer settlement is ignored.';
-    }
-
-    const expectedRecipient = String(entity.rawTrackPayload?.to ?? '').trim();
-    if (!expectedRecipient) {
-      return 'Missing expected treasury recipient in tracked payload.';
-    }
-
-    const treasury = this.getTreasuryAddress(wallet.network);
-    try {
-      const expectedRecipientNormalized = normalizeAddress(getAddress(expectedRecipient));
-      const treasuryNormalized = normalizeAddress(getAddress(treasury));
-      if (expectedRecipientNormalized !== treasuryNormalized) {
-        return 'Tracked recipient does not match configured treasury address.';
-      }
-    } catch {
-      return 'Tracked recipient or treasury configuration is invalid.';
-    }
-
-    if (entity.status === LedgerTxStatus.UNMATCHED) {
-      return 'Webhook/backfill saw tx but it did not pass strict settlement matching.';
-    }
-
-    if (entity.blockNumber || entity.blockTime) {
-      return 'Observed on-chain activity, awaiting strict settlement attribute match.';
-    }
-
-    return 'Awaiting treasury inbound webhook/backfill confirmation for tracked tx hash.';
-  }
-
-  private buildWebhookDedupeKey(payload: Record<string, unknown>): string {
-    const id = typeof payload.id === 'string' ? payload.id : '';
-    const webhookId = typeof payload.webhookId === 'string' ? payload.webhookId : '';
-    const sequence = typeof payload.sequenceNumber === 'number' ? String(payload.sequenceNumber) : '';
-    const activityFingerprint = this.extractRawActivityFingerprints(payload);
-    const fallback = JSON.stringify(payload).slice(0, 240);
-    return [id, webhookId, sequence, activityFingerprint || fallback].join('|');
-  }
-
-  private extractActivities(payload: Record<string, unknown>): ActivityEvent[] {
-    const nested = payload.event as { activity?: unknown } | undefined;
-    const candidates = Array.isArray(payload.activity)
-      ? payload.activity
-      : Array.isArray(nested?.activity)
-        ? nested?.activity
-        : Array.isArray((payload as { activities?: unknown[] }).activities)
-          ? (payload as { activities: unknown[] }).activities
-          : [];
-
-    return candidates
-      .map((item) => this.toActivityEvent(item, null))
-      .filter((item): item is ActivityEvent => Boolean(item.txHash || item.from || item.to));
-  }
-
-  private extractRawActivityFingerprints(payload: Record<string, unknown>): string {
-    const nested = payload.event as { activity?: unknown } | undefined;
-    const candidates = Array.isArray(payload.activity)
-      ? payload.activity
-      : Array.isArray(nested?.activity)
-        ? nested?.activity
-        : Array.isArray((payload as { activities?: unknown[] }).activities)
-          ? (payload as { activities: unknown[] }).activities
-          : [];
-
-    if (candidates.length === 0) {
-      return '';
-    }
-
-    const fingerprints = candidates.flatMap((entry) => {
-      if (!entry || typeof entry !== 'object') {
-        return [];
-      }
-
-      const item = entry as Record<string, unknown>;
-      const hash = this.toNullableString(item.hash ?? item.txHash) ?? '';
-      const uniqueId = this.toNullableString(item.uniqueId) ?? '';
-      const logIndex = this.toNullableString(item.logIndex ?? item.transferIndex) ?? '';
-      const from = this.toNullableString(item.fromAddress ?? item.from) ?? '';
-      const to = this.toNullableString(item.toAddress ?? item.to) ?? '';
-      return [`${hash}:${uniqueId}:${logIndex}:${from}:${to}`];
-    });
-
-    return fingerprints.sort().join(',');
-  }
-
-  private toActivityEvent(raw: unknown, fallbackNetwork: string | null): ActivityEvent {
-    const event = typeof raw === 'object' && raw ? raw as Record<string, unknown> : {};
-    const txHash = this.toNullableString(event.hash ?? event.txHash);
-    const from = this.toNullableString(event.fromAddress ?? event.from);
-    const to = this.toNullableString(event.toAddress ?? event.to);
-    const value = this.toNullableString(event.value) ?? '0';
-    const asset = (this.toNullableString(event.asset) ?? 'UNKNOWN').toUpperCase();
-    const network = this.toNullableString(event.network) ?? fallbackNetwork;
-    const chainId = network && isSupportedNetwork(network) ? chainIdForNetwork(network) : null;
-    const blockNum = this.toNullableString(event.blockNum ?? event.blockNumber);
-    const blockTimeText = this.toNullableString(
-      (event.metadata as { blockTimestamp?: string } | undefined)?.blockTimestamp
-      ?? event.blockTimestamp,
-    );
+    const normalized = normalizeAddress(auth.walletAddressNormalized);
+    const checksum = auth.walletAddressChecksum
+      ? getAddress(auth.walletAddressChecksum)
+      : getAddress(normalized);
 
     return {
-      txHash,
-      from,
-      to,
-      value,
-      asset,
-      network,
-      chainId,
-      blockNumber: blockNum,
-      blockTime: blockTimeText ? new Date(blockTimeText) : null,
-      status: blockNum ? 'CONFIRMED' : 'PENDING',
+      normalized,
+      checksum,
     };
   }
 
-  private toNullableString(value: unknown): string | null {
-    if (typeof value === 'number' || typeof value === 'bigint') {
-      return String(value);
+  private normalizeAndChecksum(address: string): WalletAuthIdentity {
+    if (!isAddress(address)) {
+      throw new BadRequestException(`Invalid EVM address: ${address}`);
     }
 
-    if (typeof value !== 'string') {
-      return null;
-    }
-
-    const normalized = value.trim();
-    return normalized ? normalized : null;
+    return {
+      normalized: normalizeAddress(address),
+      checksum: getAddress(address),
+    };
   }
 
-  private async getOrCreateCheckpoint(walletId: string, network: string): Promise<SyncCheckpointEntity> {
-    const existing = await this.syncCheckpointsRepository.findOne({
-      where: { walletId, network },
-    });
-
-    if (existing) {
-      return existing;
-    }
-
-    return this.syncCheckpointsRepository.save(
-      this.syncCheckpointsRepository.create({
-        walletId,
-        network,
-      }),
-    );
+  private toWalletDto(entity: LedgerTransactionEntity): WalletTransactionListItemDto {
+    return {
+      publicId: entity.publicId,
+      walletAddress: entity.ownerWalletAddressNormalized,
+      walletAddressChecksum: entity.ownerWalletAddressChecksum,
+      network: entity.network,
+      chainId: entity.chainId,
+      assetType: entity.assetType,
+      assetCode: entity.assetCode,
+      assetContractAddress: entity.assetContractAddress,
+      assetDecimals: entity.assetDecimals,
+      amountBaseUnits: entity.amountBaseUnits,
+      amountDisplay: entity.amountDisplay,
+      status: entity.status,
+      txHash: entity.txHash,
+      expectedRecipientAddress: entity.expectedRecipientAddress,
+      actualFromAddress: entity.actualFromAddress,
+      actualToAddress: entity.actualToAddress,
+      actualAmountBaseUnits: entity.actualAmountBaseUnits,
+      failureReason: entity.failureReason,
+      blockNumber: entity.blockNumber,
+      confirmedAt: entity.confirmedAt,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    };
   }
 
-  private createSimulationToken(
-    userId: string,
-    walletId: string,
-    network: string,
-    chainId: number,
-    to: string,
-    value?: string,
-    data?: string,
-  ): string {
-    const issuedAt = Math.floor(Date.now() / 1000);
-    const payload = this.buildSimulationPayload(userId, walletId, network, chainId, to, value, data, issuedAt);
-    const signature = this.signSimulationPayload(payload);
-    return `${issuedAt}.${signature}`;
-  }
-
-  private assertSimulationToken(
-    token: string,
-    userId: string,
-    walletId: string,
-    network: string,
-    chainId: number,
-    to: string,
-    value?: string,
-    data?: string,
-  ): void {
-    const [issuedAtRaw, signature] = token.split('.');
-    const issuedAt = Number.parseInt(issuedAtRaw ?? '', 10);
-
-    if (!issuedAtRaw || !signature || !Number.isFinite(issuedAt)) {
-      throw new BadRequestException('simulationId is invalid');
-    }
-
-    const now = Math.floor(Date.now() / 1000);
-    const ageSeconds = now - issuedAt;
-    if (ageSeconds < 0 || ageSeconds > SIMULATION_TOKEN_MAX_AGE_SECONDS) {
-      throw new BadRequestException('simulationId is expired');
-    }
-
-    const payload = this.buildSimulationPayload(userId, walletId, network, chainId, to, value, data, issuedAt);
-    const expected = this.signSimulationPayload(payload);
-    const left = Buffer.from(expected, 'utf8');
-    const right = Buffer.from(signature, 'utf8');
-
-    if (left.length !== right.length || !timingSafeEqual(left, right)) {
-      throw new BadRequestException('simulationId signature is invalid');
-    }
-  }
-
-  private signSimulationPayload(payload: string): string {
-    return createHmac('sha256', env.internalAuthJwtSecret).update(payload).digest('hex');
-  }
-
-  private buildSimulationPayload(
-    userId: string,
-    walletId: string,
-    network: string,
-    chainId: number,
-    to: string,
-    value: string | undefined,
-    data: string | undefined,
-    issuedAt: number,
-  ): string {
-    return [
-      userId,
-      walletId,
-      network,
-      String(chainId),
-      to.toLowerCase(),
-      this.normalizeTokenPart(value),
-      this.normalizeTokenPart(data),
-      String(issuedAt),
-    ].join('|');
-  }
-
-  private normalizeTokenPart(value: string | undefined): string {
-    if (!value) {
-      return '';
-    }
-
-    return value.trim().toLowerCase();
-  }
-
-  private hexToDecimal(value: string): string {
-    const trimmed = value.trim().toLowerCase();
-    if (/^0x[0-9a-f]+$/.test(trimmed)) {
-      return BigInt(trimmed).toString(10);
-    }
-    return value;
-  }
-
-  private nativeAmountMatchesTrackedExpectation(
-    actualWei: string,
-    tracked: LedgerTransactionEntity,
-  ): boolean {
-    const candidates = new Set<string>();
-
-    const trackedValue = String(tracked.rawTrackPayload?.value ?? '').trim().toLowerCase();
-    if (trackedValue) {
-      const parsed = this.parseWeiQuantity(trackedValue);
-      if (parsed) {
-        candidates.add(parsed);
-      }
-    }
-
-    const trackedAmount = String(tracked.amount ?? '').trim();
-    if (trackedAmount) {
-      const asWeiQuantity = this.parseWeiQuantity(trackedAmount);
-      if (asWeiQuantity) {
-        candidates.add(asWeiQuantity);
-      }
-
-      const asEthToWei = this.parseEthAmountToWei(trackedAmount);
-      if (asEthToWei) {
-        candidates.add(asEthToWei);
-      }
-    }
-
-    return candidates.has(actualWei);
-  }
-
-  private parseWeiQuantity(value: string): string | null {
-    const trimmed = value.trim().toLowerCase();
-    if (!trimmed) {
-      return null;
-    }
-
-    if (/^0x[0-9a-f]+$/.test(trimmed)) {
-      return BigInt(trimmed).toString(10);
-    }
-
-    if (/^[0-9]+$/.test(trimmed)) {
-      return BigInt(trimmed).toString(10);
-    }
-
-    return null;
-  }
-
-  private parseEthAmountToWei(value: string): string | null {
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return null;
-    }
-
-    if (!/^[0-9]+(\.[0-9]+)?$/.test(trimmed)) {
-      return null;
-    }
-
-    try {
-      return parseUnits(trimmed, 18).toString();
-    } catch {
-      return null;
-    }
-  }
-
-  private normalizeRecipient(value: string): string {
-    try {
-      return getAddress(value.trim());
-    } catch {
-      throw new BadRequestException('Recipient address is invalid');
-    }
-  }
-
-  private assertTreasuryRecipient(network: string, recipient: string): void {
-    const treasuryAddress = network === 'BASE_SEPOLIA'
-      ? env.treasuryAddressBaseSepolia
-      : env.treasuryAddressEthSepolia;
-
-    if (!treasuryAddress) {
-      throw new BadRequestException(`Treasury address is not configured for network ${network}`);
-    }
-
-    let normalizedTreasury: string;
-    try {
-      normalizedTreasury = getAddress(treasuryAddress.trim());
-    } catch {
-      throw new BadRequestException(`Treasury address configuration is invalid for network ${network}`);
-    }
-
-    if (normalizedTreasury !== recipient) {
-      throw new BadRequestException('Recipient must match configured treasury address');
-    }
-  }
-
-  private async findExistingTrackedTransaction(
-    walletId: string,
-    chainId: number,
-    operationId: string | null,
-    txHash: string | null,
-  ): Promise<LedgerTransactionEntity | null> {
-    if (operationId) {
-      const byOperation = await this.ledgerTransactionsRepository.findOne({
-        where: { operationId },
-      });
-      if (byOperation) {
-        return byOperation;
-      }
-    }
-
-    if (!txHash) {
-      return null;
-    }
-
-    return this.ledgerTransactionsRepository.findOne({
-      where: {
-        walletId,
-        chainId,
-        txHash,
-      },
-    });
+  private toAdminDto(entity: LedgerTransactionEntity): AdminTransactionListItemDto {
+    return {
+      id: entity.id,
+      publicId: entity.publicId,
+      walletAddress: entity.ownerWalletAddressNormalized,
+      walletAddressChecksum: entity.ownerWalletAddressChecksum,
+      network: entity.network,
+      chainId: entity.chainId,
+      assetType: entity.assetType,
+      assetCode: entity.assetCode,
+      assetContractAddress: entity.assetContractAddress,
+      assetDecimals: entity.assetDecimals,
+      amountBaseUnits: entity.amountBaseUnits,
+      amountDisplay: entity.amountDisplay,
+      status: entity.status,
+      txHash: entity.txHash,
+      expectedRecipientAddress: entity.expectedRecipientAddress,
+      actualFromAddress: entity.actualFromAddress,
+      actualToAddress: entity.actualToAddress,
+      actualAmountBaseUnits: entity.actualAmountBaseUnits,
+      failureReason: entity.failureReason,
+      blockNumber: entity.blockNumber,
+      confirmedAt: entity.confirmedAt,
+      simulationId: entity.simulationId,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    };
   }
 }

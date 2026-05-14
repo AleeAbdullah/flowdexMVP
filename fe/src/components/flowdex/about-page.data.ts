@@ -70,8 +70,8 @@ export const aboutPagePhases = [
 ];
 
 export const aboutPageCtaContent = {
-  title: 'Move from the product story to the actual presale surface.',
-  body: 'The public buy route already reads pricing, tiers, and presale configuration from the live backend. The whitepaper route carries the full long-form narrative if you want the deeper context first.',
-  primary: { href: '/buy', label: 'Go to Buy' },
+  title: 'Move from the product story to the live buy surface.',
+  body: 'The public buy route already reads pricing, tiers, and purchase configuration from the live backend. The whitepaper route carries the full long-form narrative if you want the deeper context first.',
+  primary: { href: '/buy', label: 'Buy Now' },
   secondary: { href: '/whitepaper', label: 'Open Whitepaper' },
 };

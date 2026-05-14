@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from 'react';
 import { Input } from '@/components/ui/input';
-import { AUTH_MODES, type AuthFieldErrors, type AuthMode } from './auth-form.types';
+import type { AuthFieldErrors, AuthMode } from './auth-form.types';
 
 function AuthField(props: {
   label: string;
@@ -60,22 +60,10 @@ export function AuthFields(props: {
   onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
 }) {
-  const isSignup = props.mode === AUTH_MODES.SIGNUP;
+  void props.mode;
 
   return (
     <>
-      {isSignup ? (
-        <AuthField
-          label="Display Name"
-          name="displayName"
-          value={props.values.displayName}
-          onChange={props.onDisplayNameChange}
-          placeholder="FlowDex operator"
-          autoComplete="name"
-          error={props.fieldErrors.displayName}
-        />
-      ) : null}
-
       <AuthField
         label="Email"
         name="email"
@@ -96,8 +84,8 @@ export function AuthFields(props: {
         type="password"
         value={props.values.password}
         onChange={props.onPasswordChange}
-        placeholder={isSignup ? 'Create a password with at least 8 characters' : 'Enter your password'}
-        autoComplete={isSignup ? 'new-password' : 'current-password'}
+        placeholder="Enter your password"
+        autoComplete="current-password"
         minLength={8}
         error={props.fieldErrors.password}
       />

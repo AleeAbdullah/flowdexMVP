@@ -4,8 +4,8 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { authClient } from '@/lib/auth-client';
 import { AuthBootstrapError, bootstrapAppSession } from '@/lib/auth-bootstrap';
-import { loginSchema, signupSchema } from '@/schemas/auth';
-import { AUTH_MODES, type AuthFieldErrors, type AuthFieldName, type AuthMode } from './auth-form.types';
+import { loginSchema } from '@/schemas/auth';
+import type { AuthFieldErrors, AuthFieldName, AuthMode } from './auth-form.types';
 
 type AuthValues = {
   displayName: string;
@@ -103,8 +103,6 @@ export function useAuthFormController(props: {
     focusFirstInvalidField(formRef.current, fieldErrors);
   }, [fieldErrors]);
 
-  const isSignup = props.mode === AUTH_MODES.SIGNUP;
-
   const setDisplayName = (value: string) => {
     setValues(current => ({ ...current, displayName: value }));
     setFieldErrors(current => ({ ...current, displayName: undefined }));
@@ -126,34 +124,19 @@ export function useAuthFormController(props: {
     setFieldErrors({});
 
     startTransition(async () => {
-      const result = isSignup
-        ? await (async () => {
-            const parsed = signupSchema.safeParse(values);
+      const result = await (async () => {
+        const parsed = loginSchema.safeParse(values);
 
-            if (!parsed.success) {
-              setFieldErrors(toFieldErrors(parsed.error));
-              return null;
-            }
+        if (!parsed.success) {
+          setFieldErrors(toFieldErrors(parsed.error));
+          return null;
+        }
 
-            return authClient.signUp.email({
-              email: parsed.data.email,
-              password: parsed.data.password,
-              name: parsed.data.displayName,
-            });
-          })()
-        : await (async () => {
-            const parsed = loginSchema.safeParse(values);
-
-            if (!parsed.success) {
-              setFieldErrors(toFieldErrors(parsed.error));
-              return null;
-            }
-
-            return authClient.signIn.email({
-              email: parsed.data.email,
-              password: parsed.data.password,
-            });
-          })();
+        return authClient.signIn.email({
+          email: parsed.data.email,
+          password: parsed.data.password,
+        });
+      })();
 
       if (!result) {
         return;
@@ -189,7 +172,6 @@ export function useAuthFormController(props: {
     formError,
     fieldErrors,
     values,
-    isSignup,
     setDisplayName,
     setEmail,
     setPassword,

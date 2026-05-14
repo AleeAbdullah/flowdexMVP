@@ -9,6 +9,7 @@ import { APP_USER_ROLES, type AppUserRole, type IAuthMe } from '@/dal/app/auth/a
 import { auth } from '@/lib/auth';
 import { AUTH_PAGE_ERROR_CODES } from '@/lib/auth-page';
 import { Env } from '@/libs/Env';
+import { getOptionalWalletSessionFromRequest, type WalletSession } from '@/lib/wallet-auth.server';
 import { ROUTES, AUTH_TOASTS, getPublicAuthToastRoute } from '@/routes';
 
 export type BetterAuthSession = NonNullable<
@@ -67,6 +68,7 @@ async function mintBackendAccessToken(session: BetterAuthSession) {
   const role = resolveUserRole(session.user.email);
 
   return new SignJWT({
+    authType: 'admin',
     email: session.user.email,
     role,
     sessionId: session.session.id,
@@ -77,6 +79,25 @@ async function mintBackendAccessToken(session: BetterAuthSession) {
     .setIssuedAt()
     .setExpirationTime('15m')
     .setSubject(session.user.id)
+    .sign(secret);
+}
+
+async function mintWalletBackendAccessToken(session: WalletSession) {
+  const secret = new TextEncoder().encode(Env.INTERNAL_AUTH_JWT_SECRET);
+
+  return new SignJWT({
+    authType: 'wallet',
+    sessionId: session.sessionId,
+    walletAddressNormalized: session.walletAddressNormalized,
+    walletAddressChecksum: session.walletAddressChecksum,
+    lastVerifiedChainId: session.lastVerifiedChainId,
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuer(Env.INTERNAL_AUTH_ISSUER)
+    .setAudience(Env.INTERNAL_AUTH_AUDIENCE)
+    .setIssuedAt()
+    .setExpirationTime('15m')
+    .setSubject(session.walletAddressNormalized)
     .sign(secret);
 }
 
@@ -127,7 +148,7 @@ export async function requireAdminAppContext() {
   const context = await getAuthenticatedAppContext();
 
   if (context.profile.role !== APP_USER_ROLES.ADMIN) {
-    redirect(ROUTES.DASHBOARD.HOME);
+    redirect(ROUTES.USER.BUY);
   }
 
   return context;
@@ -142,8 +163,24 @@ export async function proxyBackendRequest(
     return Response.json({ message: 'NEXT_PUBLIC_API_URL is not configured' }, { status: 500 });
   }
 
-  const session = await getSessionFromRequest(request);
+  const topLevel = pathSegments[0];
 
+  if (topLevel === 'transactions') {
+    const walletSession = await getOptionalWalletSessionFromRequest(request);
+
+    if (!walletSession) {
+      return Response.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const accessToken = await mintWalletBackendAccessToken(walletSession);
+    return proxyBackendRequestWithAccessToken(request, pathSegments, accessToken, backendBaseUrl);
+  }
+
+  if (topLevel !== 'admin' && topLevel !== 'auth') {
+    return Response.json({ message: 'Not found' }, { status: 404 });
+  }
+
+  const session = await getSessionFromRequest(request);
   if (!session) {
     return Response.json({ message: 'Unauthorized' }, { status: 401 });
   }
@@ -241,6 +278,42 @@ async function fetchWithBackendToken(
       Authorization: `Bearer ${accessToken}`,
     },
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
+  });
+}
+
+async function proxyBackendRequestWithAccessToken(
+  request: NextRequest,
+  pathSegments: string[],
+  accessToken: string,
+  backendBaseUrl?: string,
+) {
+  const baseUrl = backendBaseUrl ?? Env.NEXT_PUBLIC_API_URL?.trim();
+  if (!baseUrl) {
+    return Response.json({ message: 'NEXT_PUBLIC_API_URL is not configured' }, { status: 500 });
+  }
+
+  const upstreamUrl = `${baseUrl}/${pathSegments.join('/')}${request.nextUrl.search}`;
+  const bodyText = request.method === 'GET' || request.method === 'HEAD'
+    ? undefined
+    : await request.text();
+
+  const upstreamResponse = await fetch(upstreamUrl, {
+    method: request.method,
+    cache: 'no-store',
+    headers: {
+      'Content-Type': request.headers.get('content-type') ?? 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: bodyText && bodyText.length > 0 ? bodyText : undefined,
+  });
+
+  const responseText = await upstreamResponse.text();
+
+  return new Response(responseText, {
+    status: upstreamResponse.status,
+    headers: {
+      'Content-Type': upstreamResponse.headers.get('content-type') ?? 'application/json',
+    },
   });
 }
 

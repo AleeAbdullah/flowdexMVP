@@ -2,21 +2,21 @@ export const termsSections = [
   {
     title: 'Informational Use Only',
     paragraphs: [
-      'The FlowDex website, whitepaper, updates, and presale-facing materials are provided for informational purposes only. Nothing on this site should be interpreted as legal, financial, tax, accounting, or investment advice.',
-      'References to pricing targets, roadmap phases, projected utility, token value, or market opportunity are directional statements about product intent and are not guarantees of future performance.',
+      'The FlowDex website, whitepaper, updates, and buy-facing materials are provided for informational purposes only. Nothing on this site should be interpreted as legal, financial, tax, accounting, or investment advice.',
+      'References to pricing, roadmap phases, projected utility, token value, or market opportunity are directional statements about product intent and are not guarantees of future performance.',
     ],
   },
   {
     title: 'Eligibility and Access',
     paragraphs: [
-      'By accessing the site or participating in any presale or token-related flow, you represent that doing so is lawful in your jurisdiction and that you are solely responsible for understanding any restrictions that may apply to you.',
+      'By accessing the site or participating in any token-related flow, you represent that doing so is lawful in your jurisdiction and that you are solely responsible for understanding any restrictions that may apply to you.',
       'Access to certain product features, token activities, or asset classes may be restricted, delayed, or unavailable in some jurisdictions based on legal, regulatory, operational, or risk considerations.',
     ],
   },
   {
-    title: 'Presale and Token Participation',
+    title: 'Token Purchase and Participation',
     paragraphs: [
-      '$FDN is described by the project as a utility token intended for use within the FlowDex ecosystem. Participation in any presale, token sale, or future token-related activity involves risk and may result in the loss of value or the inability to access expected functionality on the timeline described in public materials.',
+      '$FDN is described by the project as a utility token intended for use within the FlowDex ecosystem. Participation in any token purchase, token sale, or future token-related activity involves risk and may result in the loss of value or the inability to access expected functionality on the timeline described in public materials.',
       'Any listing price references, roadmap references, discount framing, or return examples are part of the public narrative and do not create a promise, warranty, or contractual obligation.',
     ],
   },
@@ -47,8 +47,8 @@ export const privacySections = [
   {
     title: 'How Data Is Used',
     paragraphs: [
-      'Collected data is used to operate the site, create and maintain authentication sessions, protect the app from abuse, support wallet linking, power protected presale flows, improve product experience, and understand how the public and authenticated surfaces are used.',
-      'We may also use this information to investigate fraud, respond to security incidents, comply with legal obligations, or communicate important updates about the presale or product.',
+      'Collected data is used to operate the site, create and maintain authentication sessions, protect the app from abuse, support wallet linking, power protected buy flows, improve product experience, and understand how the public and authenticated surfaces are used.',
+      'We may also use this information to investigate fraud, respond to security incidents, comply with legal obligations, or communicate important updates about the buy flow or product.',
     ],
   },
   {
@@ -69,8 +69,7 @@ export const privacySections = [
     title: 'User Requests and Contact',
     paragraphs: [
       'If you need to request deletion, correction, or clarification about the information associated with your use of the site, contact the project through the public launch contact channel at team@flowdex.network.',
-      'This privacy notice is intended to match the current Phase 1 product behavior and should be updated as the authentication, analytics, wallet, and presale systems evolve.',
+      'This privacy notice is intended to match the current Phase 1 product behavior and should be updated as the authentication, analytics, wallet, and buy systems evolve.',
     ],
   },
 ];
-

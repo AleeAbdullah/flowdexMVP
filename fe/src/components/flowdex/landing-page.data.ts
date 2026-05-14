@@ -56,16 +56,16 @@ function createNavCta(label: string, href: string): LandingHeroCta | undefined {
 export const landingHeroSlides: LandingHeroSlide[] = [
   {
     id: 'universal',
-    badge: 'Editorial Preview',
-    title: 'A Universal Exchange for Crypto & Tokenized Global Markets.',
-    emphasis: 'Universal Exchange',
+    badge: 'Protocol Preview',
+    title: 'FlowDex Protocol for Crypto & Tokenized Global Markets.',
+    emphasis: 'FlowDex Protocol',
     description: 'FlowDex is shaping a wallet-first market surface for crypto, tokenized equities, forex, commodities, and other real-world asset exposure.',
     visualMode: 'globe',
     accent: 'cyan',
-    primary: createNavCta('Join Presale', ROUTES.MARKETING.BUY),
+    primary: createNavCta('Buy Now', ROUTES.MARKETING.BUY),
     secondary: createNavCta('About FlowDex', ROUTES.MARKETING.ABOUT),
     stats: [
-      { label: 'Target Markets', value: '500+', note: 'Crypto to tokenized real-world assets' },
+      { label: 'Market Coverage', value: '500+', note: 'Crypto to tokenized real-world assets' },
       { label: 'Execution Posture', value: 'Wallet-First', note: 'User trust starts at the wallet layer' },
       { label: 'Chain Direction', value: '10+', note: 'Multi-chain ambition beyond launch' },
     ],
@@ -76,7 +76,7 @@ export const landingHeroSlides: LandingHeroSlide[] = [
       badge: 'Live Thesis',
       layout: 'stack',
       items: [
-        { label: 'Target Markets', value: '500+', note: 'Crypto plus tokenized real-world assets' },
+        { label: 'Market Coverage', value: '500+', note: 'Crypto plus tokenized real-world assets' },
         { label: 'Execution Posture', value: 'Wallet-First', note: 'Trust anchored at the wallet layer' },
         { label: 'Chain Direction', value: '10+', note: 'Multi-chain ambition beyond launch' },
       ],
@@ -85,21 +85,21 @@ export const landingHeroSlides: LandingHeroSlide[] = [
   {
     id: 'presale',
     badge: 'Launch-Stage Pricing',
-    title: 'Presale Access Starts at $0.001 Before the Broader Market Rollout.',
+    title: 'Buy $FDN at $0.001 Before the Broader Market Rollout.',
     emphasis: '$0.001',
-    description: 'The public buy route reads live presale configuration while the marketing site focuses on why the exchange thesis matters.',
+    description: 'The public buy route reads live pricing and tier configuration while the marketing site focuses on why the exchange thesis matters.',
     visualMode: 'cards',
     accent: 'gold',
-    primary: createNavCta('View Presale', ROUTES.MARKETING.BUY),
+    primary: createNavCta('Buy Now', ROUTES.MARKETING.BUY),
     secondary: createNavCta('Review Tokenomics', ROUTES.MARKETING.TOKENOMICS),
     stats: [
-      { label: 'Current Tier', value: 'Tier 1', note: 'Presale live now' },
+      { label: 'Current Tier', value: 'Tier 1', note: 'Launch access live now' },
       { label: 'Listing Reference', value: '$0.05', note: 'Whitepaper framing' },
       { label: 'Community Allocation', value: '75%', note: 'Community-facing ownership' },
     ],
     visualPanel: {
       eyebrow: 'Product Surface',
-      title: 'Presale Ladder',
+      title: 'Launch Price Ladder',
       body: 'The live buy route owns pricing and tier reads while the hero frames the tiered entry story cleanly.',
       badge: '8 Tiers',
       layout: 'stack',
@@ -143,7 +143,7 @@ export const landingHeroSlides: LandingHeroSlide[] = [
     badge: 'Fee Participation',
     title: 'Stake $FDN. Earn Fee Exposure. Strengthen The Utility Story.',
     emphasis: 'Stake $FDN.',
-    description: 'Staking, governance, and routing-aligned incentives turn exchange activity into token utility instead of leaving the asset as a passive presale instrument.',
+    description: 'Staking, governance, and routing-aligned incentives turn exchange activity into token utility instead of leaving the asset as a passive launch instrument.',
     visualMode: 'scene',
     accent: 'green',
     primary: createNavCta('Open Tokenomics', ROUTES.MARKETING.TOKENOMICS),
@@ -195,10 +195,10 @@ export const landingHeroSlides: LandingHeroSlide[] = [
 ];
 
 export const landingMarketStats = [
-  { value: '500+', label: 'Target Markets' },
+  { value: '500+', label: 'Market Coverage' },
   { value: '10+', label: 'Chain Direction' },
-  { value: '$80M', label: 'Presale Target' },
   { value: '40%', label: 'Fee Share To Stakers' },
+  { value: '75%', label: 'Community Allocation' },
 ];
 
 export const landingTrustSignals = [
@@ -216,7 +216,7 @@ export const landingFeatureTones = [
 
 export const landingTokenDistribution = [
   { label: 'Community & Ecosystem', percentage: 30, tokens: '3.00B', colorClass: 'bg-[var(--token-bar-community)]' },
-  { label: 'Presale', percentage: 22.5, tokens: '2.25B', colorClass: 'bg-[var(--token-bar-presale)]' },
+  { label: 'Public Buy', percentage: 22.5, tokens: '2.25B', colorClass: 'bg-[var(--token-bar-presale)]' },
   { label: 'Staking Rewards', percentage: 12.5, tokens: '1.25B', colorClass: 'bg-[var(--token-bar-staking)]' },
   { label: 'Core Contributors', percentage: 12, tokens: '1.20B', colorClass: 'bg-[var(--token-bar-contributors)]' },
   { label: 'Genesis Airdrop', percentage: 10, tokens: '1.00B', colorClass: 'bg-[var(--token-bar-airdrop)]' },
@@ -229,6 +229,21 @@ export const landingFeeDistribution = [
   { label: 'Insurance Fund', percentage: 30, colorClass: 'bg-[var(--token-bar-presale)]' },
   { label: 'Treasury', percentage: 20, colorClass: 'bg-[var(--token-bar-staking)]' },
   { label: 'Burn', percentage: 10, colorClass: 'bg-[var(--token-bar-treasury)]' },
+];
+
+export const landingTeamHighlights = [
+  {
+    title: 'Product-Led Operators',
+    body: 'The team posture stays focused on shipping the wallet-first market surface, not personality-led promotion.',
+  },
+  {
+    title: 'Security Before Scale',
+    body: 'Milestones prioritize cautious execution, treasury discipline, and reviewable product proof before broader expansion.',
+  },
+  {
+    title: 'Progressive Transparency',
+    body: 'The public narrative should earn trust through updates, roadmap delivery, and clear operating boundaries over time.',
+  },
 ];
 
 export const landingFaqHighlights = marketingFaqs.slice(0, 4);

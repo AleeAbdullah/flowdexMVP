@@ -20,6 +20,14 @@ export function chainIdForNetwork(network: string): number {
   return NETWORK_CHAIN_IDS[network];
 }
 
+export function networkForChainId(chainId: number): AppNetwork {
+  const match = Object.entries(NETWORK_CHAIN_IDS).find(([, value]) => value === chainId)?.[0];
+  if (!match || !isSupportedNetwork(match)) {
+    throw new BadRequestException(`Unsupported chainId ${chainId}`);
+  }
+  return match;
+}
+
 export function assertNetworkChainPair(network: string, chainId: number): void {
   if (chainIdForNetwork(network) !== chainId) {
     throw new BadRequestException('network and chainId mismatch');

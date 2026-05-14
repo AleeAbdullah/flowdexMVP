@@ -172,10 +172,10 @@ export function LandingHeroCarousel(props: {
 
   return (
     <section
-      className="-mt-40 relative isolate h-[100svh] max-h-[100svh] overflow-hidden border-b border-[var(--card-border)] md:-mt-32"
+      className="-mt-40 relative isolate min-h-[92svh] overflow-hidden border-b border-[var(--card-border)] lg:min-h-[100svh] md:-mt-32"
     >
       <motion.div
-        className="flex h-[100svh] max-h-[100svh]"
+        className="flex min-h-[92svh] lg:min-h-[100svh]"
         animate={{ x: `${visualIndex * -100}%` }}
         transition={shouldAnimate ? HERO_TRANSITION : { duration: 0 }}
         onAnimationComplete={handleTrackAnimationComplete}
@@ -187,7 +187,7 @@ export function LandingHeroCarousel(props: {
           return (
             <article
               key={`${slide.id}-${index}`}
-              className="relative h-[100svh] max-h-[100svh] min-w-full overflow-hidden"
+              className="relative min-h-[92svh] min-w-full overflow-hidden lg:min-h-[100svh]"
               style={{ background: theme.background }}
             >
               <div
@@ -200,11 +200,11 @@ export function LandingHeroCarousel(props: {
               <div
                 className="absolute inset-0"
                 style={{
-                  background: `radial-gradient(circle at 16% 18%, ${theme.glowColor} 0%, transparent 24%), radial-gradient(circle at 84% 24%, ${theme.secondaryGlow} 0%, transparent 28%), linear-gradient(180deg, rgba(6, 13, 24, 0.14), rgba(6, 13, 24, 0.46))`,
+                  background: `radial-gradient(circle at 16% 18%, ${theme.glowColor} 0%, transparent 24%), radial-gradient(circle at 84% 24%, ${theme.secondaryGlow} 0%, transparent 28%), var(--hero-overlay)`,
                 }}
               />
 
-              <div className="relative z-10 mx-auto grid h-full max-h-[100svh] w-full max-w-7xl items-center overflow-visible px-5 pb-6 pt-40 md:px-8 md:pb-8 md:pt-32 lg:grid-cols-[minmax(0,1.18fr)_minmax(320px,0.74fr)] lg:gap-6 lg:px-24 xl:grid-cols-[minmax(0,1.24fr)_minmax(340px,0.76fr)] xl:gap-10">
+              <div className="relative z-10 mx-auto grid min-h-[92svh] w-full max-w-7xl items-start overflow-visible px-5 pb-10 pt-36 md:px-8 md:pb-12 md:pt-36 lg:min-h-[100svh] lg:grid-cols-[minmax(0,1.18fr)_minmax(320px,0.74fr)] lg:items-center lg:gap-6 lg:px-24 xl:grid-cols-[minmax(0,1.24fr)_minmax(340px,0.76fr)] xl:gap-10">
                 <div className="relative z-20 max-w-5xl space-y-4 md:space-y-5">
                   <Badge variant="brand" className="gap-2 px-5 py-2">
                     <span className="h-2 w-2 rounded-full" style={{ backgroundColor: theme.accentColor }} />
@@ -212,10 +212,10 @@ export function LandingHeroCarousel(props: {
                   </Badge>
 
                   <div className="space-y-3 md:space-y-5">
-                    <h1 className="font-heading max-w-5xl text-balance text-[clamp(2.2rem,9.2vw,3.25rem)] font-bold leading-[0.94] tracking-[-0.04em] text-[var(--text)] md:hidden">
+                    <h1 className="font-heading max-w-5xl text-balance text-[clamp(2.2rem,9.2vw,3.25rem)] font-bold leading-[0.96] tracking-normal text-[var(--text)] md:hidden">
                       <HighlightText text={getCompactHeroTitle(slide)} emphasis={slide.emphasis} accentColor={theme.accentColor} />
                     </h1>
-                    <h1 className="font-heading hidden max-w-5xl text-balance text-[4.1rem] font-bold leading-[0.95] tracking-[-0.04em] text-[var(--text)] md:block lg:text-[4.55rem] xl:text-[4.95rem]">
+                    <h1 className="font-heading hidden max-w-5xl text-balance text-[4rem] font-bold leading-[0.96] tracking-normal text-[var(--text)] md:block lg:text-[4.35rem] xl:text-[4.7rem]">
                       <HighlightText text={slide.title} emphasis={slide.emphasis} accentColor={theme.accentColor} />
                     </h1>
                     <p className="max-h-16 max-w-2xl overflow-hidden text-sm leading-7 text-[color-mix(in_srgb,var(--text)_78%,transparent)] sm:text-base md:max-h-none md:text-lg md:leading-8 xl:text-xl">
@@ -363,11 +363,11 @@ function getRealSlideIndex(index: number, totalSlides: number, hasSentinels: boo
 
 function getCompactHeroTitle(slide: LandingHeroSlide) {
   if (slide.id === 'universal') {
-    return 'Universal Exchange for Tokenized Markets.';
+    return 'FlowDex Protocol for Tokenized Markets.';
   }
 
   if (slide.id === 'presale') {
-    return 'Presale Access Starts at $0.001.';
+    return 'Buy $FDN at $0.001.';
   }
 
   if (slide.id === 'flowchain') {
@@ -391,43 +391,43 @@ const heroAccentTheme: Record<LandingHeroAccent, {
 }> = {
   cyan: {
     accentColor: '#3CC8E8',
-    background: 'radial-gradient(circle at 15% 10%, rgba(60, 200, 232, 0.14), transparent 24%), linear-gradient(135deg, #050B15 0%, #071223 38%, #0B1F3A 100%)',
-    glowColor: 'rgba(60, 200, 232, 0.24)',
-    secondaryGlow: 'rgba(141, 220, 232, 0.16)',
-    statBackground: 'rgba(7, 18, 34, 0.42)',
-    statBorder: 'rgba(60, 200, 232, 0.18)',
+    background: 'var(--hero-cyan-bg)',
+    glowColor: 'var(--hero-cyan-glow)',
+    secondaryGlow: 'var(--hero-cyan-secondary-glow)',
+    statBackground: 'var(--hero-stat-bg)',
+    statBorder: 'var(--hero-cyan-stat-border)',
   },
   gold: {
     accentColor: '#D2B46C',
-    background: 'radial-gradient(circle at 22% 18%, rgba(210, 180, 108, 0.16), transparent 24%), linear-gradient(135deg, #070C16 0%, #111C2C 42%, #1B2234 100%)',
-    glowColor: 'rgba(210, 180, 108, 0.22)',
-    secondaryGlow: 'rgba(60, 200, 232, 0.12)',
-    statBackground: 'rgba(16, 24, 39, 0.46)',
-    statBorder: 'rgba(210, 180, 108, 0.18)',
+    background: 'var(--hero-gold-bg)',
+    glowColor: 'var(--hero-gold-glow)',
+    secondaryGlow: 'var(--hero-cyan-secondary-glow)',
+    statBackground: 'var(--hero-stat-bg)',
+    statBorder: 'var(--hero-gold-stat-border)',
   },
   slate: {
     accentColor: '#8FA6C8',
-    background: 'radial-gradient(circle at 14% 20%, rgba(143, 166, 200, 0.18), transparent 22%), linear-gradient(135deg, #050B15 0%, #0A1322 40%, #102138 100%)',
-    glowColor: 'rgba(143, 166, 200, 0.24)',
-    secondaryGlow: 'rgba(60, 200, 232, 0.12)',
-    statBackground: 'rgba(9, 16, 30, 0.48)',
-    statBorder: 'rgba(143, 166, 200, 0.16)',
+    background: 'var(--hero-slate-bg)',
+    glowColor: 'var(--hero-slate-glow)',
+    secondaryGlow: 'var(--hero-cyan-secondary-glow)',
+    statBackground: 'var(--hero-stat-bg)',
+    statBorder: 'var(--hero-slate-stat-border)',
   },
   green: {
     accentColor: '#4DBA7D',
-    background: 'radial-gradient(circle at 18% 16%, rgba(77, 186, 125, 0.18), transparent 24%), linear-gradient(135deg, #050B15 0%, #091622 40%, #0D2230 100%)',
-    glowColor: 'rgba(77, 186, 125, 0.22)',
-    secondaryGlow: 'rgba(60, 200, 232, 0.12)',
-    statBackground: 'rgba(8, 18, 30, 0.48)',
-    statBorder: 'rgba(77, 186, 125, 0.16)',
+    background: 'var(--hero-green-bg)',
+    glowColor: 'var(--hero-green-glow)',
+    secondaryGlow: 'var(--hero-cyan-secondary-glow)',
+    statBackground: 'var(--hero-stat-bg)',
+    statBorder: 'var(--hero-green-stat-border)',
   },
   rose: {
     accentColor: '#CC7079',
-    background: 'radial-gradient(circle at 20% 18%, rgba(204, 112, 121, 0.18), transparent 24%), linear-gradient(135deg, #050B15 0%, #0A1322 38%, #151B2B 100%)',
-    glowColor: 'rgba(204, 112, 121, 0.2)',
-    secondaryGlow: 'rgba(210, 180, 108, 0.12)',
-    statBackground: 'rgba(10, 18, 32, 0.5)',
-    statBorder: 'rgba(204, 112, 121, 0.16)',
+    background: 'var(--hero-rose-bg)',
+    glowColor: 'var(--hero-rose-glow)',
+    secondaryGlow: 'var(--hero-gold-secondary-glow)',
+    statBackground: 'var(--hero-stat-bg)',
+    statBorder: 'var(--hero-rose-stat-border)',
   },
 };
 

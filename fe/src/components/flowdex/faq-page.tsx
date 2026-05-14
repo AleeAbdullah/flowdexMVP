@@ -17,10 +17,10 @@ export function FaqPage() {
       <MarketingPageHero
         eyebrow="FAQ"
         title="Route-level answers to the launch questions people actually ask."
-        description="The FAQ no longer lives as a late-page section on the landing page. It now has its own route so the public site can answer product and presale questions directly."
+        description="The FAQ no longer lives as a late-page section on the landing page. It now has its own route so the public site can answer product and buy-flow questions directly."
         meta={[
           { label: 'Audience', value: 'Prospective Buyers and Community' },
-          { label: 'Scope', value: 'Product • Presale • Custody • Market Positioning' },
+          { label: 'Scope', value: 'Product • Buy Flow • Custody • Market Positioning' },
           { label: 'Format', value: 'Dedicated Public FAQ' },
           { label: 'Updated', value: 'April 2026' },
         ]}
@@ -60,9 +60,9 @@ export function FaqPage() {
       <MarketingCtaBand
         content={{
           title: 'If the questions are resolved, the next step is either research or participation.',
-          body: 'Move into the whitepaper for the long-form version, or go to the public buy page if you already understand the product and presale frame.',
+          body: 'Move into the whitepaper for the long-form version, or go to the public buy page if you already understand the product and purchase frame.',
           primary: { href: ROUTES.MARKETING.WHITEPAPER, label: 'Read Whitepaper' },
-          secondary: { href: ROUTES.MARKETING.BUY, label: 'Go to Buy' },
+          secondary: { href: ROUTES.MARKETING.BUY, label: 'Buy Now' },
         }}
       />
     </div>

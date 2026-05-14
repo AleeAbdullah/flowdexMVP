@@ -14,14 +14,14 @@ describe('admin transaction filters', () => {
       network: ['BASE_SEPOLIA', 'ETH_SEPOLIA'],
       status: 'CONFIRMED',
       to: undefined,
-      userId: 'phase2-user',
+      walletAddress: '0xphase2',
     })).toEqual({
       assetCode: 'ETH',
       from: '2026-01-01T00:00',
       network: 'BASE_SEPOLIA',
       status: 'CONFIRMED',
       to: '',
-      userId: 'phase2-user',
+      walletAddress: '0xphase2',
     });
   });
 
@@ -34,7 +34,7 @@ describe('admin transaction filters', () => {
       ...defaultAdminTransactionFilters,
       assetCode: 'USDT_ERC20',
       status: 'PENDING',
-      userId: '',
+      walletAddress: '',
     })).toBe('?status=PENDING&assetCode=USDT_ERC20');
   });
 });

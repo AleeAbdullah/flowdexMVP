@@ -6,11 +6,11 @@ export function TermsPage() {
     <div className="pb-12">
       <MarketingPageHero
         eyebrow="Terms"
-        title="Public terms for the FlowDex marketing and presale surface."
-        description="This page establishes the launch-phase public terms for using the site, reading the whitepaper, and interacting with presale-facing content and app entry points."
+        title="Public terms for the FlowDex marketing and buy surface."
+        description="This page establishes the launch-phase public terms for using the site, reading the whitepaper, and interacting with buy-facing content and app entry points."
         meta={[
           { label: 'Last Updated', value: 'April 2026' },
-          { label: 'Applies To', value: 'Site, Whitepaper, Presale Surface' },
+          { label: 'Applies To', value: 'Site, Whitepaper, Buy Surface' },
           { label: 'Nature', value: 'Informational Launch Terms' },
           { label: 'Contact', value: 'team@flowdex.network' },
         ]}
@@ -31,11 +31,10 @@ export function TermsPage() {
         content={{
           title: 'Move from the legal frame into the public product experience.',
           body: 'The legal pages are part of launch readiness, but the live product proof still sits on the home, whitepaper, and buy routes.',
-          primary: { href: '/buy', label: 'Go to Buy' },
+          primary: { href: '/buy', label: 'Buy Now' },
           secondary: { href: '/whitepaper', label: 'Read Whitepaper' },
         }}
       />
     </div>
   );
 }
-

@@ -13,6 +13,7 @@ import {
   landingHeroSlides,
   landingMarketStats,
   landingRoadmapHighlights,
+  landingTeamHighlights,
   landingTokenDistribution,
   landingTrustSignals,
 } from './landing-page.data';
@@ -109,11 +110,11 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="tokenomics" className="section-shell section-pad scroll-mt-28">
+      <section id="tokenomics" className="section-shell scroll-mt-28 py-12 md:py-14">
         <SectionHeading
           eyebrow="Tokenomics Snapshot"
           title="The home page summarizes allocation and incentive logic. The route pages carry the detail."
-          description="The presale, tokenomics, and roadmap stories should align, but they should no longer duplicate each other line by line."
+          description="The buy, tokenomics, and roadmap stories should align, but they should no longer duplicate each other line by line."
         />
         <div className="mt-10 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <GlassPanel className="p-6">
@@ -169,7 +170,7 @@ export function LandingPage() {
                   <Link href={ROUTES.MARKETING.TOKENOMICS}>Open Tokenomics</Link>
                 </Button>
                 <Button variant="glass" size="sm" asChild>
-                  <Link href={ROUTES.MARKETING.BUY}>Go to Buy</Link>
+                  <Link href={ROUTES.MARKETING.BUY}>Buy Now</Link>
                 </Button>
               </div>
             </GlassPanel>
@@ -177,7 +178,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="roadmap" className="section-shell section-pad scroll-mt-28">
+      <section id="roadmap" className="section-shell scroll-mt-28 py-10 md:py-12">
         <SectionHeading
           eyebrow="Roadmap"
           title="A clear path from first access to a broader market network."
@@ -207,6 +208,23 @@ export function LandingPage() {
         </div>
       </section>
 
+      <section id="team" className="section-shell scroll-mt-28 py-10 md:py-12">
+        <SectionHeading
+          eyebrow="Team"
+          title="A product-first team posture with progressive trust building."
+          description="The public story should make the operating model visible without turning the page into personality-led promotion."
+        />
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          {landingTeamHighlights.map((item, index) => (
+            <GlassPanel key={item.title} className="p-6">
+              <div className="font-data text-sm font-semibold text-[var(--accent-strong)]">0{index + 1}</div>
+              <CardTitle className="mt-4 text-xl">{item.title}</CardTitle>
+              <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{item.body}</p>
+            </GlassPanel>
+          ))}
+        </div>
+      </section>
+
       <section id="faq" className="section-shell section-pad scroll-mt-28">
         <SectionHeading
           eyebrow="FAQ Preview"
@@ -228,18 +246,18 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="section-shell section-pad">
+      <section className="section-shell py-10 md:py-12">
         <GlassPanel className="rounded-[1.5rem] border-[var(--accent-border)] bg-[var(--accent-bg)] p-8 md:p-10">
           <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
             <div>
               <SectionHeading
                 eyebrow="Stay Close"
                 title="Use the homepage as the front door. Use the route pages for the research."
-                description="The public buy flow already reads live presale configuration. Tokenomics, roadmap, FAQ, and whitepaper are already dedicated routes. This homepage should now point people there cleanly."
+                description="The public buy flow already reads live pricing and tier configuration. Tokenomics, roadmap, FAQ, and whitepaper are already dedicated routes. This homepage should now point people there cleanly."
               />
               <div className="mt-8 flex flex-wrap gap-3">
                 <Button variant="brand" size="lg" asChild>
-                  <Link href={ROUTES.MARKETING.BUY}>Join Presale</Link>
+                  <Link href={ROUTES.MARKETING.BUY}>Buy Now</Link>
                 </Button>
                 <Button variant="glass" size="lg" asChild>
                   <Link href={ROUTES.MARKETING.WHITEPAPER}>Read Whitepaper</Link>

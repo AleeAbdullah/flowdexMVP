@@ -6,7 +6,6 @@ import { AuthErrorBanner } from './auth/auth-error-banner';
 import { AuthFields } from './auth/auth-fields';
 import { AuthFormShell } from './auth/auth-form-shell';
 import type { AuthMode } from './auth/auth-form.types';
-import { AuthModeSwitch } from './auth/auth-mode-switch';
 import { AuthTrustPanel } from './auth/auth-trust-panel';
 import { useAuthFormController } from './auth/use-auth-form-controller';
 
@@ -21,19 +20,12 @@ export function AuthForm(props: {
     initialError: props.initialError,
   });
 
-  const shellCopy = controller.isSignup
-    ? {
-        badge: 'Create Account',
-        title: 'Create your FlowDex account.',
-        description: 'Set up your account first, then continue into the protected app to manage wallets and account actions.',
-        submitLabel: 'Create account',
-      }
-    : {
-        badge: 'Sign In',
-        title: 'Sign in to continue.',
-        description: 'Resume your protected FlowDex session and return to the app surface tied to your account access.',
-        submitLabel: 'Continue to app',
-      };
+  const shellCopy = {
+    badge: 'Admin Login',
+    title: 'Sign in to admin operations.',
+    description: 'This route is reserved for FlowDex admins. Contributor activity now uses wallet verification on the public buy and transaction pages.',
+    submitLabel: 'Continue to admin',
+  };
 
   return (
     <AuthFormShell
@@ -58,9 +50,7 @@ export function AuthForm(props: {
           <ArrowRight aria-hidden className="h-4 w-4" />
         </Button>
       </form>
-
       <AuthTrustPanel />
-      <AuthModeSwitch mode={props.mode} nextPath={props.nextPath} />
     </AuthFormShell>
   );
 }

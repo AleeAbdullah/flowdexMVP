@@ -35,6 +35,11 @@ export const metadata: Metadata = {
     },
     {
       rel: 'icon',
+      type: 'image/svg+xml',
+      url: '/icon.svg',
+    },
+    {
+      rel: 'icon',
       type: 'image/png',
       sizes: '32x32',
       url: '/favicon-32x32.png',
@@ -50,8 +55,8 @@ export const metadata: Metadata = {
       url: '/favicon.ico',
     },
   ],
-  title: `${AppConfig.name} | Universal Exchange`,
-  description: 'FlowDex is building the non-custodial universal exchange for crypto and tokenized real-world assets.',
+  title: `${AppConfig.name} | FlowDex Protocol`,
+  description: 'FlowDex is building a non-custodial protocol for crypto and tokenized real-world assets.',
 };
 
 export default function RootLayout(props: {

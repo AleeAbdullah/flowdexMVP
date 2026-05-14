@@ -1,7 +1,8 @@
-import { TRANSACTION_STATUSES, isLiveTransactionStatus, type ITransactionListItem } from '@/dal/app/transactions/transactions.types';
+import type { IAdminTransactionListItem } from '@/dal/app/admin/admin.types';
+import { TRANSACTION_STATUSES, isLiveTransactionStatus } from '@/dal/app/transactions/transactions.types';
 
 export function AdminTransactionMetrics(props: {
-  items: ITransactionListItem[];
+  items: IAdminTransactionListItem[];
 }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">

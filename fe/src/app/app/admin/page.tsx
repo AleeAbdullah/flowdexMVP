@@ -52,7 +52,7 @@ export default async function AdminIndexRoute() {
           icon={<ShieldCheck className="h-5 w-5" />}
         />
         <ActionCard
-          href={ROUTES.WORKSPACE.TRANSACTIONS}
+          href={ROUTES.USER.TRANSACTIONS}
           title="User Surface"
           description="Open the user-facing transaction view to compare admin and end-user visibility."
           icon={<BarChart3 className="h-5 w-5" />}

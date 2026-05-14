@@ -2,7 +2,6 @@
 
 import type { AdminTransactionFilters } from '@/dal/app/admin/admin.types';
 import { TRANSACTION_STATUSES } from '@/dal/app/transactions/transactions.types';
-import { WALLET_NETWORKS } from '@/dal/app/wallets/wallets.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { GlassPanel } from '@/components/flowdex/primitives';
@@ -31,7 +30,7 @@ export function AdminTransactionsFilters(props: {
           id="admin-filter-network"
           label="Network"
           value={props.filters.network ?? ''}
-          placeholder={`e.g. ${WALLET_NETWORKS.BASE_SEPOLIA}...`}
+          placeholder="e.g. BASE_SEPOLIA..."
           onChange={value => props.onUpdateFilters({ network: value })}
         />
         <TextFilterField
@@ -42,11 +41,11 @@ export function AdminTransactionsFilters(props: {
           onChange={value => props.onUpdateFilters({ assetCode: value })}
         />
         <TextFilterField
-          id="admin-filter-user-id"
-          label="User ID"
-          value={props.filters.userId ?? ''}
-          placeholder="e.g. user_123..."
-          onChange={value => props.onUpdateFilters({ userId: value })}
+          id="admin-filter-wallet-address"
+          label="Wallet Address"
+          value={props.filters.walletAddress ?? ''}
+          placeholder="e.g. 0xabc..."
+          onChange={value => props.onUpdateFilters({ walletAddress: value })}
         />
         <DateTimeFilterField
           id="admin-filter-from"

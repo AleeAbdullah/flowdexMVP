@@ -11,17 +11,17 @@ This document defines a safe staging environment for validating wallet linking, 
 
 Never reuse production keys or webhook endpoints in staging.
 
-## 2. Files Added for Staging
+## 2. Environment Files
 
-- Backend env template: `be/.env.staging.example`
-- Frontend env template: `fe/.env.staging.example`
-- Staging infra compose: `be/docker-compose.staging.yml`
+- Local development: `be/.env.local` and `fe/.env.local`
+- Production deploys: `be/.env.production` and `fe/.env.production`
+- Optional isolated staging infra: `be/docker-compose.staging.yml`
 
 ## 3. One-Time Staging Setup
 
 1. Backend env
-- Copy `be/.env.staging.example` to `be/.env.staging`
-- Fill:
+- Use `be/.env.local` for development
+- Fill if needed:
   - `ALCHEMY_API_KEY`
   - `ALCHEMY_WEBHOOK_SIGNING_KEY`
   - `ALCHEMY_NOTIFY_AUTH_TOKEN` (for webhook management API)
@@ -30,8 +30,8 @@ Never reuse production keys or webhook endpoints in staging.
   - `INTERNAL_AUTH_JWT_SECRET`
 
 2. Frontend env
-- Copy `fe/.env.staging.example` to `fe/.env.staging`
-- Fill:
+- Use `fe/.env.local` for development
+- Fill if needed:
   - `NEXT_PUBLIC_ALCHEMY_API_KEY`
   - `NEXT_PUBLIC_API_URL` (staging backend URL)
   - `INTERNAL_AUTH_JWT_SECRET` (must match backend)
@@ -43,24 +43,18 @@ cd be
 docker compose -f docker-compose.staging.yml up -d
 ```
 
-4. Run backend with staging env
+4. Run backend with local env
 
 ```bash
 cd be
-set -a
-source .env.staging
-set +a
 npm run migration:run
 npm run start
 ```
 
-5. Run frontend with staging env
+5. Run frontend with local env
 
 ```bash
 cd fe
-set -a
-source .env.staging
-set +a
 npm run dev
 ```
 

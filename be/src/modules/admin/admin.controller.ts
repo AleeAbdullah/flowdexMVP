@@ -6,7 +6,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/domain.enums';
 import { InternalJwtGuard } from '../../common/guards/internal-jwt.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { TransactionListItemDto } from '../transactions/dto/transactions.dto';
+import { AdminTransactionListItemDto } from '../transactions/dto/transactions.dto';
 import { AdminTransactionFiltersDto } from './dto/admin.dto';
 import { AdminService } from './admin.service';
 
@@ -22,7 +22,7 @@ export class AdminController {
   listTransactions(
     @CurrentAuth() auth: AuthContext,
     @Query() filters: AdminTransactionFiltersDto,
-  ): Promise<{ items: TransactionListItemDto[] }> {
+  ): Promise<{ items: AdminTransactionListItemDto[] }> {
     return this.adminService.listTransactions(auth, filters);
   }
 
@@ -30,7 +30,7 @@ export class AdminController {
   getTransaction(
     @CurrentAuth() auth: AuthContext,
     @Param('id') id: string,
-  ): Promise<TransactionListItemDto> {
+  ): Promise<AdminTransactionListItemDto> {
     return this.adminService.getTransaction(auth, id);
   }
 
@@ -38,7 +38,7 @@ export class AdminController {
   reconcileTransaction(
     @CurrentAuth() auth: AuthContext,
     @Param('id') id: string,
-  ): Promise<TransactionListItemDto> {
+  ): Promise<AdminTransactionListItemDto> {
     return this.adminService.reconcileTransaction(auth, id);
   }
 

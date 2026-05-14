@@ -18,16 +18,6 @@ export class AuthContextController {
     email: string;
     role: string;
     status: string;
-    wallets: Array<{
-      id: string;
-      network: string;
-      address: string;
-      provider: string;
-      alchemyAccountId: string;
-      alchemyWalletId: string;
-      isPrimary: boolean;
-      verifiedAt: Date | null;
-    }>;
   }> {
     return this.authContextService.getMe(auth);
   }

@@ -20,11 +20,11 @@ export function resolveAuthenticatedAuthPageRedirect(searchParams: AuthPageSearc
 
 export function resolveAuthPageInitialError(searchParams: AuthPageSearchParams) {
   if (searchParams.auth_error === AUTH_PAGE_ERROR_CODES.ACCOUNT_INACTIVE) {
-    return 'Your account is not active yet. Contact support if you believe this is a mistake.';
+    return 'Your admin account is not active yet. Contact support if you believe this is a mistake.';
   }
 
   if (searchParams.auth_error === AUTH_PAGE_ERROR_CODES.ACCOUNT_SETUP_FAILED) {
-    return 'Your account could not be prepared for app access. Try again in a moment.';
+    return 'Your admin account could not be prepared for dashboard access. Try again in a moment.';
   }
 
   return null;
