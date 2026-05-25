@@ -1,5 +1,5 @@
 import { API_ROUTES } from '@/api-routes';
-import type { IAdminTransactionsResponse } from '@/dal/app/admin/admin.types';
+import type { IAdminPaymentsResponse } from '@/dal/app/admin/admin.types';
 import { backendFetchJson } from '@/lib/auth-server';
 import { AdminTransactionsPageClient } from './admin-transactions-page-client';
 import {
@@ -14,8 +14,8 @@ export default async function AdminTransactionsRoute(props: {
   const searchParams = await props.searchParams;
   const initialFilters = resolveAdminTransactionFilters(searchParams);
   const queryString = buildAdminTransactionsQueryString(initialFilters);
-  const initialData = await backendFetchJson<IAdminTransactionsResponse>(
-    `${API_ROUTES.backend.admin.transactions.root}${queryString}`,
+  const initialData = await backendFetchJson<IAdminPaymentsResponse>(
+    `${API_ROUTES.backend.admin.payments.root}${queryString}`,
   );
 
   return (

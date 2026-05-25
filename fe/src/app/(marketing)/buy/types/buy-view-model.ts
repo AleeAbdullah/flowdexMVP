@@ -1,3 +1,11 @@
+import type {
+  IPaymentIntentPublic,
+  IPaymentPublic,
+  PaymentAsset,
+  PaymentChain,
+  PaymentIntentStatus,
+} from '@/dal/app/payments/payments.types';
+
 export type BuyFlowState =
   | 'disconnected'
   | 'checking_wallet'
@@ -7,9 +15,20 @@ export type BuyFlowState =
   | 'ready'
   | 'submitting'
   | 'success'
+  | 'creating_intent'
+  | 'waiting_payment'
+  | 'confirmed'
   | 'failed';
 
-export type BuySubmissionState = 'idle' | 'simulating' | 'awaiting_wallet_approval' | 'tracking' | 'success' | 'failed';
+export type BuySubmissionState =
+  | 'idle'
+  | 'creating_intent'
+  | 'waiting_payment'
+  | 'success'
+  | 'failed'
+  | 'simulating'
+  | 'awaiting_wallet_approval'
+  | 'tracking';
 
 export type BuyIssueReason =
   | 'connectionCanceled'
@@ -20,7 +39,9 @@ export type BuyIssueReason =
   | 'simulateFailed'
   | 'sendCanceled'
   | 'sendFailed'
-  | 'trackFailed';
+  | 'trackFailed'
+  | 'intentFailed'
+  | 'invalidPaymentWallet';
 
 export type BuyUiTone = 'default' | 'info' | 'success' | 'warning' | 'danger';
 
@@ -30,7 +51,8 @@ export type BuyActionId =
   | 'submitContribution'
   | 'retryTracking'
   | 'viewReceipts'
-  | 'disconnectWallet';
+  | 'disconnectWallet'
+  | 'startNewPayment';
 
 export type BuyInlineAlert = {
   id: string;
@@ -70,12 +92,32 @@ export type BuyViewModelInput = {
 
 export type SupportedAssetOption = {
   id: string;
-  code: string;
+  code: PaymentAsset;
   label: string;
-  chain: 'BASE_SEPOLIA' | 'ETH_SEPOLIA';
-  chainId: number;
+  chain: PaymentChain | 'BASE_SEPOLIA' | 'ETH_SEPOLIA';
+  networkLabel?: string;
+  chainId: number | null;
   decimals: number;
-  minAmount: number;
   usdPrice: number;
-  minConfirmations: number;
+  minAmount?: number;
+  minConfirmations?: number;
+};
+
+export type ActivePaymentView = {
+  intent: IPaymentIntentPublic;
+  payment: IPaymentPublic | null;
+};
+
+export type PaymentInstructionSummary = {
+  status: PaymentIntentStatus;
+  statusTitle: string;
+  statusDescription: string;
+  statusTone: BuyUiTone;
+  exactAmountDisplay: string;
+  receiverAddress: string;
+  networkLabel: string;
+  expiresAtDisplay: string;
+  paymentUri: string | null;
+  qrValue: string;
+  txHash: string | null;
 };

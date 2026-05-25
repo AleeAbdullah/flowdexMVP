@@ -1,23 +1,29 @@
-import type { IAdminTransactionListItem } from '@/dal/app/admin/admin.types';
-import { TRANSACTION_STATUSES, isLiveTransactionStatus } from '@/dal/app/transactions/transactions.types';
+import type { IAdminPaymentListItem } from '@/dal/app/admin/admin.types';
+import { PAYMENT_INTENT_STATUSES } from '@/dal/app/payments/payments.types';
+
+const liveStatuses = new Set<string>([
+  PAYMENT_INTENT_STATUSES.WAITING,
+  PAYMENT_INTENT_STATUSES.DETECTED,
+  PAYMENT_INTENT_STATUSES.CONFIRMING,
+]);
 
 export function AdminTransactionMetrics(props: {
-  items: IAdminTransactionListItem[];
+  items: IAdminPaymentListItem[];
 }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <Metric label="Loaded" value={`${props.items.length}`} />
       <Metric
         label="Confirmed"
-        value={`${props.items.filter(item => item.status === TRANSACTION_STATUSES.CONFIRMED).length}`}
+        value={`${props.items.filter(item => item.status === PAYMENT_INTENT_STATUSES.CONFIRMED).length}`}
       />
       <Metric
         label="Failed"
-        value={`${props.items.filter(item => item.status === TRANSACTION_STATUSES.FAILED).length}`}
+        value={`${props.items.filter(item => item.status === PAYMENT_INTENT_STATUSES.FAILED).length}`}
       />
       <Metric
         label="Pending"
-        value={`${props.items.filter(item => isLiveTransactionStatus(item.status)).length}`}
+        value={`${props.items.filter(item => liveStatuses.has(item.status)).length}`}
       />
     </div>
   );

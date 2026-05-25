@@ -15,3 +15,4 @@ async function handleRequest(request: NextRequest, context: RouteContext) {
 export const dynamic = 'force-dynamic';
 
 export const GET = handleRequest;
+export const POST = handleRequest;

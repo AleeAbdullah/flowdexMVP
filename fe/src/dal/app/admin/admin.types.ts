@@ -1,49 +1,37 @@
-export type IAdminTransactionListItem = {
-  id: string;
-  publicId: string;
-  walletAddress: string;
-  walletAddressChecksum: string;
-  network: string;
-  chainId: number;
-  assetType: 'native' | 'erc20';
-  assetCode: string;
-  assetContractAddress: string | null;
-  assetDecimals: number;
-  amountBaseUnits: string;
-  amountDisplay: string;
-  status: string;
-  txHash: string | null;
-  expectedRecipientAddress: string;
-  actualFromAddress: string | null;
-  actualToAddress: string | null;
-  actualAmountBaseUnits: string | null;
-  failureReason: string | null;
-  blockNumber: string | null;
-  confirmedAt: string | null;
-  simulationId: string | null;
-  createdAt: string;
-  updatedAt: string;
+import type { IPaymentPublic, PaymentAsset, PaymentChain, PaymentIntentStatus } from '@/dal/app/payments/payments.types';
+
+export type IAdminPaymentListItem = IPaymentPublic & {
+  rawPayload: Record<string, unknown> | null;
+  tokenAmount: string;
+  usdAmount: string;
 };
 
 export type IAdminStats = {
-  totalConfirmedVolume: string;
-  totalTransactionCount: number;
-  activeTransactionCount: number;
-  confirmedTransactionCount: number;
-  failedTransactionCount: number;
-  lastTransactionAt: string | null;
-  transactionCountsByStatus: Record<string, number>;
+  totalPaymentCount: number;
+  confirmedPaymentCount: number;
+  pendingPaymentCount: number;
+  failedPaymentCount: number;
+  totalConfirmedUsd: string;
+  latestPaymentAt: string | null;
+  countsByStatus: Record<string, number>;
+  volumeByChain: Record<string, string>;
 };
 
-export type AdminTransactionFilters = {
-  status?: string;
-  network?: string;
-  assetCode?: string;
-  walletAddress?: string;
+export type AdminPaymentFilters = {
+  status?: PaymentIntentStatus | string;
+  chain?: PaymentChain | string;
+  asset?: PaymentAsset | string;
+  senderAddress?: string;
+  receiverAddress?: string;
   from?: string;
   to?: string;
+  assetCode?: string;
+  network?: string;
+  walletAddress?: string;
 };
 
-export type IAdminTransactionsResponse = {
-  items: IAdminTransactionListItem[];
+export type AdminTransactionFilters = AdminPaymentFilters;
+
+export type IAdminPaymentsResponse = {
+  items: IAdminPaymentListItem[];
 };

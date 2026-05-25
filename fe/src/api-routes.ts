@@ -20,10 +20,8 @@ export const API_ROUTES = {
     },
     admin: {
       stats: '/api/bff/admin/stats',
-      transactions: {
-        root: '/api/bff/admin/transactions',
-        detail: (id: string) => `/api/bff/admin/transactions/${id}`,
-        reconcile: (id: string) => `/api/bff/admin/transactions/${id}/reconcile`,
+      payments: {
+        root: '/api/bff/admin/payments',
       },
     },
   },
@@ -37,7 +35,11 @@ export const API_ROUTES = {
         });
         return `/markets/crypto?${searchParams.toString()}`;
       },
-      cryptoQuoteCurrencies: '/markets/crypto/quote-currencies',
+    },
+    payments: {
+      root: '/payments',
+      intents: '/payments/intents',
+      intentStatus: (intentId: string) => `/payments/intents/${intentId}/status`,
     },
     presale: {
       stats: '/presale/stats',
@@ -57,9 +59,8 @@ export const API_ROUTES = {
     },
     admin: {
       stats: '/admin/stats',
-      transactions: {
-        root: '/admin/transactions',
-        detail: (id: string) => `/admin/transactions/${id}`,
+      payments: {
+        root: '/admin/payments',
       },
     },
   },

@@ -28,6 +28,8 @@ export type MarketingWalletVerificationStatus = 'unverified' | 'verifying' | 've
 
 export type MarketingWalletSubmissionStatus =
   | 'idle'
+  | 'creating_intent'
+  | 'waiting_payment'
   | 'simulating'
   | 'awaiting_wallet_approval'
   | 'tracking'

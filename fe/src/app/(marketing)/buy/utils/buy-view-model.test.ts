@@ -86,7 +86,7 @@ describe('buildBuyViewModel', () => {
 
     expect(model.state).toBe('wrong_chain');
     expect(model.dominantActionLabel).toBe('Switch to Ethereum Sepolia');
-    expect(model.description).toContain('wallet network and selected payment network');
+    expect(model.description).toContain('wallet network and selected chain');
     expect(model.alerts[0]?.title).toBe('Wrong network');
   });
 

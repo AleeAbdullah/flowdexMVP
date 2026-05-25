@@ -1,10 +1,7 @@
 import { API_ROUTES } from '@/api-routes';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
-import type {
-  ICryptoMarketsResponse,
-  ICryptoQuoteCurrenciesResponse,
-} from './crypto.types';
+import type { ICryptoMarketsResponse } from './crypto.types';
 
 const browserPublicProxyConfig = typeof window === 'undefined'
   ? undefined
@@ -21,7 +18,6 @@ export const cryptoMarketQueryKeys = {
     input.quote,
     input.limit,
   ] as const,
-  quoteCurrencies: ['market', 'crypto', 'quote-currencies'] as const,
 };
 
 export const cryptoMarketService = {
@@ -30,12 +26,6 @@ export const cryptoMarketService = {
     const limit = input.limit ?? CRYPTO_MARKET_DEFAULT_LIMIT;
     return api.get<ICryptoMarketsResponse>(
       API_ROUTES.public.markets.crypto({ quote, limit }),
-      browserPublicProxyConfig,
-    );
-  },
-  getCryptoQuoteCurrencies() {
-    return api.get<ICryptoQuoteCurrenciesResponse>(
-      API_ROUTES.public.markets.cryptoQuoteCurrencies,
       browserPublicProxyConfig,
     );
   },
@@ -50,13 +40,5 @@ export function useCryptoMarkets(input: { quote: string; limit?: number }) {
     queryFn: () => cryptoMarketService.getCryptoMarkets({ quote, limit }),
     placeholderData: keepPreviousData,
     refetchInterval: CRYPTO_MARKET_REFRESH_INTERVAL_MS,
-  });
-}
-
-export function useCryptoQuoteCurrencies() {
-  return useQuery({
-    queryKey: cryptoMarketQueryKeys.quoteCurrencies,
-    queryFn: cryptoMarketService.getCryptoQuoteCurrencies,
-    staleTime: 24 * 60 * 60 * 1000,
   });
 }

@@ -1,31 +1,31 @@
-import type { IAdminTransactionListItem } from '@/dal/app/admin/admin.types';
+import type { IAdminPaymentListItem } from '@/dal/app/admin/admin.types';
 import { GlassPanel } from '@/components/flowdex/primitives';
 import { AdminTransactionRow } from './admin-transaction-row';
 
 export function AdminTransactionsList(props: {
-  items: IAdminTransactionListItem[];
+  items: IAdminPaymentListItem[];
   isLoading: boolean;
   errorMessage: string | null;
 }) {
   return (
     <GlassPanel className="overflow-hidden">
       <div className="border-b border-[var(--card-border)] px-6 py-4 text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
-        Operational Transaction List
+        Operational Payment List
       </div>
       <div>
         {props.isLoading ? (
-          <div className="px-6 py-5 text-sm text-[var(--muted)]">Loading admin transactions…</div>
+          <div className="px-6 py-5 text-sm text-[var(--muted)]">Loading admin payments...</div>
         ) : null}
         {props.errorMessage ? (
           <div className="px-6 py-5 text-sm text-rose-200">{props.errorMessage}</div>
         ) : null}
         {!props.isLoading && !props.errorMessage && props.items.length === 0 ? (
           <div className="px-6 py-5 text-sm text-[var(--muted)]">
-            No transactions matched the current filter set.
+            No payments matched the current filter set.
           </div>
         ) : null}
         {props.items.map(item => (
-          <AdminTransactionRow key={item.id} item={item} />
+          <AdminTransactionRow key={item.intentId} item={item} />
         ))}
       </div>
     </GlassPanel>

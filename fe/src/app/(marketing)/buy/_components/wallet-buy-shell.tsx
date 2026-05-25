@@ -1,6 +1,8 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+import Image from 'next/image';
+import { useMemo, type ReactNode } from 'react';
 import { GlassPanel, StatusPill } from '@/components/flowdex/primitives';
 import { formatDateTime, truncateMiddle } from '@/components/flowdex/utils';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +15,7 @@ import {
   ArrowRight,
   CheckCircle2,
   ChevronDown,
+  Copy,
   Globe2,
   Loader2,
   ReceiptText,
@@ -20,9 +23,16 @@ import {
   Sparkles,
   Wallet,
   Workflow,
+  X,
 } from '@/icons';
 import { VESTING_LABELS } from '@/components/flowdex/buy-page-content';
-import type { BuyActionId, BuyInlineAlert, BuyUiTone, BuyViewModel, SupportedAssetOption } from '../types/buy-view-model';
+import type {
+  ActivePaymentView,
+  BuyActionId,
+  BuyUiTone,
+  PaymentInstructionSummary,
+  SupportedAssetOption,
+} from '../types/buy-view-model';
 
 type WalletTrayButton = {
   id: string;
@@ -48,7 +58,6 @@ const vestingStageColorClasses = [
 ];
 
 export type WalletBuyShellProps = {
-  viewModel: BuyViewModel;
   walletStatusLabel: string;
   connectedWalletAddress: string | null;
   sessionWalletChecksum: string | null;
@@ -61,11 +70,15 @@ export type WalletBuyShellProps = {
   onAssetChange: (value: string) => void;
   amountDisplay: string;
   onAmountChange: (value: string) => void;
+  quickBuyAmounts: number[];
+  selectedQuickBuyAmount: number | null;
+  onQuickBuyAmountChange: (amount: number) => void;
   contributionEnabled: boolean;
   estimatedContributionUsdDisplay: string;
   estimatedTokensDisplay: string;
   latestExplorerUrl: string | null;
   walletSupportSummary: WalletSupportSummary;
+  primaryWalletSupportCopy: string;
   approvedDirectWalletDisplayNames: string[];
   walletConnectEnabled: boolean;
   walletButtons: WalletTrayButton[];
@@ -78,6 +91,16 @@ export type WalletBuyShellProps = {
   raisedProgressPercent: number;
   sourceUpdatedAt: string | null;
   listingReferenceDisplay: string;
+  paymentWalletAddress: string;
+  onPaymentWalletAddressChange: (value: string) => void;
+  paymentWalletModalOpen: boolean;
+  onPaymentWalletModalOpenChange: (open: boolean) => void;
+  paymentWalletError: string | null;
+  activePayment: ActivePaymentView | null;
+  paymentInstruction: PaymentInstructionSummary | null;
+  isCreatingIntent: boolean;
+  isCheckingStatus: boolean;
+  statusError: string | null;
 };
 
 function toneClasses(tone: BuyUiTone) {
@@ -92,21 +115,6 @@ function toneClasses(tone: BuyUiTone) {
       return 'border-cyan-400/20 bg-cyan-400/8';
     default:
       return 'border-[var(--card-border)] bg-[var(--card-bg)]';
-  }
-}
-
-function alertToneClasses(tone: BuyUiTone) {
-  switch (tone) {
-    case 'success':
-      return 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100';
-    case 'warning':
-      return 'border-amber-400/20 bg-amber-400/10 text-amber-100';
-    case 'danger':
-      return 'border-rose-400/20 bg-rose-500/10 text-rose-100';
-    case 'info':
-      return 'border-cyan-400/20 bg-cyan-400/10 text-cyan-100';
-    default:
-      return 'border-[var(--card-border)] bg-[var(--surface)] text-[var(--text)]';
   }
 }
 
@@ -144,7 +152,7 @@ function WalletConnectIcon() {
 function WalletBrandIcon(props: { id: string }) {
   if (props.id === 'metamask') {
     return (
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-orange-300/25 bg-orange-500/10 text-orange-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-orange-300/25 bg-orange-500/10">
         <MetaMaskIcon />
       </div>
     );
@@ -152,14 +160,14 @@ function WalletBrandIcon(props: { id: string }) {
 
   if (props.id === 'coinbase-wallet') {
     return (
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-300/25 bg-sky-500/10 text-sky-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-300/25 bg-sky-500/10">
         <CoinbaseIcon />
       </div>
     );
   }
 
   return (
-    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-500/10 text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-500/10">
       <WalletConnectIcon />
     </div>
   );
@@ -176,26 +184,12 @@ function CompactMetric(props: {
       <div className="text-[10px] font-bold tracking-[0.24em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
         {props.label}
       </div>
-      <div className={cn('mt-1 font-data text-lg font-semibold', props.accent ? 'text-[var(--cyan)]' : 'text-[var(--text)]')}>
+      <div className={cn('mt-1 break-words font-data text-lg font-semibold', props.accent ? 'text-[var(--cyan)]' : 'text-[var(--text)]')}>
         {props.value}
       </div>
       {props.secondary ? (
         <div className="mt-1 text-xs leading-5 text-[var(--muted)]">{props.secondary}</div>
       ) : null}
-    </div>
-  );
-}
-
-function BuyInlineAlertCard(props: { alert: BuyInlineAlert }) {
-  return (
-    <div className={cn('rounded-[1rem] border px-4 py-3', alertToneClasses(props.alert.tone))}>
-      <div className="flex items-start gap-3">
-        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-        <div className="space-y-1">
-          <div className="text-sm font-semibold">{props.alert.title}</div>
-          <p className="text-sm leading-6 opacity-90">{props.alert.description}</p>
-        </div>
-      </div>
     </div>
   );
 }
@@ -209,18 +203,16 @@ function WalletTrayCard(props: {
       onClick={props.button.onClick}
       disabled={props.button.disabled}
       className={cn(
-        'group flex h-full min-h-[11rem] w-full flex-col justify-between rounded-[1.15rem] border p-4 text-left transition duration-200',
+        'group flex h-full min-h-[10rem] w-full flex-col justify-between rounded-[1.15rem] border p-4 text-left transition duration-200',
         'border-[var(--card-border)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--surface-elevated)_88%,var(--card-bg)),color-mix(in_srgb,var(--surface)_82%,var(--card-bg)))]',
-        'shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
-        'hover:border-[color-mix(in_srgb,var(--accent-strong)_38%,var(--card-border))] hover:bg-[linear-gradient(180deg,color-mix(in_srgb,var(--surface-elevated)_96%,var(--card-bg)),color-mix(in_srgb,var(--surface)_88%,var(--card-bg)))]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--accent-strong)_32%,transparent)]',
+        'hover:border-[color-mix(in_srgb,var(--accent-strong)_38%,var(--card-border))]',
         props.button.disabled && 'cursor-not-allowed opacity-50',
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <WalletBrandIcon id={props.button.id} />
         <Badge variant={props.button.mode === 'direct' ? 'brand' : 'subtle'} className="px-3 py-1 normal-case tracking-normal">
-          {props.button.mode === 'direct' ? 'Direct' : 'Session-gated'}
+          Optional
         </Badge>
       </div>
 
@@ -235,9 +227,200 @@ function WalletTrayCard(props: {
   );
 }
 
+function copyText(value: string) {
+  if (!navigator.clipboard) {
+    return;
+  }
+
+  void navigator.clipboard.writeText(value);
+}
+
+function QrCode(props: { value: string }) {
+  const src = useMemo(() => {
+    const params = new URLSearchParams({
+      size: '220x220',
+      data: props.value,
+    });
+    return `https://api.qrserver.com/v1/create-qr-code/?${params.toString()}`;
+  }, [props.value]);
+
+  return (
+    <div className="rounded-[1rem] border border-[var(--card-border)] bg-white p-3">
+      <Image src={src} alt="Payment QR code" width={220} height={220} unoptimized className="h-[220px] w-[220px]" />
+    </div>
+  );
+}
+
+function PaymentInstructionPanel(props: {
+  instruction: PaymentInstructionSummary;
+  activePayment: ActivePaymentView;
+  isCheckingStatus: boolean;
+  statusError: string | null;
+  latestExplorerUrl: string | null;
+  onStartNewPayment: () => void;
+}) {
+  const { instruction } = props;
+
+  return (
+    <div className={cn('rounded-[1.2rem] border px-5 py-5', toneClasses(instruction.statusTone))}>
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <div className="text-xl font-semibold text-[var(--text)]">Complete your payment</div>
+            <p className="max-w-2xl text-sm leading-6 text-[var(--muted)]">
+              Send the exact amount shown below. This page updates automatically.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <StatusPill status={instruction.status} />
+            {props.isCheckingStatus ? (
+              <span className="inline-flex items-center gap-2 text-xs text-[var(--muted)]">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Checking
+              </span>
+            ) : null}
+          </div>
+          <div className="space-y-2">
+            <div className="text-sm font-semibold text-[var(--text)]">{instruction.statusTitle}</div>
+            <p className="max-w-2xl text-sm leading-6 text-[var(--muted)]">{instruction.statusDescription}</p>
+          </div>
+          {props.statusError ? (
+            <div className="rounded-[1rem] border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm leading-6 text-amber-100">
+              {props.statusError}
+            </div>
+          ) : null}
+        </div>
+
+        <QrCode value={instruction.qrValue} />
+      </div>
+
+      <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <CopyMetric label="Exact Amount" value={instruction.exactAmountDisplay} copyValue={instruction.exactAmountDisplay.split(' ')[0] ?? instruction.exactAmountDisplay} />
+        <CopyMetric label="Receiving Address" value={truncateMiddle(instruction.receiverAddress)} copyValue={instruction.receiverAddress} />
+        <CompactMetric label="Network" value={instruction.networkLabel} />
+        <CompactMetric label="Expires" value={instruction.expiresAtDisplay} />
+      </div>
+
+      {instruction.paymentUri ? (
+        <div className="mt-4 rounded-[1rem] border border-[var(--card-border)] bg-[var(--surface)] px-4 py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <div className="text-[10px] font-bold tracking-[0.24em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
+                Payment Link
+              </div>
+              <div className="mt-1 truncate text-sm text-[var(--muted)]">{instruction.paymentUri}</div>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Button variant="glass" onClick={() => copyText(instruction.paymentUri!)}>
+                <Copy className="mr-2 h-4 w-4" />
+                Copy
+              </Button>
+              <Button variant="brand" asChild>
+                <a href={instruction.paymentUri}>Open wallet</a>
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        {props.latestExplorerUrl ? (
+          <Button variant="glass" asChild>
+            <a href={props.latestExplorerUrl} target="_blank" rel="noreferrer">
+              View on explorer
+            </a>
+          </Button>
+        ) : null}
+        <Button variant="glass" onClick={props.onStartNewPayment}>
+          Buy again
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function CopyMetric(props: {
+  label: string;
+  value: string;
+  copyValue: string;
+}) {
+  return (
+    <div className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--surface)] px-4 py-3">
+      <div className="text-[10px] font-bold tracking-[0.24em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
+        {props.label}
+      </div>
+      <div className="mt-1 break-words font-data text-lg font-semibold text-[var(--text)]">{props.value}</div>
+      <Button variant="link" className="mt-2 h-auto p-0 text-[var(--cyan)]" onClick={() => copyText(props.copyValue)}>
+        <Copy className="mr-2 h-3.5 w-3.5" />
+        Copy
+      </Button>
+    </div>
+  );
+}
+
+function PaymentWalletDialog(props: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  value: string;
+  onChange: (value: string) => void;
+  error: string | null;
+  onSubmit: () => void;
+  isSubmitting: boolean;
+}) {
+  return (
+    <DialogPrimitive.Root open={props.open} onOpenChange={props.onOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
+        <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-50 w-[min(calc(100vw-2rem),30rem)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[var(--card-border)] bg-[var(--surface-elevated)] p-6 text-[var(--text)] shadow-[0_24px_90px_rgba(0,0,0,0.36)] outline-none">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <DialogPrimitive.Title className="text-lg font-bold">
+                Add payment wallet
+              </DialogPrimitive.Title>
+              <DialogPrimitive.Description className="mt-3 text-sm leading-7 text-[var(--muted)]">
+                Enter the Ethereum wallet address you will pay from so we can track your payment.
+              </DialogPrimitive.Description>
+            </div>
+            <DialogPrimitive.Close className="rounded-full border border-[var(--card-border)] p-2 text-[var(--muted)] transition-colors hover:border-[var(--cyan)] hover:text-[var(--text)]">
+              <X className="h-4 w-4" />
+            </DialogPrimitive.Close>
+          </div>
+
+          <div className="mt-5 space-y-2">
+            <label className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase" htmlFor="payment-wallet-address">
+              Payment wallet address
+            </label>
+            <Input
+              id="payment-wallet-address"
+              value={props.value}
+              onChange={event => props.onChange(event.target.value)}
+              placeholder="0x..."
+              className="h-12 border-[var(--card-border)] bg-[var(--surface)] text-[var(--text)]"
+            />
+            {props.error ? <p className="text-sm leading-6 text-rose-200">{props.error}</p> : null}
+          </div>
+
+          <div className="mt-5 flex flex-wrap justify-end gap-3">
+            <DialogPrimitive.Close asChild>
+              <Button variant="glass">Cancel</Button>
+            </DialogPrimitive.Close>
+            <Button
+              variant="brand"
+              onClick={props.onSubmit}
+              disabled={props.isSubmitting}
+            >
+              {props.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Continue to payment
+            </Button>
+          </div>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  );
+}
+
 export function WalletBuyShell(props: WalletBuyShellProps) {
   const {
-    viewModel,
     walletStatusLabel,
     connectedWalletAddress,
     sessionWalletChecksum,
@@ -250,6 +433,9 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
     onAssetChange,
     amountDisplay,
     onAmountChange,
+    quickBuyAmounts,
+    selectedQuickBuyAmount,
+    onQuickBuyAmountChange,
     contributionEnabled,
     estimatedContributionUsdDisplay,
     estimatedTokensDisplay,
@@ -267,10 +453,30 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
     raisedProgressPercent,
     sourceUpdatedAt,
     listingReferenceDisplay,
+    paymentWalletAddress,
+    onPaymentWalletAddressChange,
+    paymentWalletModalOpen,
+    onPaymentWalletModalOpenChange,
+    paymentWalletError,
+    activePayment,
+    paymentInstruction,
+    isCreatingIntent,
+    isCheckingStatus,
+    statusError,
   } = props;
 
   return (
     <div className="section-shell section-pad">
+      <PaymentWalletDialog
+        open={paymentWalletModalOpen}
+        onOpenChange={onPaymentWalletModalOpenChange}
+        value={paymentWalletAddress}
+        onChange={onPaymentWalletAddressChange}
+        error={paymentWalletError}
+        onSubmit={() => onAction('submitContribution')}
+        isSubmitting={isCreatingIntent}
+      />
+
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
         <GlassPanel className="p-6 lg:p-7">
           <div className="space-y-6">
@@ -284,24 +490,24 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
                   <StatusPill status={walletStatusLabel.toUpperCase()} />
                   {selectedAsset ? (
                     <Badge variant="subtle" className="px-3 py-1 normal-case tracking-normal">
-                      {selectedAsset.code} on {selectedChainLabel}
+                      {selectedAsset.label}
                     </Badge>
                   ) : null}
                 </div>
 
                 <div className="space-y-2">
                   <h1 className="font-heading text-3xl font-bold tracking-tight text-[var(--text)] md:text-[3.2rem]">
-                    Buy $FDN with your connected wallet.
+                    Buy $FDN
                   </h1>
                   <p className="max-w-2xl text-sm leading-7 text-[var(--muted)]">
-                    {walletSupportSummary.primarySupportCopy}
+                    Choose an amount and pay with ETH, SOL, or BTC.
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 rounded-full border border-[var(--accent-border)] bg-[var(--accent-bg)] px-4 py-2 text-[10px] font-bold tracking-[0.26em] text-[var(--cyan)] uppercase">
                 <ShieldCheck className="h-3.5 w-3.5" />
-                Secure wallet checkout
+                Secure payment
               </div>
             </div>
 
@@ -329,221 +535,184 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
               </div>
             </div>
 
-            <div className={cn('rounded-[1.2rem] border px-5 py-5', toneClasses(viewModel.tone))}>
-              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                <div className="space-y-3">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <StatusPill status={viewModel.status} className="tracking-[0.18em]" />
-                    {connectedWalletAddress ? (
-                      <span className="text-sm text-[var(--muted)]">{truncateMiddle(connectedWalletAddress)}</span>
-                    ) : null}
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-xl font-semibold text-[var(--text)]">{viewModel.title}</div>
-                    <p className="max-w-2xl text-sm leading-6 text-[var(--muted)]">{viewModel.description}</p>
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[17rem]">
-                  <CompactMetric
-                    label="Session Wallet"
-                    value={sessionWalletChecksum ? truncateMiddle(sessionWalletChecksum) : 'Not verified'}
-                  />
-                  <CompactMetric
-                    label="Verified Chain"
-                    value={verifiedChainLabel ?? 'Not set'}
-                  />
-                </div>
-              </div>
-
-              {viewModel.alerts.length > 0 ? (
-                <div className="mt-4 space-y-3">
-                  {viewModel.alerts.map(alert => (
-                    <BuyInlineAlertCard key={alert.id} alert={alert} />
-                  ))}
-                </div>
-              ) : null}
-            </div>
-
-            {viewModel.showWalletTray ? (
+            {paymentInstruction && activePayment ? (
+              <PaymentInstructionPanel
+                instruction={paymentInstruction}
+                activePayment={activePayment}
+                isCheckingStatus={isCheckingStatus}
+                statusError={statusError}
+                latestExplorerUrl={latestExplorerUrl}
+                onStartNewPayment={() => onAction('startNewPayment')}
+              />
+            ) : (
               <div className="rounded-[1.2rem] border border-[var(--card-border)] bg-[var(--card-bg)] p-5">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text)]">
-                      <Sparkles className="h-4 w-4 text-[var(--cyan)]" />
-                      Choose wallet
+                <div className="space-y-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
+                        <Workflow className="h-3.5 w-3.5 text-[var(--cyan)]" />
+                        Order
+                      </div>
+                      <p className="max-w-2xl text-sm leading-6 text-[var(--muted)]">
+                        Choose an amount and how you want to pay. Estimated $FDN is shown for review before you pay.
+                      </p>
                     </div>
-                    <p className="max-w-2xl text-sm leading-6 text-[var(--muted)]">
-                      {walletConnectEnabled
-                        ? 'Use MetaMask or Coinbase Wallet, or open WalletConnect for more options.'
-                        : walletSupportSummary.directSupportCopy}
-                    </p>
+                    <div className="rounded-full border border-[var(--card-border)] bg-[var(--surface)] px-4 py-2 text-xs font-semibold tracking-[0.18em] text-[var(--text)] uppercase">
+                      Ready to pay
+                    </div>
                   </div>
 
-                  <div className="grid gap-3 md:grid-cols-3">
-                    {walletButtons.map(button => (
-                      <WalletTrayCard key={button.id} button={button} />
+                  <div className="grid gap-3 sm:grid-cols-4">
+                    {quickBuyAmounts.map(amount => (
+                      <button
+                        key={amount}
+                        type="button"
+                        onClick={() => onQuickBuyAmountChange(amount)}
+                        disabled={!contributionEnabled}
+                        className={cn(
+                          'rounded-[1rem] border px-4 py-3 text-left transition',
+                          selectedQuickBuyAmount === amount
+                            ? 'border-[var(--cyan)] bg-[var(--accent-bg)] text-[var(--text)]'
+                            : 'border-[var(--card-border)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--accent-border)] hover:text-[var(--text)]',
+                          !contributionEnabled && 'cursor-not-allowed opacity-50',
+                        )}
+                      >
+                        <span className="font-data text-xl font-semibold">${amount.toLocaleString('en-US')}</span>
+                      </button>
                     ))}
                   </div>
 
-                  {viewModel.showSupportDisclosure ? (
-                    <details className="group rounded-[1rem] border border-[var(--card-border)] bg-[var(--surface)] px-4 py-4">
-                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--text)]">
-                        Supported wallets
-                        <ChevronDown className="h-4 w-4 text-[var(--muted)] transition-transform duration-200 group-open:rotate-180" />
-                      </summary>
-                      <div className="mt-4 space-y-4 text-sm leading-6 text-[var(--muted)]">
-                        <div className="space-y-2">
-                          <div className="font-semibold text-[var(--text)]">Available now</div>
-                          <p>{walletSupportSummary.directSupportCopy}</p>
-                          <div className="flex flex-wrap gap-2">
-                            {approvedDirectWalletDisplayNames.map(walletName => (
-                              <Badge key={walletName} variant="brand" className="px-3 py-1 normal-case tracking-normal">
-                                {walletName}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
+                  <div className="grid gap-4 md:grid-cols-[1.15fr_0.85fr]">
+                    <label className="space-y-2">
+                      <span className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
+                        Pay with
+                      </span>
+                      <Select
+                        value={selectedAssetId}
+                        onValueChange={onAssetChange}
+                        disabled={!contributionEnabled}
+                      >
+                        <SelectTrigger className="h-12 border-[var(--card-border)] bg-[var(--surface)] text-[var(--text)]">
+                          <SelectValue placeholder="Choose a chain" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {supportedAssets.map(asset => (
+                            <SelectItem key={asset.id} value={asset.id}>
+                              {asset.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </label>
 
-                        <div className="space-y-2">
-                          <div className="font-semibold text-[var(--text)]">WalletConnect checkout</div>
-                          <p>{walletSupportSummary.walletConnectCompatibilityCopy}</p>
-                        </div>
-                      </div>
-                    </details>
+                    <label className="space-y-2">
+                      <span className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
+                        Amount
+                      </span>
+                      <Input
+                        value={amountDisplay}
+                        onChange={event => onAmountChange(event.target.value)}
+                        inputMode="decimal"
+                        placeholder="500"
+                        className="h-12 border-[var(--card-border)] bg-[var(--surface)] text-[var(--text)]"
+                        disabled={!contributionEnabled}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <CompactMetric label="Purchase Amount" value={estimatedContributionUsdDisplay} />
+                    <CompactMetric label="Estimated $FDN" value={estimatedTokensDisplay} accent />
+                    <CompactMetric label="Chain" value={selectedChainLabel} />
+                  </div>
+
+                  {paymentWalletError ? (
+                    <div className="rounded-[1rem] border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm leading-6 text-rose-100">
+                      {paymentWalletError}
+                    </div>
                   ) : null}
+
+                  {walletChainLabel && walletChainLabel !== selectedChainLabel ? (
+                    <div className="grid gap-3 rounded-[1rem] border border-amber-300/30 bg-amber-300/10 px-4 py-4 text-sm md:grid-cols-2">
+                      <div>
+                        <div className="text-[10px] font-bold tracking-[0.24em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
+                          Connected wallet network
+                        </div>
+                        <div className="mt-1 font-semibold text-[var(--text)]">{walletChainLabel}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-bold tracking-[0.24em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
+                          Payment network
+                        </div>
+                        <div className="mt-1 font-semibold text-[var(--text)]">{selectedChainLabel}</div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button
+                      variant="brand"
+                      onClick={() => onAction('submitContribution')}
+                      disabled={primaryActionDisabled}
+                    >
+                      {isCreatingIntent ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      Pay now
+                    </Button>
+
+                    {connectedWalletAddress ? (
+                      <Button
+                        variant="glass"
+                        onClick={() => onAction('disconnectWallet')}
+                        disabled={secondaryActionDisabled}
+                      >
+                        Disconnect wallet
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
               </div>
-            ) : null}
+            )}
 
-            <div className="rounded-[1.2rem] border border-[var(--card-border)] bg-[var(--card-bg)] p-5">
-              <div className="space-y-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
-                      <Workflow className="h-3.5 w-3.5 text-[var(--cyan)]" />
-                      Order
+            <details className="group rounded-[1.2rem] border border-[var(--card-border)] bg-[var(--card-bg)] p-5">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                <span className="min-w-0">
+                  <span className="flex items-center gap-2 text-sm font-semibold text-[var(--text)]">
+                    <Sparkles className="h-4 w-4 shrink-0 text-[var(--cyan)]" />
+                    Connect wallet
+                  </span>
+                  <span className="mt-1 block text-sm leading-6 text-[var(--muted)]">
+                    Connect wallet to prefill your payment address.
+                  </span>
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 text-[var(--muted)] transition-transform duration-200 group-open:rotate-180" />
+              </summary>
+
+              <div className="mt-4 space-y-4">
+                <div className="grid gap-3 md:grid-cols-3">
+                  {walletButtons.map(button => (
+                    <WalletTrayCard key={button.id} button={button} />
+                  ))}
+                </div>
+
+                <div className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--surface)] px-4 py-4">
+                  <div className="space-y-4 text-sm leading-6 text-[var(--muted)]">
+                    <p>{walletSupportSummary.directSupportCopy}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {approvedDirectWalletDisplayNames.map(walletName => (
+                        <Badge key={walletName} variant="brand" className="px-3 py-1 normal-case tracking-normal">
+                          {walletName}
+                        </Badge>
+                      ))}
                     </div>
-                    <p className="max-w-2xl text-sm leading-6 text-[var(--muted)]">
-                      Choose an asset, enter the amount, and complete your purchase when everything is ready.
+                    <p>
+                      {walletConnectEnabled
+                        ? walletSupportSummary.walletConnectCompatibilityCopy
+                        : 'WalletConnect is not available right now, so only direct options are shown.'}
                     </p>
                   </div>
-                  {viewModel.dominantActionLabel ? (
-                    <div className="rounded-full border border-[var(--card-border)] bg-[var(--surface)] px-4 py-2 text-xs font-semibold tracking-[0.18em] text-[var(--text)] uppercase">
-                      {viewModel.dominantActionLabel}
-                    </div>
-                  ) : null}
                 </div>
-
-                {viewModel.showContributionForm ? (
-                  <>
-                    <div className="grid gap-4 md:grid-cols-[1.15fr_0.85fr]">
-                      <label className="space-y-2">
-                        <span className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
-                          Asset & Network
-                        </span>
-                        <Select
-                          value={selectedAssetId}
-                          onValueChange={onAssetChange}
-                          disabled={!contributionEnabled}
-                        >
-                          <SelectTrigger className="h-12 border-[var(--card-border)] bg-[var(--surface)] text-[var(--text)]">
-                            <SelectValue placeholder="Choose a supported chain" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {supportedAssets.map(asset => (
-                              <SelectItem key={asset.id} value={asset.id}>
-                                {asset.code} on {asset.chain === 'BASE_SEPOLIA' ? 'Base Sepolia' : 'Ethereum Sepolia'}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </label>
-
-                      <label className="space-y-2">
-                        <span className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
-                          Amount
-                        </span>
-                        <Input
-                          value={amountDisplay}
-                          onChange={event => onAmountChange(event.target.value)}
-                          inputMode="decimal"
-                          placeholder={selectedAsset ? `Minimum ${selectedAsset.minAmount} ${selectedAsset.code}` : 'No supported asset available'}
-                          className="h-12 border-[var(--card-border)] bg-[var(--surface)] text-[var(--text)]"
-                          disabled={!contributionEnabled}
-                        />
-                      </label>
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-3">
-                      <CompactMetric label="Estimated USD" value={estimatedContributionUsdDisplay} />
-                      <CompactMetric label="Estimated $FDN" value={estimatedTokensDisplay} accent />
-                      <CompactMetric label="Confirmations" value={selectedAsset ? `${selectedAsset.minConfirmations}` : 'N/A'} />
-                    </div>
-
-                    <div className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--surface)] px-4 py-4 text-sm leading-6 text-[var(--muted)]">
-                      Minimum {selectedAsset ? `${selectedAsset.minAmount} ${selectedAsset.code}` : 'N/A'} on {selectedChainLabel}. Your connected wallet will be used for this purchase and its receipt.
-                    </div>
-
-                    {walletChainLabel && walletChainLabel !== selectedChainLabel ? (
-                      <div className="grid gap-3 rounded-[1rem] border border-amber-300/30 bg-amber-300/10 px-4 py-4 text-sm md:grid-cols-2">
-                        <div>
-                          <div className="text-[10px] font-bold tracking-[0.24em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
-                            Wallet network
-                          </div>
-                          <div className="mt-1 font-semibold text-[var(--text)]">{walletChainLabel}</div>
-                        </div>
-                        <div>
-                          <div className="text-[10px] font-bold tracking-[0.24em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
-                            Payment network
-                          </div>
-                          <div className="mt-1 font-semibold text-[var(--text)]">{selectedChainLabel}</div>
-                        </div>
-                      </div>
-                    ) : null}
-
-                    <div className="flex flex-wrap items-center gap-3">
-                      {viewModel.dominantActionLabel && viewModel.dominantActionId ? (
-                        <Button
-                          variant="brand"
-                          onClick={() => onAction(viewModel.dominantActionId!)}
-                          disabled={primaryActionDisabled}
-                        >
-                          {viewModel.isBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                          {viewModel.dominantActionLabel}
-                        </Button>
-                      ) : (
-                        <div className="rounded-full border border-dashed border-[var(--card-border)] px-4 py-2 text-xs font-semibold tracking-[0.16em] text-[color-mix(in_srgb,var(--text)_56%,transparent)] uppercase">
-                          {viewModel.isBusy ? 'Action in progress' : 'Awaiting valid next action'}
-                        </div>
-                      )}
-
-                      {viewModel.secondaryActionLabel && viewModel.secondaryActionId ? (
-                        <Button
-                          variant="glass"
-                          onClick={() => onAction(viewModel.secondaryActionId!)}
-                          disabled={secondaryActionDisabled}
-                        >
-                          {viewModel.secondaryActionLabel}
-                        </Button>
-                      ) : null}
-                    </div>
-                  </>
-                ) : (
-                  <div className="rounded-[1rem] border border-dashed border-[var(--card-border)] bg-[var(--surface)] px-5 py-6">
-                    <div className="flex items-start gap-3">
-                      <Wallet className="mt-0.5 h-4 w-4 text-[var(--cyan)]" />
-                      <div className="space-y-2">
-                        <div className="text-sm font-semibold text-[var(--text)]">Connect a wallet to continue</div>
-                        <p className="text-sm leading-6 text-[var(--muted)]">
-                          Once you connect, you’ll be able to choose an asset, enter an amount, and complete the purchase here.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
-            </div>
+            </details>
           </div>
         </GlassPanel>
 
@@ -556,18 +725,10 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
               </div>
 
               <div className="space-y-4">
-                <CompactMetric label="Selected Route" value={selectedAsset ? `${selectedAsset.code} / ${selectedChainLabel}` : 'Awaiting supported route'} />
-                <CompactMetric label="Estimated Contribution" value={estimatedContributionUsdDisplay} secondary={`Listing ref ${listingReferenceDisplay}`} />
+                <CompactMetric label="Pay with" value={selectedAsset ? selectedAsset.label : 'Choose a chain'} />
+                <CompactMetric label="Purchase Amount" value={estimatedContributionUsdDisplay} secondary={`Listing ref ${listingReferenceDisplay}`} />
                 <CompactMetric label="Estimated $FDN" value={estimatedTokensDisplay} accent />
               </div>
-
-              {latestExplorerUrl ? (
-                <Button variant="glass" asChild className="w-full">
-                  <a href={latestExplorerUrl} target="_blank" rel="noreferrer">
-                    View latest transaction on explorer
-                  </a>
-                </Button>
-              ) : null}
             </div>
           </GlassPanel>
 
@@ -601,40 +762,27 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
 
               <div className="space-y-4">
                 <CompactMetric label="Connected Wallet" value={connectedWalletAddress ? truncateMiddle(connectedWalletAddress) : 'Not connected'} />
-                <CompactMetric label="Verified Wallet" value={sessionWalletChecksum ? truncateMiddle(sessionWalletChecksum) : 'Not verified'} />
-                <CompactMetric label="Verified Network" value={verifiedChainLabel ?? 'Not set'} secondary="Use the same wallet to view receipts and activity later." />
+                <CompactMetric label="Paying Wallet" value={paymentWalletAddress ? truncateMiddle(paymentWalletAddress) : 'Not set'} />
+                <CompactMetric label="Session Wallet" value={sessionWalletChecksum ? truncateMiddle(sessionWalletChecksum) : 'Not verified'} />
+                <CompactMetric label="Verified Network" value={verifiedChainLabel ?? 'Not required'} secondary="Payment history can be searched by wallet address later." />
               </div>
 
               <div className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--surface)] px-4 py-4">
                 <div className="flex items-start gap-3">
-                  {viewModel.isBusy
-                    ? <Loader2 className="mt-0.5 h-4 w-4 animate-spin text-[var(--cyan)]" />
-                    : viewModel.state === 'success'
-                      ? <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-300" />
+                  {paymentInstruction?.statusTone === 'success'
+                    ? <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-300" />
+                    : paymentInstruction?.statusTone === 'warning' || paymentInstruction?.statusTone === 'danger'
+                      ? <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-300" />
                       : <ArrowRight className="mt-0.5 h-4 w-4 text-[var(--cyan)]" />}
                   <div className="space-y-1 text-sm">
                     <div className="font-semibold text-[var(--text)]">What happens next</div>
-                    <div className="leading-6 text-[var(--muted)]">{viewModel.description}</div>
+                    <div className="leading-6 text-[var(--muted)]">
+                      {paymentInstruction
+                        ? paymentInstruction.statusDescription
+                        : 'Choose an amount, tap Pay now, then send the exact amount shown on the next screen.'}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </GlassPanel>
-
-          <GlassPanel className="p-5">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 text-[var(--text)]">
-                <ShieldCheck className="h-5 w-5 text-[var(--cyan)]" />
-                <div className="text-lg font-bold">Need a different wallet?</div>
-              </div>
-
-              <div className="space-y-3 text-sm leading-6 text-[var(--muted)]">
-                <p>{walletSupportSummary.directSupportCopy}</p>
-                <p>
-                  {walletConnectEnabled
-                    ? 'Use WalletConnect if you prefer another wallet. Checkout only continues after that wallet approves the required account, chain, and `eth_sendTransaction` session permissions.'
-                    : 'WalletConnect is not available right now, so only the direct options are shown.'}
-                </p>
               </div>
             </div>
           </GlassPanel>

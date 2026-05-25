@@ -234,7 +234,7 @@ export function buildBuyViewModel(input: BuyViewModelInput): BuyViewModel {
       tone: 'warning',
       status: 'WRONG CHAIN',
       title: 'Switch network',
-      description: `Your wallet network and selected payment network are different. Switch to ${input.selectedChainLabel} to continue.`,
+      description: `Your wallet network and selected chain are different. Switch to ${input.selectedChainLabel} to continue.`,
       alerts: [
         createAlert(
           'wrong-chain',

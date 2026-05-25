@@ -1,12 +1,9 @@
-import Link from 'next/link';
-import type { IAdminTransactionListItem } from '@/dal/app/admin/admin.types';
-import { Button } from '@/components/ui/button';
+import type { IAdminPaymentListItem } from '@/dal/app/admin/admin.types';
 import { StatusPill } from '@/components/flowdex/primitives';
 import { formatDateTime, truncateMiddle } from '@/components/flowdex/utils';
-import { ROUTES } from '@/routes';
 
 export function AdminTransactionRow(props: {
-  item: IAdminTransactionListItem;
+  item: IAdminPaymentListItem;
 }) {
   const { item } = props;
 
@@ -14,34 +11,25 @@ export function AdminTransactionRow(props: {
     <div className="flex flex-col gap-4 border-b border-[var(--card-border)] px-6 py-5 last:border-b-0 xl:flex-row xl:items-center xl:justify-between">
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="font-semibold text-[var(--text)]">{item.assetCode} on {item.network}</div>
+          <div className="font-semibold text-[var(--text)]">{item.asset} on {item.chain}</div>
           <StatusPill status={item.status} />
         </div>
         <div className="text-sm text-[color-mix(in_srgb,var(--text)_45%,transparent)]">
-          Wallet {item.walletAddress ? truncateMiddle(item.walletAddress) : 'Unavailable'}
+          Sender {item.senderAddress ? truncateMiddle(item.senderAddress) : 'Unavailable'}
         </div>
         <div className="text-sm text-[color-mix(in_srgb,var(--text)_40%,transparent)]">
           {item.txHash
             ? `Tx ${truncateMiddle(item.txHash)}`
             : 'No on-chain identifier attached yet'}
         </div>
-        {item.failureReason ? (
-          <div className="text-sm text-rose-200">
-            Failure reason: {item.failureReason}
-          </div>
-        ) : null}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-4 xl:min-w-[42rem]">
-        <Metric label="Amount" value={`${item.amountDisplay} ${item.assetCode}`} />
+        <Metric label="USD" value={`$${item.usdAmount}`} />
+        <Metric label="$FDN" value={item.tokenAmount} />
         <Metric label="Block" value={item.blockNumber ?? 'Pending'} />
         <Metric label="Confirmed At" value={formatDateTime(item.confirmedAt)} />
-        <Metric label="Updated" value={formatDateTime(item.updatedAt)} />
       </div>
-
-      <Button variant="glass" asChild>
-        <Link href={ROUTES.ADMIN.transactionDetail(item.id)}>Open detail</Link>
-      </Button>
     </div>
   );
 }

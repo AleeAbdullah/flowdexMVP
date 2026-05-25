@@ -21,10 +21,3 @@ export type ICryptoMarketsResponse = {
   servedAt: string;
   cacheStatus: CryptoMarketCacheStatus;
 };
-
-export type ICryptoQuoteCurrenciesResponse = {
-  items: string[];
-  provider: string;
-  servedAt: string;
-  cacheStatus: CryptoMarketCacheStatus;
-};
