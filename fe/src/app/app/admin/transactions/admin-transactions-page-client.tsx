@@ -1,8 +1,8 @@
 'use client';
 
 import { useQueryStates } from 'nuqs';
-import { useAdminTransactions } from '@/dal/app/admin/admin.services';
-import type { IAdminTransactionsResponse } from '@/dal/app/admin/admin.types';
+import { useAdminPayments } from '@/dal/app/admin/admin.services';
+import type { IAdminPaymentsResponse } from '@/dal/app/admin/admin.types';
 import { GlassPanel, SectionHeading } from '@/components/flowdex/primitives';
 import { AdminTransactionMetrics } from './_components/admin-transaction-metrics';
 import { AdminTransactionsFilters } from './_components/admin-transactions-filters';
@@ -11,10 +11,10 @@ import { adminTransactionFilterParsers } from './filter-parsers';
 import { defaultAdminTransactionFilters } from './filters';
 
 export function AdminTransactionsPageClient(props: {
-  initialData: IAdminTransactionsResponse;
+  initialData: IAdminPaymentsResponse;
 }) {
   const [filters, setFilters] = useQueryStates(adminTransactionFilterParsers);
-  const query = useAdminTransactions(filters, props.initialData);
+  const query = useAdminPayments(filters, props.initialData);
   const items = query.data?.items ?? [];
 
   return (
@@ -22,9 +22,9 @@ export function AdminTransactionsPageClient(props: {
       <GlassPanel className="grid gap-8 p-6 lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
         <SectionHeading
           as="h1"
-          eyebrow="Admin Transactions"
-          title="Monitor the operational lifecycle behind user-visible transaction state."
-          description="Filter transactions by status, wallet, network, asset, or date window for operational review."
+          eyebrow="Admin Payments"
+          title="Monitor the operational lifecycle behind user-visible payment state."
+          description="Filter payments by status, wallet, network, asset, or date window for manual allocation review."
         />
         <AdminTransactionMetrics items={items} />
       </GlassPanel>
@@ -41,7 +41,7 @@ export function AdminTransactionsPageClient(props: {
         errorMessage={query.isError
           ? query.error instanceof Error
             ? query.error.message
-            : 'Could not load admin transactions.'
+            : 'Could not load admin payments.'
           : null}
       />
     </div>

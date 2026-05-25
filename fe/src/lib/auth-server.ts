@@ -197,26 +197,34 @@ export async function proxyPublicBackendRequest(
     return Response.json({ message: 'NEXT_PUBLIC_API_URL is not configured' }, { status: 500 });
   }
 
-  const upstreamUrl = `${backendBaseUrl}/${pathSegments.join('/')}${request.nextUrl.search}`;
-  const bodyText = request.method === 'GET' || request.method === 'HEAD'
-    ? undefined
-    : await request.text();
-  const upstreamResponse = await fetch(upstreamUrl, {
-    method: request.method,
-    cache: 'no-store',
-    headers: {
-      'Content-Type': request.headers.get('content-type') ?? 'application/json',
-    },
-    body: bodyText && bodyText.length > 0 ? bodyText : undefined,
-  });
-  const responseText = await upstreamResponse.text();
+  try {
+    const upstreamUrl = `${backendBaseUrl}/${pathSegments.join('/')}${request.nextUrl.search}`;
+    const bodyText = request.method === 'GET' || request.method === 'HEAD'
+      ? undefined
+      : await request.text();
+    const upstreamResponse = await fetch(upstreamUrl, {
+      method: request.method,
+      cache: 'no-store',
+      headers: {
+        'Content-Type': request.headers.get('content-type') ?? 'application/json',
+      },
+      body: bodyText && bodyText.length > 0 ? bodyText : undefined,
+    });
+    const responseText = await upstreamResponse.text();
 
-  return new Response(responseText, {
-    status: upstreamResponse.status,
-    headers: {
-      'Content-Type': upstreamResponse.headers.get('content-type') ?? 'application/json',
-    },
-  });
+    return new Response(responseText, {
+      status: upstreamResponse.status,
+      headers: {
+        'Content-Type': upstreamResponse.headers.get('content-type') ?? 'application/json',
+      },
+    });
+  } catch (error) {
+    if (isBackendNetworkError(error)) {
+      return Response.json({ message: 'Backend service is unavailable. Please try again shortly.' }, { status: 503 });
+    }
+
+    throw error;
+  }
 }
 
 async function fetchBackendJsonWithRetry<T>(

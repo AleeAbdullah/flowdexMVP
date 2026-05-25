@@ -4,7 +4,6 @@ import { ApiTags } from '@nestjs/swagger';
 import {
   CryptoMarketsQueryDto,
   CryptoMarketsResponseDto,
-  CryptoQuoteCurrenciesResponseDto,
 } from './dto/markets.dto';
 import { MarketsService } from './markets.service';
 
@@ -18,8 +17,4 @@ export class MarketsController {
     return this.marketsService.getCryptoMarkets(query);
   }
 
-  @Get('crypto/quote-currencies')
-  getCryptoQuoteCurrencies(): Promise<CryptoQuoteCurrenciesResponseDto> {
-    return this.marketsService.getCryptoQuoteCurrencies();
-  }
 }

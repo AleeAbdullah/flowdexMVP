@@ -1,21 +1,17 @@
 import { API_ROUTES } from '@/api-routes';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import type { AxiosInstance } from 'axios';
-import { toast } from 'sonner';
 import useAxiosAuth from '@/hooks/use-axiosAuth';
-import { extractAxiosError } from '@/lib/axios';
 import type {
+  AdminPaymentFilters,
+  IAdminPaymentsResponse,
   IAdminStats,
-  AdminTransactionFilters,
-  IAdminTransactionListItem,
-  IAdminTransactionsResponse,
 } from './admin.types';
 
 export const adminQueryKeys = {
   adminStats: ['app', 'admin', 'stats'] as const,
-  adminTransactions: (filters?: AdminTransactionFilters) =>
-    ['app', 'admin', 'transactions', filters ?? {}] as const,
-  adminTransaction: (id: string) => ['app', 'admin', 'transactions', id] as const,
+  adminPayments: (filters?: AdminPaymentFilters) =>
+    ['app', 'admin', 'payments', filters ?? {}] as const,
 };
 
 export const adminService = {
@@ -23,18 +19,10 @@ export const adminService = {
     const response = await client.get<IAdminStats>(API_ROUTES.bff.admin.stats);
     return response.data;
   },
-  async getAdminTransactions(client: AxiosInstance, filters?: AdminTransactionFilters): Promise<IAdminTransactionsResponse> {
-    const response = await client.get<IAdminTransactionsResponse>(API_ROUTES.bff.admin.transactions.root, {
+  async getAdminPayments(client: AxiosInstance, filters?: AdminPaymentFilters): Promise<IAdminPaymentsResponse> {
+    const response = await client.get<IAdminPaymentsResponse>(API_ROUTES.bff.admin.payments.root, {
       params: compactParams(filters),
     });
-    return response.data;
-  },
-  async getAdminTransaction(client: AxiosInstance, id: string): Promise<IAdminTransactionListItem> {
-    const response = await client.get<IAdminTransactionListItem>(API_ROUTES.bff.admin.transactions.detail(id));
-    return response.data;
-  },
-  async reconcileAdminTransaction(client: AxiosInstance, id: string): Promise<IAdminTransactionListItem> {
-    const response = await client.post<IAdminTransactionListItem>(API_ROUTES.bff.admin.transactions.reconcile(id));
     return response.data;
   },
 };
@@ -50,51 +38,21 @@ export function useAdminStats(initialData?: IAdminStats) {
   });
 }
 
-export function useAdminTransactions(
-  filters?: AdminTransactionFilters,
-  initialData?: IAdminTransactionsResponse,
+export function useAdminPayments(
+  filters?: AdminPaymentFilters,
+  initialData?: IAdminPaymentsResponse,
 ) {
   const axiosAuth = useAxiosAuth();
 
   return useQuery({
-    queryKey: adminQueryKeys.adminTransactions(filters),
-    queryFn: () => adminService.getAdminTransactions(axiosAuth, filters),
+    queryKey: adminQueryKeys.adminPayments(filters),
+    queryFn: () => adminService.getAdminPayments(axiosAuth, filters),
     enabled: Boolean(axiosAuth),
     initialData,
   });
 }
 
-export function useAdminTransaction(id: string) {
-  const axiosAuth = useAxiosAuth();
-
-  return useQuery({
-    queryKey: adminQueryKeys.adminTransaction(id),
-    queryFn: () => adminService.getAdminTransaction(axiosAuth, id),
-    enabled: Boolean(id),
-  });
-}
-
-export function useReconcileAdminTransaction() {
-  const axiosAuth = useAxiosAuth();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: string) => adminService.reconcileAdminTransaction(axiosAuth, id),
-    onSuccess: async (transaction) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['app', 'admin', 'transactions'] }),
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.adminTransaction(transaction.id) }),
-      ]);
-      toast.success(`Reconciliation complete: ${transaction.status}`);
-    },
-    onError: (error) => {
-      const details = extractAxiosError(error);
-      toast.error(details.message || 'Failed to reconcile transaction');
-    },
-  });
-}
-
-function compactParams(filters?: AdminTransactionFilters) {
+function compactParams(filters?: AdminPaymentFilters) {
   return Object.fromEntries(
     Object.entries(filters ?? {}).filter(([, value]) => Boolean(value)),
   );

@@ -4,6 +4,8 @@ import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 
 import { AnalyticsSnapshotEntity } from '../../modules/transactions/entities/analytics-snapshot.entity';
+import { PaymentIntentEntity } from '../../modules/payments/entities/payment-intent.entity';
+import { PaymentEntity } from '../../modules/payments/entities/payment.entity';
 import { LedgerTransactionEntity } from '../../modules/transactions/entities/ledger-transaction.entity';
 import { SimulationIntentEntity } from '../../modules/transactions/entities/simulation-intent.entity';
 import { SyncCheckpointEntity } from '../../modules/transactions/entities/sync-checkpoint.entity';
@@ -29,6 +31,8 @@ export default new DataSource({
     AuthVerificationEntity,
     UserProfileEntity,
     WalletEntity,
+    PaymentIntentEntity,
+    PaymentEntity,
     LedgerTransactionEntity,
     SimulationIntentEntity,
     WebhookDeliveryEntity,

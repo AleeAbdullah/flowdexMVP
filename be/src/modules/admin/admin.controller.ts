@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { AuthContext, CurrentAuth } from '../../common/decorators/current-auth.decorator';
@@ -6,8 +6,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/domain.enums';
 import { InternalJwtGuard } from '../../common/guards/internal-jwt.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { AdminTransactionListItemDto } from '../transactions/dto/transactions.dto';
-import { AdminTransactionFiltersDto } from './dto/admin.dto';
+import { AdminPaymentFiltersDto } from '../payments/dto/admin-payments.dto';
+import { PaymentPublicDto } from '../payments/dto/payments.dto';
 import { AdminService } from './admin.service';
 
 @ApiTags('admin')
@@ -18,41 +18,30 @@ import { AdminService } from './admin.service';
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
-  @Get('transactions')
-  listTransactions(
+  @Get('payments')
+  listPayments(
     @CurrentAuth() auth: AuthContext,
-    @Query() filters: AdminTransactionFiltersDto,
-  ): Promise<{ items: AdminTransactionListItemDto[] }> {
-    return this.adminService.listTransactions(auth, filters);
-  }
-
-  @Get('transactions/:id')
-  getTransaction(
-    @CurrentAuth() auth: AuthContext,
-    @Param('id') id: string,
-  ): Promise<AdminTransactionListItemDto> {
-    return this.adminService.getTransaction(auth, id);
-  }
-
-  @Post('transactions/:id/reconcile')
-  reconcileTransaction(
-    @CurrentAuth() auth: AuthContext,
-    @Param('id') id: string,
-  ): Promise<AdminTransactionListItemDto> {
-    return this.adminService.reconcileTransaction(auth, id);
+    @Query() filters: AdminPaymentFiltersDto,
+  ): Promise<{ items: Array<PaymentPublicDto & {
+    rawPayload: Record<string, unknown> | null;
+    tokenAmount: string;
+    usdAmount: string;
+  }> }> {
+    return this.adminService.listPayments(auth, filters);
   }
 
   @Get('stats')
   getStats(
     @CurrentAuth() auth: AuthContext,
   ): Promise<{
-    totalConfirmedVolume: string;
-    totalTransactionCount: number;
-    activeTransactionCount: number;
-    confirmedTransactionCount: number;
-    failedTransactionCount: number;
-    lastTransactionAt: Date | null;
-    transactionCountsByStatus: Record<string, number>;
+    totalPaymentCount: number;
+    confirmedPaymentCount: number;
+    pendingPaymentCount: number;
+    failedPaymentCount: number;
+    totalConfirmedUsd: string;
+    latestPaymentAt: Date | null;
+    countsByStatus: Record<string, number>;
+    volumeByChain: Record<string, string>;
   }> {
     return this.adminService.getStats(auth);
   }

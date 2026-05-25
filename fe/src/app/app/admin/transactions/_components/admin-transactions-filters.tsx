@@ -1,7 +1,7 @@
 'use client';
 
 import type { AdminTransactionFilters } from '@/dal/app/admin/admin.types';
-import { TRANSACTION_STATUSES } from '@/dal/app/transactions/transactions.types';
+import { PAYMENT_STATUSES } from '@/dal/app/payments/payments.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { GlassPanel } from '@/components/flowdex/primitives';
@@ -23,29 +23,36 @@ export function AdminTransactionsFilters(props: {
           id="admin-filter-status"
           label="Status"
           value={props.filters.status ?? ''}
-          placeholder={`e.g. ${TRANSACTION_STATUSES.CONFIRMED}...`}
+          placeholder={`e.g. ${PAYMENT_STATUSES.CONFIRMED}...`}
           onChange={value => props.onUpdateFilters({ status: value })}
         />
         <TextFilterField
-          id="admin-filter-network"
-          label="Network"
-          value={props.filters.network ?? ''}
-          placeholder="e.g. BASE_SEPOLIA..."
-          onChange={value => props.onUpdateFilters({ network: value })}
+          id="admin-filter-chain"
+          label="Chain"
+          value={props.filters.chain ?? ''}
+          placeholder="e.g. ETHEREUM..."
+          onChange={value => props.onUpdateFilters({ chain: value })}
         />
         <TextFilterField
-          id="admin-filter-asset-code"
-          label="Asset Code"
-          value={props.filters.assetCode ?? ''}
-          placeholder="e.g. USDT_ERC20..."
-          onChange={value => props.onUpdateFilters({ assetCode: value })}
+          id="admin-filter-asset"
+          label="Asset"
+          value={props.filters.asset ?? ''}
+          placeholder="e.g. ETH..."
+          onChange={value => props.onUpdateFilters({ asset: value })}
         />
         <TextFilterField
-          id="admin-filter-wallet-address"
-          label="Wallet Address"
-          value={props.filters.walletAddress ?? ''}
+          id="admin-filter-sender-address"
+          label="Sender Address"
+          value={props.filters.senderAddress ?? ''}
           placeholder="e.g. 0xabc..."
-          onChange={value => props.onUpdateFilters({ walletAddress: value })}
+          onChange={value => props.onUpdateFilters({ senderAddress: value })}
+        />
+        <TextFilterField
+          id="admin-filter-receiver-address"
+          label="Receiver Address"
+          value={props.filters.receiverAddress ?? ''}
+          placeholder="e.g. bc1..."
+          onChange={value => props.onUpdateFilters({ receiverAddress: value })}
         />
         <DateTimeFilterField
           id="admin-filter-from"

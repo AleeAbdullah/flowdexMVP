@@ -13,9 +13,9 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCurrency } from '@/components/flowdex/utils';
+import { QUICK_BUY_AMOUNTS } from '@/components/flowdex/buy-page-content';
 import { WalletBuyShell } from './wallet-buy-shell';
 import { buyStateFixtures, getBuyFixtureById } from '../utils/buy-state-fixtures';
-import { buildBuyViewModel } from '../utils/buy-view-model';
 import { buildSupportedAssetOptions } from '../utils/supported-asset-options';
 
 const noop = () => undefined;
@@ -32,7 +32,6 @@ export function WalletBuyFixturesPageClient(props: {
     walletConnectEnabled: fixture.walletConnectEnabled,
   }), [fixture.walletConnectEnabled]);
 
-  const viewModel = useMemo(() => buildBuyViewModel(fixture.input), [fixture.input]);
   const walletSupportSummary = useMemo(() => getWalletSupportSummary(walletSupportRegistry), [walletSupportRegistry]);
   const approvedDirectWalletDisplayNames = useMemo(
     () => getApprovedDirectWalletDisplayNames(walletSupportRegistry),
@@ -93,7 +92,6 @@ export function WalletBuyFixturesPageClient(props: {
       </div>
 
       <WalletBuyShell
-        viewModel={viewModel}
         walletStatusLabel={fixture.walletStatusLabel}
         connectedWalletAddress={fixture.connectedWalletAddress}
         sessionWalletChecksum={fixture.sessionWalletChecksum}
@@ -106,11 +104,15 @@ export function WalletBuyFixturesPageClient(props: {
         onAssetChange={noop}
         amountDisplay={fixture.amountDisplay}
         onAmountChange={noop}
+        quickBuyAmounts={[...QUICK_BUY_AMOUNTS]}
+        selectedQuickBuyAmount={null}
+        onQuickBuyAmountChange={noop}
         contributionEnabled={fixture.contributionEnabled}
         estimatedContributionUsdDisplay={fixture.estimatedContributionUsdDisplay}
         estimatedTokensDisplay={fixture.estimatedTokensDisplay}
         latestExplorerUrl={fixture.latestExplorerUrl}
         walletSupportSummary={walletSupportSummary}
+        primaryWalletSupportCopy={walletSupportSummary.primarySupportCopy}
         approvedDirectWalletDisplayNames={approvedDirectWalletDisplayNames}
         walletConnectEnabled={fixture.walletConnectEnabled}
         walletButtons={fixtureWalletButtons}
@@ -123,6 +125,16 @@ export function WalletBuyFixturesPageClient(props: {
         raisedProgressPercent={market.raisedProgressPercent}
         sourceUpdatedAt={market.sourceUpdatedAt}
         listingReferenceDisplay={formatCurrency(market.listingReferenceUsd, 2)}
+        paymentWalletAddress={fixture.connectedWalletAddress ?? ''}
+        onPaymentWalletAddressChange={noop}
+        paymentWalletModalOpen={false}
+        onPaymentWalletModalOpenChange={noop}
+        paymentWalletError={null}
+        activePayment={null}
+        paymentInstruction={null}
+        isCreatingIntent={false}
+        isCheckingStatus={false}
+        statusError={null}
       />
     </div>
   );

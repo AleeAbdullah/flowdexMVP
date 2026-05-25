@@ -51,10 +51,11 @@ const FALLBACK_QUOTE_CURRENCIES = [
 export class MarketsService {
   private readonly providerName = 'coingecko';
   private readonly marketsCache = new Map<string, CacheEntry<CryptoMarketsResponseDto>>();
+  private readonly spotPriceCache = new Map<string, CacheEntry<string>>();
   private quoteCurrenciesCache: CacheEntry<CryptoQuoteCurrenciesResponseDto> | null = null;
 
   async getCryptoMarkets(query: CryptoMarketsQueryDto): Promise<CryptoMarketsResponseDto> {
-    const quoteCurrency = this.normalizeQuoteCurrency(query.quote);
+    const quoteCurrency = DEFAULT_QUOTE_CURRENCY;
     const limit = query.limit ?? DEFAULT_LIMIT;
     await this.assertSupportedQuoteCurrency(quoteCurrency);
 
@@ -125,6 +126,46 @@ export class MarketsService {
     }
   }
 
+  async getCryptoSpotPriceUsd(assetCode: string): Promise<string | null> {
+    const normalized = assetCode.trim().toUpperCase();
+    const cached = this.spotPriceCache.get(normalized);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.data;
+    }
+
+    const id = this.coinGeckoIdForAsset(normalized);
+    if (!id) {
+      return null;
+    }
+
+    const url = this.buildProviderUrl('/simple/price', {
+      ids: id,
+      vs_currencies: 'usd',
+    });
+
+    const response = await fetch(url, {
+      headers: this.buildProviderHeaders(),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = await response.json() as Record<string, { usd?: unknown }>;
+    const usd = payload[id]?.usd;
+    if (typeof usd !== 'number' || !Number.isFinite(usd) || usd <= 0) {
+      return null;
+    }
+
+    const price = String(usd);
+    this.spotPriceCache.set(normalized, {
+      data: price,
+      expiresAt: Date.now() + MARKETS_CACHE_TTL_MS,
+    });
+
+    return price;
+  }
+
   private async assertSupportedQuoteCurrency(quoteCurrency: string): Promise<void> {
     const currencies = await this.getCryptoQuoteCurrencies();
     if (!currencies.items.includes(quoteCurrency)) {
@@ -134,6 +175,16 @@ export class MarketsService {
 
   private normalizeQuoteCurrency(quoteCurrency?: string): string {
     return (quoteCurrency || DEFAULT_QUOTE_CURRENCY).trim().toLowerCase();
+  }
+
+  private coinGeckoIdForAsset(assetCode: string): string | null {
+    const ids: Record<string, string> = {
+      BTC: 'bitcoin',
+      ETH: 'ethereum',
+      SOL: 'solana',
+    };
+
+    return ids[assetCode] ?? null;
   }
 
   private async fetchCoinGeckoMarkets(quoteCurrency: string, limit: number): Promise<CoinGeckoMarketAsset[]> {
