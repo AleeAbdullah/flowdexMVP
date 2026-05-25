@@ -21,6 +21,6 @@ const envFilePath = resolveEnvFilePath();
 if (envFilePath) {
   loadDotenv({
     path: envFilePath,
-    override: true,
+    override: false,
   });
 }

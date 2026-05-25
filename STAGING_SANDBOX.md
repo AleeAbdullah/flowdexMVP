@@ -47,8 +47,8 @@ docker compose -f docker-compose.staging.yml up -d
 
 ```bash
 cd be
-npm run migration:run
-npm run start
+npm run migration:run:dev
+npm run start:local
 ```
 
 5. Run frontend with local env

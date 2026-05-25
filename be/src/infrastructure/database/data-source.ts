@@ -1,6 +1,7 @@
 import '../config/load-env';
 import 'reflect-metadata';
 
+import { join } from 'node:path';
 import { DataSource } from 'typeorm';
 
 import { AnalyticsSnapshotEntity } from '../../modules/transactions/entities/analytics-snapshot.entity';
@@ -39,5 +40,5 @@ export default new DataSource({
     SyncCheckpointEntity,
     AnalyticsSnapshotEntity,
   ],
-  migrations: ['src/infrastructure/database/migrations/*.ts'],
+  migrations: [join(__dirname, 'migrations/*{.ts,.js}')],
 });

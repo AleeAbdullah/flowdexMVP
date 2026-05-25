@@ -4,8 +4,9 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "NODE_ENV=development nest build",
-    "start": "NODE_ENV=development nest start",
+    "build": "nest build",
+    "start": "npm run start:prod",
+    "start:local": "NODE_ENV=development nest start",
     "start:dev": "NODE_ENV=development nest start --watch",
     "start:prod": "NODE_ENV=production node dist/main",
     "infra:up": "docker compose up -d",
@@ -18,10 +19,12 @@
     "smoke:phase2": "ts-node -r tsconfig-paths/register test/phase2-smoke.ts",
     "migration:generate": "NODE_ENV=development typeorm-ts-node-commonjs -d src/infrastructure/database/data-source.ts migration:generate src/infrastructure/database/migrations/AutoMigration",
     "migration:create": "NODE_ENV=development typeorm-ts-node-commonjs -d src/infrastructure/database/data-source.ts migration:create src/infrastructure/database/migrations/ManualMigration",
-    "migration:run": "NODE_ENV=development typeorm-ts-node-commonjs -d src/infrastructure/database/data-source.ts migration:run",
+    "migration:run": "npm run migration:run:prod",
+    "migration:run:dev": "NODE_ENV=development typeorm-ts-node-commonjs -d src/infrastructure/database/data-source.ts migration:run",
+    "migration:run:prod": "NODE_ENV=production typeorm -d dist/infrastructure/database/data-source.js migration:run",
     "migration:revert": "NODE_ENV=development typeorm-ts-node-commonjs -d src/infrastructure/database/data-source.ts migration:revert",
     "seed:dev": "NODE_ENV=development ts-node -r tsconfig-paths/register src/infrastructure/database/seed-dev.ts",
-    "dev:setup": "npm run migration:run && npm run seed:dev"
+    "dev:setup": "npm run migration:run:dev && npm run seed:dev"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.2",
