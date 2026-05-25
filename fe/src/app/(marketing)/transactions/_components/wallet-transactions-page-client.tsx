@@ -63,7 +63,7 @@ export function WalletTransactionsPageClient() {
               <Input
                 value={walletAddressInput}
                 onChange={event => setWalletAddressInput(event.target.value)}
-                placeholder="0x..., Solana address, or BTC address"
+                placeholder="0x... or Solana address"
                 className="h-12 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]"
               />
               <Button

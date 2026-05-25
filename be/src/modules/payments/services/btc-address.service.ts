@@ -17,6 +17,11 @@ export class BtcAddressService implements OnModuleInit {
   private accountNode: ReturnType<typeof bip32.fromBase58> | null = null;
 
   onModuleInit(): void {
+    if (!env.btcPaymentsEnabled) {
+      this.logger.warn('BTC payments are disabled.');
+      return;
+    }
+
     this.validateConfig();
   }
 

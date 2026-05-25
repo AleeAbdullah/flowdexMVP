@@ -6,146 +6,124 @@ import {
   SUPPORTED_NATIVE_CHAIN_CONFIG,
 } from './supported-asset-options';
 
+function buildSnapshot(): NonNullable<BuySnapshot> {
+  return {
+    pricing: {
+      items: [
+        {
+          assetCode: 'ETH',
+          chain: 'ETHEREUM',
+          priceUsd: '2500',
+          updatedAt: '2026-05-14T00:00:00.000Z',
+        },
+        {
+          assetCode: 'SOL',
+          chain: 'SOLANA',
+          priceUsd: '150',
+          updatedAt: '2026-05-14T00:00:00.000Z',
+        },
+        {
+          assetCode: 'BTC',
+          chain: 'BITCOIN',
+          priceUsd: '65000',
+          updatedAt: '2026-05-14T00:00:00.000Z',
+        },
+      ],
+    },
+    presaleStats: {
+      fundsRaisedRealUsd: '0',
+      fundsRaisedDisplayUsd: '0',
+      tokensSoldReal: '0',
+      tokensSoldDisplay: '0',
+      currentTier: 1,
+      currentTokenPriceUsd: '0.001',
+      displayMultiplier: 1,
+      updatedAt: '2026-05-14T00:00:00.000Z',
+    },
+    presaleTiers: {
+      items: [],
+    },
+    presaleConfig: {
+      supportedAssets: [
+        {
+          assetCode: 'ETH',
+          chain: 'ETHEREUM',
+          minConfirmations: 2,
+          minAmount: '0.01',
+        },
+        {
+          assetCode: 'SOL',
+          chain: 'SOLANA',
+          minConfirmations: 3,
+          minAmount: '0.1',
+        },
+        {
+          assetCode: 'BTC',
+          chain: 'BITCOIN',
+          minConfirmations: 2,
+          minAmount: '0.0001',
+        },
+      ],
+      minConfirmationsByAsset: {},
+      displayMultiplier: 1,
+    },
+  };
+}
+
 describe('buildSupportedAssetOptions', () => {
-  it('expands fallback generic EVM ETH into both supported chains when snapshot is unavailable', () => {
+  it('exposes only Ethereum and Solana while Bitcoin payments are disabled', () => {
     const options = buildSupportedAssetOptions(null);
 
-    expect(options).toHaveLength(2);
     expect(options.map(option => option.id)).toEqual([
-      'ETH:BASE_SEPOLIA',
-      'ETH:ETH_SEPOLIA',
+      'ETH:ETHEREUM',
+      'SOL:SOLANA',
     ]);
     expect(options.map(option => option.chainId)).toEqual([
-      SUPPORTED_NATIVE_CHAIN_CONFIG.BASE_SEPOLIA.chainId,
-      SUPPORTED_NATIVE_CHAIN_CONFIG.ETH_SEPOLIA.chainId,
+      SUPPORTED_NATIVE_CHAIN_CONFIG.ETHEREUM.chainId,
+      null,
     ]);
   });
 
-  it('normalizes explicit backend chain labels into supported native chains', () => {
-    const snapshot: NonNullable<BuySnapshot> = {
-      pricing: {
-        items: [
-          {
-            assetCode: 'ETH',
-            chain: 'base',
-            priceUsd: '2500',
-            updatedAt: '2026-05-14T00:00:00.000Z',
-          },
-          {
-            assetCode: 'ETH',
-            chain: 'sepolia',
-            priceUsd: '2500',
-            updatedAt: '2026-05-14T00:00:00.000Z',
-          },
-        ],
-      },
-      presaleStats: {
-        fundsRaisedRealUsd: '0',
-        fundsRaisedDisplayUsd: '0',
-        tokensSoldReal: '0',
-        tokensSoldDisplay: '0',
-        currentTier: 1,
-        currentTokenPriceUsd: '0.001',
-        displayMultiplier: 1,
-        updatedAt: '2026-05-14T00:00:00.000Z',
-      },
-      presaleTiers: {
-        items: [],
-      },
-      presaleConfig: {
-        supportedAssets: [
-          {
-            assetCode: 'ETH',
-            chain: 'base',
-            minConfirmations: 2,
-            minAmount: '0.01',
-          },
-          {
-            assetCode: 'ETH',
-            chain: 'sepolia',
-            minConfirmations: 3,
-            minAmount: '0.02',
-          },
-        ],
-        minConfirmationsByAsset: {},
-        displayMultiplier: 1,
-      },
-    };
+  it('uses live ETH and SOL prices from the snapshot without exposing BTC', () => {
+    const options = buildSupportedAssetOptions(buildSnapshot());
 
-    const options = buildSupportedAssetOptions(snapshot);
-
-    expect(options).toHaveLength(2);
-    expect(options[0]).toMatchObject({
-      id: 'ETH:BASE_SEPOLIA',
-      chain: 'BASE_SEPOLIA',
-      minConfirmations: 2,
-      minAmount: 0.01,
-    });
-    expect(options[1]).toMatchObject({
-      id: 'ETH:ETH_SEPOLIA',
-      chain: 'ETH_SEPOLIA',
-      minConfirmations: 3,
-      minAmount: 0.02,
-    });
+    expect(options.map(option => option.code)).toEqual(['ETH', 'SOL']);
+    expect(options.map(option => option.usdPrice)).toEqual([2500, 150]);
   });
 
-  it('preserves a manual existing selection over live provider chain hints', () => {
+  it('preserves a manual existing supported selection over live provider chain hints', () => {
     const options = buildSupportedAssetOptions(null);
 
     expect(resolvePreferredSupportedAssetId({
-      selectedAssetId: 'ETH:BASE_SEPOLIA',
+      selectedAssetId: 'SOL:SOLANA',
       preserveSelectedAsset: true,
       supportedAssets: options,
-      verifiedChainId: SUPPORTED_NATIVE_CHAIN_CONFIG.ETH_SEPOLIA.chainId,
-      providerChainId: SUPPORTED_NATIVE_CHAIN_CONFIG.ETH_SEPOLIA.chainId,
-    })).toBe('ETH:BASE_SEPOLIA');
+      verifiedChainId: SUPPORTED_NATIVE_CHAIN_CONFIG.ETHEREUM.chainId,
+      providerChainId: SUPPORTED_NATIVE_CHAIN_CONFIG.ETHEREUM.chainId,
+    })).toBe('SOL:SOLANA');
   });
 
   it('uses the live provider chain before a stale existing selection when selection is not manual', () => {
     const options = buildSupportedAssetOptions(null);
 
     expect(resolvePreferredSupportedAssetId({
-      selectedAssetId: 'ETH:BASE_SEPOLIA',
-      preserveSelectedAsset: false,
-      supportedAssets: options,
-      verifiedChainId: SUPPORTED_NATIVE_CHAIN_CONFIG.BASE_SEPOLIA.chainId,
-      providerChainId: SUPPORTED_NATIVE_CHAIN_CONFIG.ETH_SEPOLIA.chainId,
-    })).toBe('ETH:ETH_SEPOLIA');
-  });
-
-  it('uses the live provider chain before the verified chain when connected', () => {
-    const options = buildSupportedAssetOptions(null);
-
-    expect(resolvePreferredSupportedAssetId({
-      selectedAssetId: null,
-      preserveSelectedAsset: false,
-      supportedAssets: options,
-      verifiedChainId: SUPPORTED_NATIVE_CHAIN_CONFIG.ETH_SEPOLIA.chainId,
-      providerChainId: SUPPORTED_NATIVE_CHAIN_CONFIG.BASE_SEPOLIA.chainId,
-    })).toBe('ETH:BASE_SEPOLIA');
-  });
-
-  it('uses the live provider chain before the first supported asset when no verified chain exists', () => {
-    const options = buildSupportedAssetOptions(null);
-
-    expect(resolvePreferredSupportedAssetId({
-      selectedAssetId: null,
+      selectedAssetId: 'SOL:SOLANA',
       preserveSelectedAsset: false,
       supportedAssets: options,
       verifiedChainId: null,
-      providerChainId: SUPPORTED_NATIVE_CHAIN_CONFIG.ETH_SEPOLIA.chainId,
-    })).toBe('ETH:ETH_SEPOLIA');
+      providerChainId: SUPPORTED_NATIVE_CHAIN_CONFIG.ETHEREUM.chainId,
+    })).toBe('ETH:ETHEREUM');
   });
 
-  it('falls back to the verified chain when no live provider chain exists', () => {
+  it('falls back to the first supported asset when the selected asset is disabled', () => {
     const options = buildSupportedAssetOptions(null);
 
     expect(resolvePreferredSupportedAssetId({
-      selectedAssetId: null,
-      preserveSelectedAsset: false,
+      selectedAssetId: 'BTC:BITCOIN',
+      preserveSelectedAsset: true,
       supportedAssets: options,
-      verifiedChainId: SUPPORTED_NATIVE_CHAIN_CONFIG.ETH_SEPOLIA.chainId,
+      verifiedChainId: null,
       providerChainId: null,
-    })).toBe('ETH:ETH_SEPOLIA');
+    })).toBe('ETH:ETHEREUM');
   });
 });

@@ -78,6 +78,11 @@ export class PaymentsService {
 
   async createIntent(input: CreatePaymentIntentDto, requestIp?: string): Promise<PaymentIntentPublicDto> {
     this.assertChainAsset(input.chain, input.asset);
+
+    if (input.chain === PaymentChain.BITCOIN && !env.btcPaymentsEnabled) {
+      throw new BadRequestException('Bitcoin payments are temporarily disabled');
+    }
+
     const senderAddress = input.senderAddress ? this.normalizeSender(input.chain, input.senderAddress) : null;
 
     if (input.chain === PaymentChain.ETHEREUM && !senderAddress) {
