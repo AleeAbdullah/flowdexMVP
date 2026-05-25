@@ -520,7 +520,11 @@ export class AlchemyService {
       return {};
     }
 
-    const json = JSON.stringify(payload).slice(0, 16_000);
-    return JSON.parse(json) as Record<string, unknown>;
+    try {
+      const json = JSON.stringify(payload).slice(0, 16_000);
+      return JSON.parse(json) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
   }
 }
