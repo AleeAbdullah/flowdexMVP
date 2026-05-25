@@ -1,4 +1,4 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 
 import { multiplyFixed, normalizeFixed, parseFixed } from '../../../common/utils/decimal';
@@ -39,7 +39,7 @@ export class PaymentPricingService {
   }> {
     const tokenAmount = normalizeFixed(input.tokenAmount);
     if (parseFixed(tokenAmount) <= 0n) {
-      throw new ServiceUnavailableException('Invalid token amount');
+      throw new BadRequestException('Invalid token amount');
     }
 
     const presale = await this.getActivePresalePrice();

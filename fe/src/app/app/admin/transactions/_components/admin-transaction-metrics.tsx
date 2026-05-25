@@ -1,10 +1,9 @@
 import type { IAdminPaymentListItem } from '@/dal/app/admin/admin.types';
-import { PAYMENT_INTENT_STATUSES } from '@/dal/app/payments/payments.types';
+import { PAYMENT_STATUSES } from '@/dal/app/payments/payments.types';
 
 const liveStatuses = new Set<string>([
-  PAYMENT_INTENT_STATUSES.WAITING,
-  PAYMENT_INTENT_STATUSES.DETECTED,
-  PAYMENT_INTENT_STATUSES.CONFIRMING,
+  PAYMENT_STATUSES.DETECTED,
+  PAYMENT_STATUSES.CONFIRMING,
 ]);
 
 export function AdminTransactionMetrics(props: {
@@ -15,11 +14,11 @@ export function AdminTransactionMetrics(props: {
       <Metric label="Loaded" value={`${props.items.length}`} />
       <Metric
         label="Confirmed"
-        value={`${props.items.filter(item => item.status === PAYMENT_INTENT_STATUSES.CONFIRMED).length}`}
+        value={`${props.items.filter(item => item.status === PAYMENT_STATUSES.CONFIRMED).length}`}
       />
       <Metric
         label="Failed"
-        value={`${props.items.filter(item => item.status === PAYMENT_INTENT_STATUSES.FAILED).length}`}
+        value={`${props.items.filter(item => item.status === PAYMENT_STATUSES.FAILED).length}`}
       />
       <Metric
         label="Pending"

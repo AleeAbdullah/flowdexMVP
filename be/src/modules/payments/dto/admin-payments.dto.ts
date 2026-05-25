@@ -1,6 +1,6 @@
 import { IsEnum, IsOptional, IsString } from 'class-validator';
 
-import { PaymentAsset, PaymentChain, PaymentIntentStatus } from '../payments.types';
+import { PaymentAsset, PaymentChain, PaymentStatus } from '../payments.types';
 
 export class AdminPaymentFiltersDto {
   @IsOptional()
@@ -12,8 +12,8 @@ export class AdminPaymentFiltersDto {
   asset?: PaymentAsset;
 
   @IsOptional()
-  @IsEnum(PaymentIntentStatus)
-  status?: PaymentIntentStatus;
+  @IsEnum(PaymentStatus)
+  status?: PaymentStatus;
 
   @IsOptional()
   @IsString()

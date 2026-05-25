@@ -160,9 +160,9 @@ export class PaymentsService {
   }
 
   async listPublicHistory(walletAddress: string): Promise<{ items: PaymentPublicDto[] }> {
-    const normalized = walletAddress.trim().toLowerCase();
+    const addresses = this.buildAddressLookupValues(walletAddress);
     const items = await this.paymentsRepository.find({
-      where: { senderAddress: normalized },
+      where: addresses.map(senderAddress => ({ senderAddress })),
       order: { createdAt: 'DESC' },
     });
 
@@ -188,14 +188,10 @@ export class PaymentsService {
       qb.andWhere('payment.status = :status', { status: filters.status });
     }
     if (filters.senderAddress) {
-      qb.andWhere('payment.sender_address = :senderAddress', {
-        senderAddress: filters.senderAddress.trim().toLowerCase(),
-      });
+      this.applyAddressFilter(qb, 'payment.sender_address', filters.senderAddress, filters.chain);
     }
     if (filters.receiverAddress) {
-      qb.andWhere('payment.receiver_address = :receiverAddress', {
-        receiverAddress: filters.receiverAddress.trim().toLowerCase(),
-      });
+      this.applyAddressFilter(qb, 'payment.receiver_address', filters.receiverAddress, filters.chain);
     }
     if (filters.from) {
       qb.andWhere('payment.created_at >= :from', { from: filters.from });
@@ -443,7 +439,12 @@ export class PaymentsService {
     const confirmations = blockNumber && latestBlockHex
       ? Math.max(0, Number(BigInt(latestBlockHex) - BigInt(blockNumber) + 1n))
       : 0;
-    const status = this.classifyMatchedAmount(intent, amountBaseUnits, confirmations >= env.ethConfirmations);
+    const status = this.classifyMatchedAmount(
+      intent,
+      amountBaseUnits,
+      confirmations >= env.ethConfirmations,
+      this.parseTransferTimestamp(transfer.metadata?.blockTimestamp),
+    );
 
     return {
       status: receipt?.status === '0x0' ? PaymentStatus.FAILED : status,
@@ -599,7 +600,12 @@ export class PaymentsService {
       }
 
       return {
-        status: this.classifyMatchedAmount(intent, transfer.lamports, true),
+        status: this.classifyMatchedAmount(
+          intent,
+          transfer.lamports,
+          true,
+          signature.blockTime ? new Date(signature.blockTime * 1000) : null,
+        ),
         amountBaseUnits: transfer.lamports,
         senderAddress: transfer.source,
         receiverAddress: intent.receiverAddress,
@@ -679,7 +685,12 @@ export class PaymentsService {
     output: { index: number; address: string; valueSats: string },
   ): NonNullable<MatchResult> {
     return {
-      status: this.classifyMatchedAmount(intent, output.valueSats, tx.confirmations >= env.btcConfirmations),
+      status: this.classifyMatchedAmount(
+        intent,
+        output.valueSats,
+        tx.confirmations >= env.btcConfirmations,
+        tx.blockTime ? new Date(tx.blockTime * 1000) : null,
+      ),
       amountBaseUnits: output.valueSats,
       senderAddress: intent.senderAddress,
       receiverAddress: intent.receiverAddress,
@@ -694,7 +705,12 @@ export class PaymentsService {
     };
   }
 
-  private classifyMatchedAmount(intent: PaymentIntentEntity, actualBaseUnits: string, confirmed: boolean): PaymentStatus {
+  private classifyMatchedAmount(
+    intent: PaymentIntentEntity,
+    actualBaseUnits: string,
+    confirmed: boolean,
+    matchedAt: Date | null,
+  ): PaymentStatus {
     const actual = BigInt(actualBaseUnits);
     const expected = BigInt(intent.expectedAmountBaseUnits);
 
@@ -704,7 +720,7 @@ export class PaymentsService {
     if (actual > expected) {
       return PaymentStatus.OVERPAID;
     }
-    if (intent.expiresAt <= new Date()) {
+    if ((matchedAt ?? new Date()) > intent.expiresAt) {
       return PaymentStatus.LATE_PAID;
     }
 
@@ -731,6 +747,48 @@ export class PaymentsService {
     }
 
     return trimmed;
+  }
+
+  private buildAddressLookupValues(address: string): string[] {
+    const trimmed = address.trim();
+    if (!trimmed) {
+      return [''];
+    }
+
+    if (!isAddress(trimmed)) {
+      return [trimmed];
+    }
+
+    return Array.from(new Set([trimmed, normalizeAddress(getAddress(trimmed))]));
+  }
+
+  private applyAddressFilter(
+    qb: ReturnType<Repository<PaymentEntity>['createQueryBuilder']>,
+    column: string,
+    address: string,
+    chain?: PaymentChain,
+  ): void {
+    const values = chain === PaymentChain.ETHEREUM
+      ? this.buildEvmAddressLookupValues(address)
+      : chain
+        ? [address.trim()]
+        : this.buildAddressLookupValues(address);
+
+    qb.andWhere(`${column} IN (:...values)`, { values });
+  }
+
+  private buildEvmAddressLookupValues(address: string): string[] {
+    const trimmed = address.trim();
+    return isAddress(trimmed) ? [normalizeAddress(getAddress(trimmed))] : [trimmed];
+  }
+
+  private parseTransferTimestamp(value: string | undefined): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
 
   private createSolanaReference(): string {
@@ -853,6 +911,14 @@ export class PaymentsService {
   }
 
   private redactPayload(payload: Record<string, unknown>): Record<string, unknown> {
-    return JSON.parse(JSON.stringify(payload).slice(0, 16_000)) as Record<string, unknown>;
+    const json = JSON.stringify(payload);
+    if (json.length <= 16_000) {
+      return JSON.parse(json) as Record<string, unknown>;
+    }
+
+    return {
+      truncated: true,
+      preview: json.slice(0, 16_000),
+    };
   }
 }

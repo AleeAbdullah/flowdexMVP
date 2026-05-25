@@ -1,4 +1,4 @@
-import type { IPaymentPublic, PaymentAsset, PaymentChain, PaymentIntentStatus } from '@/dal/app/payments/payments.types';
+import type { IPaymentPublic, PaymentAsset, PaymentChain, PaymentStatus } from '@/dal/app/payments/payments.types';
 
 export type IAdminPaymentListItem = IPaymentPublic & {
   rawPayload: Record<string, unknown> | null;
@@ -18,7 +18,7 @@ export type IAdminStats = {
 };
 
 export type AdminPaymentFilters = {
-  status?: PaymentIntentStatus | string;
+  status?: PaymentStatus | string;
   chain?: PaymentChain | string;
   asset?: PaymentAsset | string;
   senderAddress?: string;

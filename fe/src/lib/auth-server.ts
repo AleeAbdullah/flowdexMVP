@@ -220,7 +220,7 @@ export async function proxyPublicBackendRequest(
     });
   } catch (error) {
     if (isBackendNetworkError(error)) {
-      return Response.json({ message: 'Payment service is unavailable. Please try again shortly.' }, { status: 503 });
+      return Response.json({ message: 'Backend service is unavailable. Please try again shortly.' }, { status: 503 });
     }
 
     throw error;

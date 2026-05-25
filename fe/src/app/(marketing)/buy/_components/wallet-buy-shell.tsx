@@ -1,8 +1,8 @@
 'use client';
 
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import Image from 'next/image';
-import { useMemo, type ReactNode } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
+import type { ReactNode } from 'react';
 import { GlassPanel, StatusPill } from '@/components/flowdex/primitives';
 import { formatDateTime, truncateMiddle } from '@/components/flowdex/utils';
 import { Badge } from '@/components/ui/badge';
@@ -236,17 +236,9 @@ function copyText(value: string) {
 }
 
 function QrCode(props: { value: string }) {
-  const src = useMemo(() => {
-    const params = new URLSearchParams({
-      size: '220x220',
-      data: props.value,
-    });
-    return `https://api.qrserver.com/v1/create-qr-code/?${params.toString()}`;
-  }, [props.value]);
-
   return (
     <div className="rounded-[1rem] border border-[var(--card-border)] bg-white p-3">
-      <Image src={src} alt="Payment QR code" width={220} height={220} unoptimized className="h-[220px] w-[220px]" />
+      <QRCodeSVG value={props.value} size={220} level="M" aria-label="Payment QR code" />
     </div>
   );
 }

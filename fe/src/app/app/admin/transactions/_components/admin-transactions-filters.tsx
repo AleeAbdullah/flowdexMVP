@@ -1,7 +1,7 @@
 'use client';
 
 import type { AdminTransactionFilters } from '@/dal/app/admin/admin.types';
-import { PAYMENT_INTENT_STATUSES } from '@/dal/app/payments/payments.types';
+import { PAYMENT_STATUSES } from '@/dal/app/payments/payments.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { GlassPanel } from '@/components/flowdex/primitives';
@@ -23,7 +23,7 @@ export function AdminTransactionsFilters(props: {
           id="admin-filter-status"
           label="Status"
           value={props.filters.status ?? ''}
-          placeholder={`e.g. ${PAYMENT_INTENT_STATUSES.CONFIRMED}...`}
+          placeholder={`e.g. ${PAYMENT_STATUSES.CONFIRMED}...`}
           onChange={value => props.onUpdateFilters({ status: value })}
         />
         <TextFilterField

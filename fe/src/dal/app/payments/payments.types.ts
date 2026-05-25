@@ -22,6 +22,16 @@ export const PAYMENT_INTENT_STATUSES = {
   LATE_PAID: 'LATE_PAID',
 } as const;
 
+export const PAYMENT_STATUSES = {
+  DETECTED: 'DETECTED',
+  CONFIRMING: 'CONFIRMING',
+  CONFIRMED: 'CONFIRMED',
+  FAILED: 'FAILED',
+  UNDERPAID: 'UNDERPAID',
+  OVERPAID: 'OVERPAID',
+  LATE_PAID: 'LATE_PAID',
+} as const;
+
 export const PAYMENT_TERMINAL_STATUSES = new Set<PaymentIntentStatus>([
   PAYMENT_INTENT_STATUSES.CONFIRMED,
   PAYMENT_INTENT_STATUSES.EXPIRED,
@@ -34,6 +44,7 @@ export const PAYMENT_TERMINAL_STATUSES = new Set<PaymentIntentStatus>([
 export type PaymentChain = (typeof PAYMENT_CHAINS)[keyof typeof PAYMENT_CHAINS];
 export type PaymentAsset = (typeof PAYMENT_ASSETS)[keyof typeof PAYMENT_ASSETS];
 export type PaymentIntentStatus = (typeof PAYMENT_INTENT_STATUSES)[keyof typeof PAYMENT_INTENT_STATUSES];
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[keyof typeof PAYMENT_STATUSES];
 
 export type CreatePaymentIntentInput = {
   chain: PaymentChain;
@@ -78,7 +89,7 @@ export type IPaymentPublic = {
   senderAddress: string | null;
   receiverAddress: string;
   txHash: string | null;
-  status: PaymentIntentStatus;
+  status: PaymentStatus;
   blockNumber: string | null;
   confirmations: number;
   confirmedAt: string | null;
