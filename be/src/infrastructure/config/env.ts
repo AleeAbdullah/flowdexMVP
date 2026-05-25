@@ -10,6 +10,7 @@ export const env = {
   solTreasuryAddress: process.env.SOL_TREASURY_ADDRESS ?? "",
   btcTreasuryAddress: process.env.BTC_TREASURY_ADDRESS ?? "",
   btcTreasuryExtendedPublicKey: process.env.BTC_TREASURY_EXTENDED_PUBLIC_KEY ?? "",
+  btcPaymentsEnabled: process.env.BTC_PAYMENTS_ENABLED === "true",
   ethConfirmations: Number(process.env.ETH_CONFIRMATIONS ?? 12),
   btcConfirmations: Number(process.env.BTC_CONFIRMATIONS ?? 2),
   paymentIntentTtlMinutes: Number(process.env.PAYMENT_INTENT_TTL_MINUTES ?? 30),
@@ -33,7 +34,7 @@ export function assertRequiredEnv(): void {
     "INTERNAL_AUTH_JWT_SECRET",
     "ETH_TREASURY_ADDRESS",
     "SOL_TREASURY_ADDRESS",
-    "BTC_TREASURY_EXTENDED_PUBLIC_KEY",
+    ...(process.env.BTC_PAYMENTS_ENABLED === "true" ? ["BTC_TREASURY_EXTENDED_PUBLIC_KEY"] : []),
     "ALCHEMY_API_KEY",
   ] as const;
 

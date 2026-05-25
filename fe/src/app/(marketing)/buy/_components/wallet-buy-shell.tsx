@@ -492,7 +492,7 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
                     Buy $FDN
                   </h1>
                   <p className="max-w-2xl text-sm leading-7 text-[var(--muted)]">
-                    Choose an amount and pay with ETH, SOL, or BTC.
+                    Choose an amount and pay with ETH or SOL.
                   </p>
                 </div>
               </div>

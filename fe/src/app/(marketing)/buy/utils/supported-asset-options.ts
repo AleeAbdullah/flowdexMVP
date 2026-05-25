@@ -6,7 +6,7 @@ import {
   PAYMENT_CHAINS,
   type PaymentAsset,
   type PaymentChain,
-} from '@/dal/app/payments/payments.types';
+} from '../../../../dal/app/payments/payments.types';
 import type { SupportedAssetOption } from '../types/buy-view-model';
 
 export const SUPPORTED_NATIVE_CHAIN_CONFIG = {
@@ -54,6 +54,11 @@ const FALLBACK_PRICES: Record<PaymentAsset, number> = {
   BTC: 65000,
 };
 
+const ENABLED_PAYMENT_ASSETS: PaymentAsset[] = [
+  PAYMENT_ASSETS.ETH,
+  PAYMENT_ASSETS.SOL,
+];
+
 function getAssetPrice(snapshot: BuySnapshot, asset: PaymentAsset) {
   const market = buildBuyMarketModel(snapshot);
   const marketOption = market.assetOptions.find(option => option.code.toUpperCase() === asset);
@@ -63,7 +68,7 @@ function getAssetPrice(snapshot: BuySnapshot, asset: PaymentAsset) {
 }
 
 export function buildSupportedAssetOptions(snapshot: BuySnapshot): SupportedAssetOption[] {
-  return Object.values(PAYMENT_ASSETS).map((asset) => {
+  return ENABLED_PAYMENT_ASSETS.map((asset) => {
     const chain = PAYMENT_CHAIN_BY_ASSET[asset];
     return {
       id: `${asset}:${chain}`,
