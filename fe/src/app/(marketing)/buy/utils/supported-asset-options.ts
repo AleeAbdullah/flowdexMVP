@@ -57,6 +57,7 @@ const FALLBACK_PRICES: Record<PaymentAsset, number> = {
 const ENABLED_PAYMENT_ASSETS: PaymentAsset[] = [
   PAYMENT_ASSETS.ETH,
   PAYMENT_ASSETS.SOL,
+  PAYMENT_ASSETS.BTC,
 ];
 
 function getAssetPrice(snapshot: BuySnapshot, asset: PaymentAsset) {

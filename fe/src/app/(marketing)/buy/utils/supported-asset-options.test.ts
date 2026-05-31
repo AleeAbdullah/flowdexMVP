@@ -71,24 +71,26 @@ function buildSnapshot(): NonNullable<BuySnapshot> {
 }
 
 describe('buildSupportedAssetOptions', () => {
-  it('exposes only Ethereum and Solana while Bitcoin payments are disabled', () => {
+  it('exposes Ethereum, Solana, and Bitcoin payment options', () => {
     const options = buildSupportedAssetOptions(null);
 
     expect(options.map(option => option.id)).toEqual([
       'ETH:ETHEREUM',
       'SOL:SOLANA',
+      'BTC:BITCOIN',
     ]);
     expect(options.map(option => option.chainId)).toEqual([
       SUPPORTED_NATIVE_CHAIN_CONFIG.ETHEREUM.chainId,
       null,
+      null,
     ]);
   });
 
-  it('uses live ETH and SOL prices from the snapshot without exposing BTC', () => {
+  it('uses live ETH, SOL, and BTC prices from the snapshot', () => {
     const options = buildSupportedAssetOptions(buildSnapshot());
 
-    expect(options.map(option => option.code)).toEqual(['ETH', 'SOL']);
-    expect(options.map(option => option.usdPrice)).toEqual([2500, 150]);
+    expect(options.map(option => option.code)).toEqual(['ETH', 'SOL', 'BTC']);
+    expect(options.map(option => option.usdPrice)).toEqual([2500, 150, 65000]);
   });
 
   it('preserves a manual existing supported selection over live provider chain hints', () => {
@@ -115,7 +117,7 @@ describe('buildSupportedAssetOptions', () => {
     })).toBe('ETH:ETHEREUM');
   });
 
-  it('falls back to the first supported asset when the selected asset is disabled', () => {
+  it('preserves a manual Bitcoin selection now that BTC payments are enabled', () => {
     const options = buildSupportedAssetOptions(null);
 
     expect(resolvePreferredSupportedAssetId({
@@ -124,6 +126,6 @@ describe('buildSupportedAssetOptions', () => {
       supportedAssets: options,
       verifiedChainId: null,
       providerChainId: null,
-    })).toBe('ETH:ETHEREUM');
+    })).toBe('BTC:BITCOIN');
   });
 });

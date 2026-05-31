@@ -303,15 +303,24 @@ export function useBuyCheckoutController(snapshot: BuySnapshot) {
     const availableConnectorNames = new Set(provider.availableConnectorNames);
     return getBuyWalletPickerEntries(walletSupportRegistry).map((entry) => {
       const normalizedConnectorName = normalizeMarketingWalletConnectorName(entry.accountKitName);
+      const isConnectedConnector = provider.status === 'connected'
+        && provider.connectorName === normalizedConnectorName;
+      const isUnavailable = !availableConnectorNames.has(normalizedConnectorName);
+      const isLockedByActiveWallet = provider.status === 'connected' && !isConnectedConnector;
       return {
         id: entry.id,
         label: entry.displayName,
-        caption: entry.releaseTier === 'fallback'
-          ? 'Connect with WalletConnect to prefill the payment wallet when supported.'
-          : 'Connect to prefill your payment wallet address.',
+        caption: isConnectedConnector
+          ? 'This is the active wallet for the current checkout.'
+          : isLockedByActiveWallet
+            ? 'Disconnect the active wallet before selecting this option.'
+            : entry.releaseTier === 'fallback'
+              ? 'Connect with WalletConnect to prefill the payment wallet when supported.'
+              : 'Connect to prefill your payment wallet address.',
         mode: entry.releaseTier === 'fallback' ? 'session-gated' as const : 'direct' as const,
         busy: provider.status === 'checking' && provider.pendingConnectorName === normalizedConnectorName,
-        disabled: !availableConnectorNames.has(normalizedConnectorName) || provider.status === 'checking',
+        connected: isConnectedConnector,
+        disabled: isUnavailable || provider.status === 'checking' || provider.status === 'connected',
         onClick: () => {
           clearCheckoutLifecycle();
           marketingWallet.clearConnectionIssue();

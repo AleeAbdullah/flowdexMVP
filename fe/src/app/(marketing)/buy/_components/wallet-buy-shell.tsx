@@ -40,6 +40,7 @@ type WalletTrayButton = {
   caption: string;
   mode: 'direct' | 'session-gated';
   busy?: boolean;
+  connected?: boolean;
   disabled?: boolean;
   onClick: () => void;
 };
@@ -202,17 +203,20 @@ function WalletTrayCard(props: {
       type="button"
       onClick={props.button.onClick}
       disabled={props.button.disabled}
+      aria-current={props.button.connected ? 'true' : undefined}
       className={cn(
         'group flex h-full min-h-[10rem] w-full flex-col justify-between rounded-[1.15rem] border p-4 text-left transition duration-200',
         'border-[var(--card-border)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--surface-elevated)_88%,var(--card-bg)),color-mix(in_srgb,var(--surface)_82%,var(--card-bg)))]',
         'hover:border-[color-mix(in_srgb,var(--accent-strong)_38%,var(--card-border))]',
-        props.button.disabled && 'cursor-not-allowed opacity-50',
+        props.button.connected && 'border-emerald-300/40 bg-emerald-400/10',
+        props.button.disabled && !props.button.connected && 'cursor-not-allowed opacity-45',
+        props.button.connected && 'cursor-default',
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <WalletBrandIcon id={props.button.id} />
-        <Badge variant={props.button.mode === 'direct' ? 'brand' : 'subtle'} className="px-3 py-1 normal-case tracking-normal">
-          Optional
+        <Badge variant={props.button.connected || props.button.mode === 'direct' ? 'brand' : 'subtle'} className="px-3 py-1 normal-case tracking-normal">
+          {props.button.connected ? 'Connected' : props.button.mode === 'direct' ? 'Direct' : 'WalletConnect'}
         </Badge>
       </div>
 
@@ -224,6 +228,45 @@ function WalletTrayCard(props: {
         <p className="text-sm leading-6 text-[var(--muted)]">{props.button.caption}</p>
       </div>
     </button>
+  );
+}
+
+function ConnectedWalletPanel(props: {
+  button: WalletTrayButton | null;
+  address: string;
+  disconnectDisabled: boolean;
+  onDisconnect: () => void;
+}) {
+  return (
+    <div className="rounded-[1rem] border border-emerald-300/24 bg-emerald-400/10 px-4 py-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          {props.button ? <WalletBrandIcon id={props.button.id} /> : (
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--card-border)] bg-[var(--surface)]">
+              <Wallet className="h-5 w-5 text-[var(--cyan)]" />
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="text-sm font-semibold text-[var(--text)]">
+                {props.button?.label ?? 'Wallet'} connected
+              </div>
+              <Badge variant="brand" className="px-2.5 py-1 normal-case tracking-normal">Active</Badge>
+            </div>
+            <div className="mt-1 font-data text-sm text-[var(--muted)]">{truncateMiddle(props.address)}</div>
+          </div>
+        </div>
+
+        <Button
+          variant="glass"
+          onClick={props.onDisconnect}
+          disabled={props.disconnectDisabled}
+          className="w-full sm:w-auto"
+        >
+          Disconnect wallet
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -370,7 +413,7 @@ function PaymentWalletDialog(props: {
                 Add payment wallet
               </DialogPrimitive.Title>
               <DialogPrimitive.Description className="mt-3 text-sm leading-7 text-[var(--muted)]">
-                Enter the Ethereum wallet address you will pay from so we can track your payment.
+                Enter the wallet address you will pay from so we can track your payment when available.
               </DialogPrimitive.Description>
             </div>
             <DialogPrimitive.Close className="rounded-full border border-[var(--card-border)] p-2 text-[var(--muted)] transition-colors hover:border-[var(--cyan)] hover:text-[var(--text)]">
@@ -386,7 +429,7 @@ function PaymentWalletDialog(props: {
               id="payment-wallet-address"
               value={props.value}
               onChange={event => props.onChange(event.target.value)}
-              placeholder="0x..."
+              placeholder="Wallet address"
               className="h-12 border-[var(--card-border)] bg-[var(--surface)] text-[var(--text)]"
             />
             {props.error ? <p className="text-sm leading-6 text-rose-200">{props.error}</p> : null}
@@ -456,6 +499,9 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
     isCheckingStatus,
     statusError,
   } = props;
+  const connectedWalletButton = connectedWalletAddress
+    ? walletButtons.find(button => button.connected) ?? null
+    : null;
 
   return (
     <div className="section-shell section-pad">
@@ -492,7 +538,7 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
                     Buy $FDN
                   </h1>
                   <p className="max-w-2xl text-sm leading-7 text-[var(--muted)]">
-                    Choose an amount and pay with ETH or SOL.
+                    Choose an amount and pay with ETH, SOL, or BTC.
                   </p>
                 </div>
               </div>
@@ -650,16 +696,6 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
                       {isCreatingIntent ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                       Pay now
                     </Button>
-
-                    {connectedWalletAddress ? (
-                      <Button
-                        variant="glass"
-                        onClick={() => onAction('disconnectWallet')}
-                        disabled={secondaryActionDisabled}
-                      >
-                        Disconnect wallet
-                      </Button>
-                    ) : null}
                   </div>
                 </div>
               </div>
@@ -673,13 +709,24 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
                     Connect wallet
                   </span>
                   <span className="mt-1 block text-sm leading-6 text-[var(--muted)]">
-                    Connect wallet to prefill your payment address.
+                    {connectedWalletAddress
+                      ? 'Disconnect the active wallet before selecting another one.'
+                      : 'Connect wallet to prefill your payment address.'}
                   </span>
                 </span>
                 <ChevronDown className="h-4 w-4 shrink-0 text-[var(--muted)] transition-transform duration-200 group-open:rotate-180" />
               </summary>
 
               <div className="mt-4 space-y-4">
+                {connectedWalletAddress ? (
+                  <ConnectedWalletPanel
+                    button={connectedWalletButton}
+                    address={connectedWalletAddress}
+                    disconnectDisabled={secondaryActionDisabled}
+                    onDisconnect={() => onAction('disconnectWallet')}
+                  />
+                ) : null}
+
                 <div className="grid gap-3 md:grid-cols-3">
                   {walletButtons.map(button => (
                     <WalletTrayCard key={button.id} button={button} />

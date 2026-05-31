@@ -40,18 +40,26 @@ export function WalletBuyFixturesPageClient(props: {
   const fixtureWalletButtons = useMemo(() => {
     return getBuyWalletPickerEntries(walletSupportRegistry).map(entry => {
       const mode: 'direct' | 'session-gated' = entry.releaseTier === 'fallback' ? 'session-gated' : 'direct';
+      const connected = Boolean(fixture.connectedWalletAddress && entry.id === 'metamask');
+      const lockedByConnectedWallet = Boolean(fixture.connectedWalletAddress && !connected);
 
       return {
         id: entry.id,
         label: entry.displayName,
-        caption: entry.releaseTier === 'fallback'
-          ? 'Fixture-only WalletConnect entry with post-connect capability gating.'
-          : 'Fixture-only direct connector.',
+        caption: connected
+          ? 'This is the active wallet for the current checkout.'
+          : lockedByConnectedWallet
+            ? 'Disconnect the active wallet before selecting this option.'
+            : entry.releaseTier === 'fallback'
+              ? 'Fixture-only WalletConnect entry with post-connect capability gating.'
+              : 'Fixture-only direct connector.',
         mode,
+        connected,
+        disabled: Boolean(fixture.connectedWalletAddress),
         onClick: noop,
       };
     });
-  }, [walletSupportRegistry]);
+  }, [fixture.connectedWalletAddress, walletSupportRegistry]);
 
   return (
     <div className="space-y-5">
