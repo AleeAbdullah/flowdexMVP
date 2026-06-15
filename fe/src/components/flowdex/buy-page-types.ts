@@ -32,6 +32,9 @@ export type BuyMarketModel = {
   discountPercent: number;
   fundsRaisedUsd: number;
   targetRaisedUsd: number;
+  remainingRaiseUsd: number;
+  tokensSold: number;
+  nextTierTokenPriceUsd: number | null;
   raisedProgressPercent: number;
   stakingApyText: string;
   vestingLabels: string[];

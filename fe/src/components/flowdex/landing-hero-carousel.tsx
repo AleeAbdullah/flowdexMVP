@@ -367,7 +367,7 @@ function getCompactHeroTitle(slide: LandingHeroSlide) {
   }
 
   if (slide.id === 'presale') {
-    return 'Buy $FDN at $0.001.';
+    return 'Buy $FDP at $0.001.';
   }
 
   if (slide.id === 'flowchain') {
@@ -375,7 +375,7 @@ function getCompactHeroTitle(slide: LandingHeroSlide) {
   }
 
   if (slide.id === 'staking') {
-    return 'Stake $FDN. Earn Fee Exposure.';
+    return 'Stake $FDP. Earn Fee Exposure.';
   }
 
   return 'Community First. No VC Gravity.';

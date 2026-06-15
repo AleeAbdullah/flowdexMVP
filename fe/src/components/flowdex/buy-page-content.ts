@@ -3,7 +3,7 @@ import type { BuyTab } from './buy-page-types';
 export const BUY_TAB_VALUES = ['buy', 'portfolio', 'leaders', 'staking', 'referrals'] as const;
 
 export const BUY_TABS: Array<{ value: BuyTab; label: string }> = [
-  { value: 'buy', label: 'Buy $FDN' },
+  { value: 'buy', label: 'Buy $FDP' },
   { value: 'portfolio', label: 'Portfolio' },
   { value: 'leaders', label: 'Leaders' },
   { value: 'staking', label: 'Staking' },

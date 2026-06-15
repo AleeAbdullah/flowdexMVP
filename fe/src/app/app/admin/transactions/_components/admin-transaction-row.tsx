@@ -26,7 +26,7 @@ export function AdminTransactionRow(props: {
 
       <div className="grid gap-4 sm:grid-cols-4 xl:min-w-[42rem]">
         <Metric label="USD" value={`$${item.usdAmount}`} />
-        <Metric label="$FDN" value={item.tokenAmount} />
+        <Metric label="$FDP" value={item.tokenAmount} />
         <Metric label="Block" value={item.blockNumber ?? 'Pending'} />
         <Metric label="Confirmed At" value={formatDateTime(item.confirmedAt)} />
       </div>

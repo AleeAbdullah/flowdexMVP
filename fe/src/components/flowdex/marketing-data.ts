@@ -9,7 +9,7 @@ export const marketingAppAction: MarketingPrimaryAction = {
 export const marketingShellBanner = {
   status: 'Launch Access Live',
   stats: [
-    { label: '$FDN Price', value: '$0.001' },
+    { label: '$FDP Price', value: '$0.001' },
     { label: 'Listing Reference', value: '$0.05' },
     { label: 'Community Allocation', value: '75%' },
     { label: 'Current Tier', value: '1 of 8' },
@@ -40,7 +40,7 @@ export const marketingShellFooter = {
   noticeTitle: 'Purchase Notice',
   noticeBody: 'Token purchases involve risk. Review the available materials carefully before making a purchase.',
   legalLine: '© 2026 FlowDex Network. All rights reserved.',
-  utilityLine: '$FDN is intended for access and utility across the FlowDex ecosystem.',
+  utilityLine: '$FDP is intended for access and utility across the FlowDex ecosystem.',
   socialLinks: [
     { label: 'Telegram', href: 'https://t.me/flowdexnetwork', icon: 'Send' },
     { label: 'Twitter/X', href: 'https://x.com/flowdexnetwork', icon: 'Twitter' },
@@ -97,7 +97,7 @@ export const marketingFaqs = [
   },
   {
     question: 'What does the token do in the product?',
-    answer: '$FDN is framed around ecosystem utility, including staking, governance, fee participation, and product-aligned community incentives.',
+    answer: '$FDP is framed around ecosystem utility, including staking, governance, fee participation, and product-aligned community incentives.',
   },
   {
     question: 'Why split content into separate pages?',

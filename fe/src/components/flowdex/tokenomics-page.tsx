@@ -22,7 +22,7 @@ const utilityCards = [
   },
   {
     title: 'Governance Surface',
-    body: 'The public narrative positions $FDN as part of the long-term governance and product direction of the protocol.',
+    body: 'The public narrative positions $FDP as part of the long-term governance and product direction of the protocol.',
     icon: Vote,
   },
   {
@@ -38,9 +38,9 @@ export function TokenomicsPage() {
       <MarketingPageHero
         eyebrow="Tokenomics"
         title="A route-level tokenomics page for allocation, utility, and protocol alignment."
-        description="Tokenomics now has its own dedicated route instead of being buried inside the home page. This page should answer how $FDN is allocated, what it is meant to do, and how the token ties back to the product direction."
+        description="Tokenomics now has its own dedicated route instead of being buried inside the home page. This page should answer how $FDP is allocated, what it is meant to do, and how the token ties back to the product direction."
         meta={[
-          { label: 'Ticker', value: '$FDN' },
+          { label: 'Ticker', value: '$FDP' },
           { label: 'Utility', value: 'Staking • Governance • Fee Participation' },
           { label: 'Community Allocation', value: '75%' },
           { label: 'Buy Context', value: 'Public launch-stage distribution' },

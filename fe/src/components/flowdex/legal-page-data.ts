@@ -16,7 +16,7 @@ export const termsSections = [
   {
     title: 'Token Purchase and Participation',
     paragraphs: [
-      '$FDN is described by the project as a utility token intended for use within the FlowDex ecosystem. Participation in any token purchase, token sale, or future token-related activity involves risk and may result in the loss of value or the inability to access expected functionality on the timeline described in public materials.',
+      '$FDP is described by the project as a utility token intended for use within the FlowDex ecosystem. Participation in any token purchase, token sale, or future token-related activity involves risk and may result in the loss of value or the inability to access expected functionality on the timeline described in public materials.',
       'Any listing price references, roadmap references, discount framing, or return examples are part of the public narrative and do not create a promise, warranty, or contractual obligation.',
     ],
   },

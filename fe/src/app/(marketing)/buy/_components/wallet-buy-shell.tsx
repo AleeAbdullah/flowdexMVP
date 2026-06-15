@@ -89,6 +89,11 @@ export type WalletBuyShellProps = {
   currentTier: number;
   tokenPriceDisplay: string;
   raisedDisplay: string;
+  targetRaisedDisplay: string;
+  remainingRaiseDisplay: string;
+  tokensSoldDisplay: string;
+  nextTierPriceDisplay: string;
+  discountPercentDisplay: string;
   raisedProgressPercent: number;
   sourceUpdatedAt: string | null;
   listingReferenceDisplay: string;
@@ -192,6 +197,111 @@ function CompactMetric(props: {
         <div className="mt-1 text-xs leading-5 text-[var(--muted)]">{props.secondary}</div>
       ) : null}
     </div>
+  );
+}
+
+function TierProgressPanel(props: {
+  currentTier: number;
+  tokenPriceDisplay: string;
+  raisedDisplay: string;
+  targetRaisedDisplay: string;
+  remainingRaiseDisplay: string;
+  tokensSoldDisplay: string;
+  nextTierPriceDisplay: string;
+  discountPercentDisplay: string;
+  raisedProgressPercent: number;
+  sourceUpdatedAt: string | null;
+}) {
+  const progressPercent = Math.max(0, Math.min(100, props.raisedProgressPercent));
+  const progressLabel = `${progressPercent.toFixed(1)}%`;
+  const tierName = props.currentTier === 1 ? 'Genesis' : `Stage ${props.currentTier}`;
+  const vestingStages = [
+    { label: '5% TGE', className: 'bg-[var(--cyan)] text-[#052332]' },
+    { label: '12mo cliff', className: 'bg-[color-mix(in_srgb,var(--cyan)_22%,var(--surface))] text-[color-mix(in_srgb,var(--text)_58%,transparent)]' },
+    { label: '24mo linear vest', className: 'bg-[color-mix(in_srgb,var(--cyan)_44%,var(--surface))] text-[color-mix(in_srgb,var(--text)_74%,transparent)]' },
+  ];
+  const detailTags = [
+    'Non-Custodial',
+    'Per-Tier TGE',
+    'ZK Privacy',
+    props.discountPercentDisplay,
+  ];
+
+  return (
+    <section
+      aria-labelledby="buy-tier-progress-title"
+    >
+      <div className="text-center">
+        <div className="text-xs font-bold text-[var(--cyan)]">Current Tier</div>
+        <h2 id="buy-tier-progress-title" className="mt-1 font-heading text-3xl font-bold text-[var(--text)] md:text-[2.5rem]">
+          Tier {props.currentTier} - {tierName}
+        </h2>
+      </div>
+
+      <div className="mt-6 grid gap-4 text-center sm:grid-cols-3">
+        <div>
+          <div className="text-xs font-bold text-[var(--cyan)]">Total Raised</div>
+          <div className="mt-1 break-words font-data text-2xl font-bold text-[var(--text)] md:text-3xl">{props.raisedDisplay}</div>
+        </div>
+        <div>
+          <div className="text-xs font-bold text-[var(--cyan)]">Tokens Sold</div>
+          <div className="mt-1 break-words font-data text-2xl font-bold text-[var(--text)] md:text-3xl">{props.tokensSoldDisplay}</div>
+        </div>
+        <div>
+          <div className="text-xs font-bold text-[var(--cyan)]">Remaining</div>
+          <div className="mt-1 break-words font-data text-2xl font-bold text-[var(--text)] md:text-3xl">{props.remainingRaiseDisplay}</div>
+        </div>
+      </div>
+
+      <div className="mt-7">
+        <div className="relative h-8 overflow-hidden rounded-sm bg-[color-mix(in_srgb,var(--surface)_72%,#12294b)]">
+          <div
+            className="absolute inset-y-0 left-0 bg-[linear-gradient(90deg,var(--accent-strong),#17d9d4)]"
+            style={{ width: `${progressPercent}%` }}
+          />
+          <div className="relative z-10 flex h-full items-center justify-between gap-3 px-3 font-data text-sm font-bold">
+            <span className="rounded-sm bg-[color-mix(in_srgb,var(--accent-strong)_88%,#17d9d4)] px-2 py-0.5 text-[#052332]">Raised</span>
+            <span className="text-[var(--text)]">{progressLabel}</span>
+            <span className="font-medium text-[color-mix(in_srgb,var(--text)_42%,transparent)]">of {props.targetRaisedDisplay}</span>
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="font-data text-[color-mix(in_srgb,var(--text)_48%,transparent)]">
+            1 $FDP: <span className="text-2xl font-bold text-[var(--cyan)]">{props.tokenPriceDisplay}</span>
+          </div>
+          <div className="font-data text-[color-mix(in_srgb,var(--text)_48%,transparent)]">
+            Next Tier: <span className="text-[color-mix(in_srgb,var(--text)_70%,transparent)]">{props.nextTierPriceDisplay}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 overflow-hidden rounded-md border border-[color-mix(in_srgb,var(--accent-border)_78%,transparent)]">
+        <div className="grid min-h-8 grid-cols-[0.55fr_0.85fr_1.45fr]">
+          {vestingStages.map(stage => (
+            <div key={stage.label} className={cn('flex items-center justify-center px-2 text-center text-xs font-bold', stage.className)}>
+              {stage.label}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mt-2 text-center text-xs text-[color-mix(in_srgb,var(--text)_44%,transparent)]">
+        Full unlock: 36 months · Tokens in YOUR wallet via Merkle claim
+      </div>
+
+      <div className="mt-5 grid gap-2 sm:grid-cols-4">
+        {detailTags.map(tag => (
+          <div key={tag} className="rounded-md border border-[var(--accent-border)] px-3 py-1.5 text-center text-xs font-medium text-[var(--cyan)]">
+            {tag}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-5 text-center text-xs text-[color-mix(in_srgb,var(--text)_36%,transparent)]">
+        FlowDex Protocol · $FDP · ERC-20 on Ethereum · 10B Fixed Supply
+        {props.sourceUpdatedAt ? ` · Synced ${formatDateTime(props.sourceUpdatedAt)}` : ''}
+      </div>
+    </section>
   );
 }
 
@@ -458,8 +568,6 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
   const {
     walletStatusLabel,
     connectedWalletAddress,
-    sessionWalletChecksum,
-    verifiedChainLabel,
     walletChainLabel,
     selectedChainLabel,
     selectedAsset,
@@ -485,6 +593,11 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
     currentTier,
     tokenPriceDisplay,
     raisedDisplay,
+    targetRaisedDisplay,
+    remainingRaiseDisplay,
+    tokensSoldDisplay,
+    nextTierPriceDisplay,
+    discountPercentDisplay,
     raisedProgressPercent,
     sourceUpdatedAt,
     listingReferenceDisplay,
@@ -523,7 +636,7 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="brand" className="w-fit gap-2 px-4 py-2">
                     <Wallet className="h-3.5 w-3.5" />
-                    Buy $FDN
+                    Buy $FDP
                   </Badge>
                   <StatusPill status={walletStatusLabel.toUpperCase()} />
                   {selectedAsset ? (
@@ -533,14 +646,14 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
                   ) : null}
                 </div>
 
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <h1 className="font-heading text-3xl font-bold tracking-tight text-[var(--text)] md:text-[3.2rem]">
-                    Buy $FDN
+                    Buy $FDP
                   </h1>
                   <p className="max-w-2xl text-sm leading-7 text-[var(--muted)]">
                     Choose an amount and pay with ETH, SOL, or BTC.
                   </p>
-                </div>
+                </div> */}
               </div>
 
               <div className="flex items-center gap-2 rounded-full border border-[var(--accent-border)] bg-[var(--accent-bg)] px-4 py-2 text-[10px] font-bold tracking-[0.26em] text-[var(--cyan)] uppercase">
@@ -549,29 +662,18 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
               </div>
             </div>
 
-            <div className="grid gap-3 lg:grid-cols-[0.85fr_0.85fr_1.15fr]">
-              <CompactMetric label="Current Tier" value={`Tier ${currentTier}`} secondary={`Listing ref ${listingReferenceDisplay}`} />
-              <CompactMetric label="$FDN Price" value={tokenPriceDisplay} accent secondary={`Raised ${raisedDisplay}`} />
-              <div className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--surface)] px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <div className="text-[10px] font-bold tracking-[0.24em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
-                      Progress
-                    </div>
-                    <div className="mt-1 text-sm font-semibold text-[var(--text)]">
-                      Raised {raisedDisplay}
-                    </div>
-                  </div>
-                  <div className="text-sm font-semibold text-[var(--cyan)]">{Math.round(raisedProgressPercent)}%</div>
-                </div>
-                <div className="mt-3 h-2 rounded-full bg-white/6">
-                  <div className="h-full rounded-full bg-[linear-gradient(90deg,var(--accent-strong),var(--cyan))]" style={{ width: `${Math.max(6, Math.min(100, raisedProgressPercent))}%` }} />
-                </div>
-                <div className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                  {sourceUpdatedAt ? `Synced ${formatDateTime(sourceUpdatedAt)}` : 'Using the latest available public market snapshot.'}
-                </div>
-              </div>
-            </div>
+            <TierProgressPanel
+              currentTier={currentTier}
+              tokenPriceDisplay={tokenPriceDisplay}
+              raisedDisplay={raisedDisplay}
+              targetRaisedDisplay={targetRaisedDisplay}
+              remainingRaiseDisplay={remainingRaiseDisplay}
+              tokensSoldDisplay={tokensSoldDisplay}
+              nextTierPriceDisplay={nextTierPriceDisplay}
+              discountPercentDisplay={discountPercentDisplay}
+              raisedProgressPercent={raisedProgressPercent}
+              sourceUpdatedAt={sourceUpdatedAt}
+            />
 
             {paymentInstruction && activePayment ? (
               <PaymentInstructionPanel
@@ -592,7 +694,7 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
                         Order
                       </div>
                       <p className="max-w-2xl text-sm leading-6 text-[var(--muted)]">
-                        Choose an amount and how you want to pay. Estimated $FDN is shown for review before you pay.
+                        Choose an amount and how you want to pay. Estimated $FDP is shown for review before you pay.
                       </p>
                     </div>
                     <div className="rounded-full border border-[var(--card-border)] bg-[var(--surface)] px-4 py-2 text-xs font-semibold tracking-[0.18em] text-[var(--text)] uppercase">
@@ -660,7 +762,7 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
 
                   <div className="grid gap-4 md:grid-cols-3">
                     <CompactMetric label="Purchase Amount" value={estimatedContributionUsdDisplay} />
-                    <CompactMetric label="Estimated $FDN" value={estimatedTokensDisplay} accent />
+                    <CompactMetric label="Estimated $FDP" value={estimatedTokensDisplay} accent />
                     <CompactMetric label="Chain" value={selectedChainLabel} />
                   </div>
 
@@ -711,7 +813,7 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
                   <span className="mt-1 block text-sm leading-6 text-[var(--muted)]">
                     {connectedWalletAddress
                       ? 'Disconnect the active wallet before selecting another one.'
-                      : 'Connect wallet to prefill your payment address.'}
+                      : 'Connect wallet to prefill your payment address or pay via QR code.'}
                   </span>
                 </span>
                 <ChevronDown className="h-4 w-4 shrink-0 text-[var(--muted)] transition-transform duration-200 group-open:rotate-180" />
@@ -766,7 +868,7 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
               <div className="space-y-4">
                 <CompactMetric label="Pay with" value={selectedAsset ? selectedAsset.label : 'Choose a chain'} />
                 <CompactMetric label="Purchase Amount" value={estimatedContributionUsdDisplay} secondary={`Listing ref ${listingReferenceDisplay}`} />
-                <CompactMetric label="Estimated $FDN" value={estimatedTokensDisplay} accent />
+                <CompactMetric label="Estimated $FDP" value={estimatedTokensDisplay} accent />
               </div>
             </div>
           </GlassPanel>
@@ -801,9 +903,15 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
 
               <div className="space-y-4">
                 <CompactMetric label="Connected Wallet" value={connectedWalletAddress ? truncateMiddle(connectedWalletAddress) : 'Not connected'} />
-                <CompactMetric label="Paying Wallet" value={paymentWalletAddress ? truncateMiddle(paymentWalletAddress) : 'Not set'} />
-                <CompactMetric label="Session Wallet" value={sessionWalletChecksum ? truncateMiddle(sessionWalletChecksum) : 'Not verified'} />
-                <CompactMetric label="Verified Network" value={verifiedChainLabel ?? 'Not required'} secondary="Payment history can be searched by wallet address later." />
+                <Button
+                  variant="glass"
+                  onClick={() => onAction('disconnectWallet')}
+                  disabled={!connectedWalletAddress || secondaryActionDisabled}
+                  className="w-full"
+                >
+                  <Wallet className="mr-2 h-4 w-4" />
+                  Disconnect wallet
+                </Button>
               </div>
 
               <div className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--surface)] px-4 py-4">

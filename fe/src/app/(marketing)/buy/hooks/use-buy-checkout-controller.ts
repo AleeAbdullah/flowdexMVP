@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatUnits, isAddress } from 'viem';
 import type { BuySnapshot } from '@/components/flowdex/buy-page-types';
 import { buildBuyMarketModel } from '@/components/flowdex/buy-page-market';
-import { formatCurrency, formatDateTime, formatPlainNumber } from '@/components/flowdex/utils';
+import { formatCompact, formatCurrency, formatDateTime, formatPlainNumber } from '@/components/flowdex/utils';
 import { QUICK_BUY_AMOUNTS } from '@/components/flowdex/buy-page-content';
 import {
   buildWalletSupportRegistry,
@@ -115,6 +115,15 @@ function formatPaymentAmount(baseUnits: string, asset: PaymentAsset) {
   } catch {
     return `${baseUnits} ${asset}`;
   }
+}
+
+function formatCompactCurrency(value: number, maximumFractionDigits = 2) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    notation: 'compact',
+    maximumFractionDigits,
+  }).format(value);
 }
 
 function getPaymentStatusCopy(status: PaymentIntentStatus): {
@@ -540,6 +549,13 @@ export function useBuyCheckoutController(snapshot: BuySnapshot) {
     currentTier: market.currentTier,
     tokenPriceDisplay: formatCurrency(market.tokenPriceUsd, 4),
     raisedDisplay: formatCurrency(market.fundsRaisedUsd, 0),
+    targetRaisedDisplay: market.targetRaisedUsd > 0 ? formatCompactCurrency(market.targetRaisedUsd) : '$0',
+    remainingRaiseDisplay: formatCurrency(market.remainingRaiseUsd, 0),
+    tokensSoldDisplay: `${formatCompact(market.tokensSold, 2)} $FDP`,
+    nextTierPriceDisplay: market.nextTierTokenPriceUsd
+      ? formatCurrency(market.nextTierTokenPriceUsd, 4)
+      : formatCurrency(market.listingReferenceUsd, 2),
+    discountPercentDisplay: `${market.discountPercent}% Discount`,
     raisedProgressPercent: market.raisedProgressPercent,
     sourceUpdatedAt: market.sourceUpdatedAt,
     listingReferenceDisplay: formatCurrency(market.listingReferenceUsd, 2),

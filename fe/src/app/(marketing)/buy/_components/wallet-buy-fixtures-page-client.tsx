@@ -12,7 +12,7 @@ import {
 } from '@/constants/wallet-support';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatCurrency } from '@/components/flowdex/utils';
+import { formatCompact, formatCurrency } from '@/components/flowdex/utils';
 import { QUICK_BUY_AMOUNTS } from '@/components/flowdex/buy-page-content';
 import { WalletBuyShell } from './wallet-buy-shell';
 import { buyStateFixtures, getBuyFixtureById } from '../utils/buy-state-fixtures';
@@ -130,6 +130,11 @@ export function WalletBuyFixturesPageClient(props: {
         currentTier={market.currentTier}
         tokenPriceDisplay={formatCurrency(market.tokenPriceUsd, 4)}
         raisedDisplay={formatCurrency(market.fundsRaisedUsd, 0)}
+        targetRaisedDisplay={market.targetRaisedUsd > 0 ? formatCurrency(market.targetRaisedUsd, 0) : '$0'}
+        remainingRaiseDisplay={formatCurrency(market.remainingRaiseUsd, 0)}
+        tokensSoldDisplay={`${formatCompact(market.tokensSold, 2)} $FDP`}
+        nextTierPriceDisplay={market.nextTierTokenPriceUsd ? formatCurrency(market.nextTierTokenPriceUsd, 4) : formatCurrency(market.listingReferenceUsd, 2)}
+        discountPercentDisplay={`${market.discountPercent}% Discount`}
         raisedProgressPercent={market.raisedProgressPercent}
         sourceUpdatedAt={market.sourceUpdatedAt}
         listingReferenceDisplay={formatCurrency(market.listingReferenceUsd, 2)}

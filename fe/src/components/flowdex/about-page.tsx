@@ -42,7 +42,7 @@ export function AboutPage() {
           <>
             <Button variant="brand" size="lg" asChild>
               <Link href={ROUTES.MARKETING.BUY}>
-                Buy $FDN
+                Buy $FDP
                 <ArrowRight aria-hidden="true" className="h-4 w-4" />
               </Link>
             </Button>

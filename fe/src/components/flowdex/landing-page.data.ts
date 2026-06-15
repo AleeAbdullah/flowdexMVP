@@ -85,7 +85,7 @@ export const landingHeroSlides: LandingHeroSlide[] = [
   {
     id: 'presale',
     badge: 'Launch-Stage Pricing',
-    title: 'Buy $FDN at $0.001 Before the Broader Market Rollout.',
+    title: 'Buy $FDP at $0.001 Before the Broader Market Rollout.',
     emphasis: '$0.001',
     description: 'The public buy route reads live pricing and tier configuration while the marketing site focuses on why the exchange thesis matters.',
     visualMode: 'cards',
@@ -141,8 +141,8 @@ export const landingHeroSlides: LandingHeroSlide[] = [
   {
     id: 'staking',
     badge: 'Fee Participation',
-    title: 'Stake $FDN. Earn Fee Exposure. Strengthen The Utility Story.',
-    emphasis: 'Stake $FDN.',
+    title: 'Stake $FDP. Earn Fee Exposure. Strengthen The Utility Story.',
+    emphasis: 'Stake $FDP.',
     description: 'Staking, governance, and routing-aligned incentives turn exchange activity into token utility instead of leaving the asset as a passive launch instrument.',
     visualMode: 'scene',
     accent: 'green',

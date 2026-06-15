@@ -3,7 +3,7 @@ import { WalletBuyPageClient } from './_components/wallet-buy-page-client';
 import { loadBuySnapshot } from './utils/load-buy-snapshot';
 
 export const metadata: Metadata = {
-  title: 'Buy $FDN | FlowDex',
+  title: 'Buy $FDP | FlowDex',
   description: 'Public buy route with live pricing, tiers, and supported settlement assets.',
 };
 

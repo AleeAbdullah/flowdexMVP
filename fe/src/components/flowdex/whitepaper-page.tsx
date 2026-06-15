@@ -16,7 +16,7 @@ import {
 const keyFacts = [
   { label: 'Product', value: 'FlowDex Protocol', note: 'Crypto, tokenized stocks, forex, commodities, ETFs, options, futures, indices, and CFDs.' },
   { label: 'Coverage Goal', value: '500+ Assets', note: 'Across 10+ blockchains and multiple tokenization and routing sources.' },
-  { label: 'Token', value: '$FDN', note: 'ERC-20 on Ethereum at launch with a fixed 10 billion supply.' },
+  { label: 'Token', value: '$FDP', note: 'ERC-20 on Ethereum at launch with a fixed 10 billion supply.' },
   { label: 'Listing Reference', value: '$0.05', note: 'Framed in the whitepaper as a reference price, not a guarantee.' },
   { label: 'Buy Structure', value: '8 Tiers', note: 'Tier 1 begins at $0.001 with zero venture capital allocation in the whitepaper model.' },
   { label: 'Staking', value: '40% Fee Sharing', note: 'Stakers participate in protocol fee revenue and emission-based rewards.' },
@@ -68,7 +68,7 @@ const architecturePhases = [
 ];
 
 const tokenomicsStats = [
-  { label: 'Total Supply', value: '10B $FDN', note: 'Fixed, non-inflationary supply per the whitepaper narrative.' },
+  { label: 'Total Supply', value: '10B $FDP', note: 'Fixed, non-inflationary supply per the whitepaper narrative.' },
   { label: 'Community Facing', value: '75%', note: 'Community and ecosystem, public buy, staking rewards, and airdrop allocations dominate the token split.' },
   { label: 'Staking Pool', value: '1.25B', note: 'Distributed on a declining emission schedule over ten years.' },
   { label: 'Fee Share', value: '40%', note: 'Protocol fee participation for stakers across major fee categories.' },
@@ -79,7 +79,7 @@ const tokenomicsStats = [
 const buyStats = [
   { label: 'Tier 1', value: '$0.001', note: 'Framed as the whitelist tier and deepest discount level.' },
   { label: 'Tier 8', value: '$0.05', note: 'Aligned to the listing reference in the document.' },
-  { label: 'Tokens In Public Buy', value: '22.5%', note: '2,251,875,000 $FDN allocated across the tier structure.' },
+  { label: 'Tokens In Public Buy', value: '22.5%', note: '2,251,875,000 $FDP allocated across the tier structure.' },
   { label: 'Treasury Model', value: '4-of-7 Multisig', note: 'Quarterly on-chain transparency reports are part of the public framing.' },
   { label: 'Launch Safeguards', value: 'Published Protections', note: 'Investor-protection language is included in the vesting and protections section.' },
 ];
@@ -255,7 +255,7 @@ export function WhitepaperPage() {
         <MarketingSection
           id="tokenomics"
           eyebrow="Tokenomics"
-          title="$FDN is positioned as fee-sharing, governance, routing-priority, and network-security infrastructure."
+          title="$FDP is positioned as fee-sharing, governance, routing-priority, and network-security infrastructure."
           description="The document emphasizes utility and long-term ecosystem economics rather than simple exchange-token discount mechanics."
         >
           <MarketingStatsGrid items={tokenomicsStats} />
@@ -338,7 +338,7 @@ export function WhitepaperPage() {
         >
           <MarketingBody>
             <p>
-              The whitepaper explicitly states that it is for informational purposes only and does not constitute an offer or solicitation to sell securities or regulated financial instruments. It also says that $FDN is intended as a utility token and that no representation or warranty is made regarding the completeness or reliability of the document.
+              The whitepaper explicitly states that it is for informational purposes only and does not constitute an offer or solicitation to sell securities or regulated financial instruments. It also says that $FDP is intended as a utility token and that no representation or warranty is made regarding the completeness or reliability of the document.
             </p>
             <p>
               It further notes that participation may be restricted in certain jurisdictions, that tokenized assets are issued by third-party providers with their own risks, and that forward-looking statements in the document are estimates rather than guarantees. Any formal legal review should supersede this launch-phase rendering when available.
