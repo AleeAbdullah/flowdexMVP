@@ -1,9 +1,12 @@
-import { access, mkdir, rename, rm } from 'node:fs/promises';
+import { access, copyFile, mkdir, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 
 const rootDir = process.cwd();
 const appDir = path.join(rootDir, 'src', 'app');
+const outDir = path.join(rootDir, 'out');
+const publicHtaccessPath = path.join(rootDir, 'public', '.htaccess');
+const outHtaccessPath = path.join(outDir, '.htaccess');
 const staticDisabledDir = path.join(rootDir, '.static-disabled-routes');
 
 const disabledSegments = ['api', 'app', 'login', 'signup'];
@@ -90,6 +93,11 @@ async function main() {
     await runStaticBuild();
   } finally {
     await restoreSegments();
+  }
+
+  if (await pathExists(publicHtaccessPath)) {
+    await copyFile(publicHtaccessPath, outHtaccessPath);
+    process.stdout.write('- copied public/.htaccess to out/.htaccess\n');
   }
 
   process.stdout.write('Static export complete. Upload ./out contents to Hostinger public_html.\n');
