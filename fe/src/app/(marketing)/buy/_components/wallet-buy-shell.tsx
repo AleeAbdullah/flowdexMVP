@@ -11,16 +11,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import {
-  AlertTriangle,
-  ArrowRight,
-  CheckCircle2,
-  ChevronDown,
   Copy,
-  Globe2,
   Loader2,
   ReceiptText,
   ShieldCheck,
-  Sparkles,
   Wallet,
   Workflow,
   X,
@@ -45,12 +39,6 @@ type WalletTrayButton = {
   onClick: () => void;
 };
 
-type WalletSupportSummary = {
-  directSupportCopy: string;
-  walletConnectCompatibilityCopy: string;
-  primarySupportCopy: string;
-};
-
 const vestingStageColorClasses = [
   'bg-[var(--token-bar-community)]',
   'bg-[var(--token-bar-staking)]',
@@ -61,8 +49,6 @@ const vestingStageColorClasses = [
 export type WalletBuyShellProps = {
   walletStatusLabel: string;
   connectedWalletAddress: string | null;
-  sessionWalletChecksum: string | null;
-  verifiedChainLabel: string | null;
   walletChainLabel: string | null;
   selectedChainLabel: string;
   selectedAsset: SupportedAssetOption | null;
@@ -71,20 +57,16 @@ export type WalletBuyShellProps = {
   onAssetChange: (value: string) => void;
   amountDisplay: string;
   onAmountChange: (value: string) => void;
-  quickBuyAmounts: number[];
-  selectedQuickBuyAmount: number | null;
-  onQuickBuyAmountChange: (amount: number) => void;
   contributionEnabled: boolean;
   estimatedContributionUsdDisplay: string;
   estimatedTokensDisplay: string;
   latestExplorerUrl: string | null;
-  walletSupportSummary: WalletSupportSummary;
-  primaryWalletSupportCopy: string;
-  approvedDirectWalletDisplayNames: string[];
-  walletConnectEnabled: boolean;
   walletButtons: WalletTrayButton[];
-  primaryActionDisabled: boolean;
+  directPayDisabled: boolean;
+  walletPayDisabled: boolean;
   secondaryActionDisabled: boolean;
+  onPayDirect: () => void;
+  onPayViaWallet: () => void;
   onAction: (actionId: BuyActionId) => void;
   currentTier: number;
   tokenPriceDisplay: string;
@@ -99,8 +81,10 @@ export type WalletBuyShellProps = {
   listingReferenceDisplay: string;
   paymentWalletAddress: string;
   onPaymentWalletAddressChange: (value: string) => void;
-  paymentWalletModalOpen: boolean;
-  onPaymentWalletModalOpenChange: (open: boolean) => void;
+  directPaymentWalletModalOpen: boolean;
+  onDirectPaymentWalletModalOpenChange: (open: boolean) => void;
+  walletConnectModalOpen: boolean;
+  onWalletConnectModalOpenChange: (open: boolean) => void;
   paymentWalletError: string | null;
   activePayment: ActivePaymentView | null;
   paymentInstruction: PaymentInstructionSummary | null;
@@ -347,6 +331,8 @@ function ConnectedWalletPanel(props: {
   disconnectDisabled: boolean;
   onDisconnect: () => void;
 }) {
+  const walletName = props.button?.label.replace(/^Connect\s+/u, '') ?? 'Wallet';
+
   return (
     <div className="rounded-[1rem] border border-emerald-300/24 bg-emerald-400/10 px-4 py-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -359,7 +345,7 @@ function ConnectedWalletPanel(props: {
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <div className="text-sm font-semibold text-[var(--text)]">
-                {props.button?.label ?? 'Wallet'} connected
+                {walletName} connected
               </div>
               <Badge variant="brand" className="px-2.5 py-1 normal-case tracking-normal">Active</Badge>
             </div>
@@ -564,6 +550,64 @@ function PaymentWalletDialog(props: {
   );
 }
 
+function WalletConnectDialog(props: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  walletButtons: WalletTrayButton[];
+  connectedWalletButton: WalletTrayButton | null;
+  connectedWalletAddress: string | null;
+  disconnectDisabled: boolean;
+  onDisconnect: () => void;
+  isSubmitting: boolean;
+}) {
+  return (
+    <DialogPrimitive.Root open={props.open} onOpenChange={props.onOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
+        <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-50 w-[min(calc(100vw-2rem),48rem)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[var(--card-border)] bg-[var(--surface-elevated)] p-6 text-[var(--text)] shadow-[0_24px_90px_rgba(0,0,0,0.36)] outline-none">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <DialogPrimitive.Title className="text-lg font-bold">
+                Connect wallet
+              </DialogPrimitive.Title>
+              <DialogPrimitive.Description className="mt-3 text-sm leading-7 text-[var(--muted)]">
+                Choose a wallet to continue this ETH payment.
+              </DialogPrimitive.Description>
+            </div>
+            <DialogPrimitive.Close className="rounded-full border border-[var(--card-border)] p-2 text-[var(--muted)] transition-colors hover:border-[var(--cyan)] hover:text-[var(--text)]">
+              <X className="h-4 w-4" />
+            </DialogPrimitive.Close>
+          </div>
+
+          <div className="mt-5 space-y-4">
+            {props.connectedWalletAddress ? (
+              <ConnectedWalletPanel
+                button={props.connectedWalletButton}
+                address={props.connectedWalletAddress}
+                disconnectDisabled={props.disconnectDisabled}
+                onDisconnect={props.onDisconnect}
+              />
+            ) : null}
+
+            <div className="grid gap-3 md:grid-cols-3">
+              {props.walletButtons.map(button => (
+                <WalletTrayCard key={button.id} button={button} />
+              ))}
+            </div>
+
+            {props.isSubmitting ? (
+              <div className="inline-flex items-center gap-2 text-sm text-[var(--muted)]">
+                <Loader2 className="h-4 w-4 animate-spin text-[var(--cyan)]" />
+                Starting payment
+              </div>
+            ) : null}
+          </div>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  );
+}
+
 export function WalletBuyShell(props: WalletBuyShellProps) {
   const {
     walletStatusLabel,
@@ -576,19 +620,16 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
     onAssetChange,
     amountDisplay,
     onAmountChange,
-    quickBuyAmounts,
-    selectedQuickBuyAmount,
-    onQuickBuyAmountChange,
     contributionEnabled,
     estimatedContributionUsdDisplay,
     estimatedTokensDisplay,
     latestExplorerUrl,
-    walletSupportSummary,
-    approvedDirectWalletDisplayNames,
-    walletConnectEnabled,
     walletButtons,
-    primaryActionDisabled,
+    directPayDisabled,
+    walletPayDisabled,
     secondaryActionDisabled,
+    onPayDirect,
+    onPayViaWallet,
     onAction,
     currentTier,
     tokenPriceDisplay,
@@ -603,8 +644,10 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
     listingReferenceDisplay,
     paymentWalletAddress,
     onPaymentWalletAddressChange,
-    paymentWalletModalOpen,
-    onPaymentWalletModalOpenChange,
+    directPaymentWalletModalOpen,
+    onDirectPaymentWalletModalOpenChange,
+    walletConnectModalOpen,
+    onWalletConnectModalOpenChange,
     paymentWalletError,
     activePayment,
     paymentInstruction,
@@ -619,12 +662,22 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
   return (
     <div className="section-shell section-pad">
       <PaymentWalletDialog
-        open={paymentWalletModalOpen}
-        onOpenChange={onPaymentWalletModalOpenChange}
+        open={directPaymentWalletModalOpen}
+        onOpenChange={onDirectPaymentWalletModalOpenChange}
         value={paymentWalletAddress}
         onChange={onPaymentWalletAddressChange}
         error={paymentWalletError}
-        onSubmit={() => onAction('submitContribution')}
+        onSubmit={onPayDirect}
+        isSubmitting={isCreatingIntent}
+      />
+      <WalletConnectDialog
+        open={walletConnectModalOpen}
+        onOpenChange={onWalletConnectModalOpenChange}
+        walletButtons={walletButtons}
+        connectedWalletButton={connectedWalletButton}
+        connectedWalletAddress={connectedWalletAddress}
+        disconnectDisabled={secondaryActionDisabled}
+        onDisconnect={() => onAction('disconnectWallet')}
         isSubmitting={isCreatingIntent}
       />
 
@@ -702,26 +755,6 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
                     </div>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-4">
-                    {quickBuyAmounts.map(amount => (
-                      <button
-                        key={amount}
-                        type="button"
-                        onClick={() => onQuickBuyAmountChange(amount)}
-                        disabled={!contributionEnabled}
-                        className={cn(
-                          'rounded-[1rem] border px-4 py-3 text-left transition',
-                          selectedQuickBuyAmount === amount
-                            ? 'border-[var(--cyan)] bg-[var(--accent-bg)] text-[var(--text)]'
-                            : 'border-[var(--card-border)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--accent-border)] hover:text-[var(--text)]',
-                          !contributionEnabled && 'cursor-not-allowed opacity-50',
-                        )}
-                      >
-                        <span className="font-data text-xl font-semibold">${amount.toLocaleString('en-US')}</span>
-                      </button>
-                    ))}
-                  </div>
-
                   <div className="grid gap-4 md:grid-cols-[1.15fr_0.85fr]">
                     <label className="space-y-2">
                       <span className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
@@ -792,68 +825,24 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
                   <div className="flex flex-wrap items-center gap-3">
                     <Button
                       variant="brand"
-                      onClick={() => onAction('submitContribution')}
-                      disabled={primaryActionDisabled}
+                      onClick={onPayDirect}
+                      disabled={directPayDisabled}
                     >
                       {isCreatingIntent ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Pay now
+                      Pay directly
+                    </Button>
+                    <Button
+                      variant="glass"
+                      onClick={onPayViaWallet}
+                      disabled={walletPayDisabled}
+                    >
+                      <Wallet className="mr-2 h-4 w-4" />
+                      Pay via wallet
                     </Button>
                   </div>
                 </div>
               </div>
             )}
-
-            <details className="group rounded-[1.2rem] border border-[var(--card-border)] bg-[var(--card-bg)] p-5">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-                <span className="min-w-0">
-                  <span className="flex items-center gap-2 text-sm font-semibold text-[var(--text)]">
-                    <Sparkles className="h-4 w-4 shrink-0 text-[var(--cyan)]" />
-                    Connect wallet
-                  </span>
-                  <span className="mt-1 block text-sm leading-6 text-[var(--muted)]">
-                    {connectedWalletAddress
-                      ? 'Disconnect the active wallet before selecting another one.'
-                      : 'Connect wallet to prefill your payment address or pay via QR code.'}
-                  </span>
-                </span>
-                <ChevronDown className="h-4 w-4 shrink-0 text-[var(--muted)] transition-transform duration-200 group-open:rotate-180" />
-              </summary>
-
-              <div className="mt-4 space-y-4">
-                {connectedWalletAddress ? (
-                  <ConnectedWalletPanel
-                    button={connectedWalletButton}
-                    address={connectedWalletAddress}
-                    disconnectDisabled={secondaryActionDisabled}
-                    onDisconnect={() => onAction('disconnectWallet')}
-                  />
-                ) : null}
-
-                <div className="grid gap-3 md:grid-cols-3">
-                  {walletButtons.map(button => (
-                    <WalletTrayCard key={button.id} button={button} />
-                  ))}
-                </div>
-
-                <div className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--surface)] px-4 py-4">
-                  <div className="space-y-4 text-sm leading-6 text-[var(--muted)]">
-                    <p>{walletSupportSummary.directSupportCopy}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {approvedDirectWalletDisplayNames.map(walletName => (
-                        <Badge key={walletName} variant="brand" className="px-3 py-1 normal-case tracking-normal">
-                          {walletName}
-                        </Badge>
-                      ))}
-                    </div>
-                    <p>
-                      {walletConnectEnabled
-                        ? walletSupportSummary.walletConnectCompatibilityCopy
-                        : 'WalletConnect is not available right now, so only direct options are shown.'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </details>
           </div>
         </GlassPanel>
 
@@ -890,46 +879,6 @@ export function WalletBuyShell(props: WalletBuyShellProps) {
                     {label}
                   </div>
                 ))}
-              </div>
-            </div>
-          </GlassPanel>
-
-          <GlassPanel className="p-5">
-            <div className="space-y-5">
-              <div className="flex items-center gap-3 text-[var(--text)]">
-                <Globe2 className="h-5 w-5 text-[var(--cyan)]" />
-                <div className="text-lg font-bold">Wallet</div>
-              </div>
-
-              <div className="space-y-4">
-                <CompactMetric label="Connected Wallet" value={connectedWalletAddress ? truncateMiddle(connectedWalletAddress) : 'Not connected'} />
-                <Button
-                  variant="glass"
-                  onClick={() => onAction('disconnectWallet')}
-                  disabled={!connectedWalletAddress || secondaryActionDisabled}
-                  className="w-full"
-                >
-                  <Wallet className="mr-2 h-4 w-4" />
-                  Disconnect wallet
-                </Button>
-              </div>
-
-              <div className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--surface)] px-4 py-4">
-                <div className="flex items-start gap-3">
-                  {paymentInstruction?.statusTone === 'success'
-                    ? <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-300" />
-                    : paymentInstruction?.statusTone === 'warning' || paymentInstruction?.statusTone === 'danger'
-                      ? <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-300" />
-                      : <ArrowRight className="mt-0.5 h-4 w-4 text-[var(--cyan)]" />}
-                  <div className="space-y-1 text-sm">
-                    <div className="font-semibold text-[var(--text)]">What happens next</div>
-                    <div className="leading-6 text-[var(--muted)]">
-                      {paymentInstruction
-                        ? paymentInstruction.statusDescription
-                        : 'Choose an amount, tap Pay now, then send the exact amount shown on the next screen.'}
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </GlassPanel>

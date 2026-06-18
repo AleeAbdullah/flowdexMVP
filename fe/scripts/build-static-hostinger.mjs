@@ -9,7 +9,14 @@ const publicHtaccessPath = path.join(rootDir, 'public', '.htaccess');
 const outHtaccessPath = path.join(outDir, '.htaccess');
 const staticDisabledDir = path.join(rootDir, '.static-disabled-routes');
 
-const disabledSegments = ['api', 'app', 'login', 'signup'];
+const disabledSegments = [
+  'api',
+  'app',
+  'login',
+  'signup',
+  path.join('(marketing)', 'transaction'),
+  path.join('(marketing)', 'transactions'),
+];
 const disabledPairs = [];
 
 async function pathExists(target) {
@@ -29,7 +36,7 @@ async function disableSegment(segment) {
     return;
   }
 
-  await mkdir(staticDisabledDir, { recursive: true });
+  await mkdir(path.dirname(disabledPath), { recursive: true });
 
   if (await pathExists(disabledPath)) {
     throw new Error(
@@ -86,7 +93,6 @@ async function main() {
 
   try {
     for (const segment of disabledSegments) {
-      // eslint-disable-next-line no-await-in-loop
       await disableSegment(segment);
     }
 

@@ -6,14 +6,11 @@ import type { BuySnapshot } from '@/components/flowdex/buy-page-types';
 import { buildBuyMarketModel } from '@/components/flowdex/buy-page-market';
 import {
   buildWalletSupportRegistry,
-  getApprovedDirectWalletDisplayNames,
   getBuyWalletPickerEntries,
-  getWalletSupportSummary,
 } from '@/constants/wallet-support';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCompact, formatCurrency } from '@/components/flowdex/utils';
-import { QUICK_BUY_AMOUNTS } from '@/components/flowdex/buy-page-content';
 import { WalletBuyShell } from './wallet-buy-shell';
 import { buyStateFixtures, getBuyFixtureById } from '../utils/buy-state-fixtures';
 import { buildSupportedAssetOptions } from '../utils/supported-asset-options';
@@ -32,20 +29,32 @@ export function WalletBuyFixturesPageClient(props: {
     walletConnectEnabled: fixture.walletConnectEnabled,
   }), [fixture.walletConnectEnabled]);
 
-  const walletSupportSummary = useMemo(() => getWalletSupportSummary(walletSupportRegistry), [walletSupportRegistry]);
-  const approvedDirectWalletDisplayNames = useMemo(
-    () => getApprovedDirectWalletDisplayNames(walletSupportRegistry),
-    [walletSupportRegistry],
-  );
   const fixtureWalletButtons = useMemo(() => {
-    return getBuyWalletPickerEntries(walletSupportRegistry).map(entry => {
+    return [...getBuyWalletPickerEntries(walletSupportRegistry)].sort((left, right) => {
+      if (left.id === 'wallet-connect') {
+        return -1;
+      }
+
+      if (right.id === 'wallet-connect') {
+        return 1;
+      }
+
+      return 0;
+    }).map(entry => {
       const mode: 'direct' | 'session-gated' = entry.releaseTier === 'fallback' ? 'session-gated' : 'direct';
       const connected = Boolean(fixture.connectedWalletAddress && entry.id === 'metamask');
       const lockedByConnectedWallet = Boolean(fixture.connectedWalletAddress && !connected);
+      const displayName = entry.id === 'wallet-connect'
+        ? 'Wallet'
+        : entry.id === 'metamask'
+          ? 'Connect MetaMask'
+          : entry.id === 'coinbase-wallet'
+            ? 'Connect Coinbase'
+            : entry.displayName;
 
       return {
         id: entry.id,
-        label: entry.displayName,
+        label: displayName,
         caption: connected
           ? 'This is the active wallet for the current checkout.'
           : lockedByConnectedWallet
@@ -102,8 +111,6 @@ export function WalletBuyFixturesPageClient(props: {
       <WalletBuyShell
         walletStatusLabel={fixture.walletStatusLabel}
         connectedWalletAddress={fixture.connectedWalletAddress}
-        sessionWalletChecksum={fixture.sessionWalletChecksum}
-        verifiedChainLabel={fixture.verifiedChainLabel}
         walletChainLabel={fixture.walletStatusLabel === 'Switch network' ? 'Base Sepolia' : fixture.verifiedChainLabel}
         selectedChainLabel={fixture.input.selectedChainLabel}
         selectedAsset={fixture.selectedAsset}
@@ -112,20 +119,16 @@ export function WalletBuyFixturesPageClient(props: {
         onAssetChange={noop}
         amountDisplay={fixture.amountDisplay}
         onAmountChange={noop}
-        quickBuyAmounts={[...QUICK_BUY_AMOUNTS]}
-        selectedQuickBuyAmount={null}
-        onQuickBuyAmountChange={noop}
         contributionEnabled={fixture.contributionEnabled}
         estimatedContributionUsdDisplay={fixture.estimatedContributionUsdDisplay}
         estimatedTokensDisplay={fixture.estimatedTokensDisplay}
         latestExplorerUrl={fixture.latestExplorerUrl}
-        walletSupportSummary={walletSupportSummary}
-        primaryWalletSupportCopy={walletSupportSummary.primarySupportCopy}
-        approvedDirectWalletDisplayNames={approvedDirectWalletDisplayNames}
-        walletConnectEnabled={fixture.walletConnectEnabled}
         walletButtons={fixtureWalletButtons}
-        primaryActionDisabled={false}
+        directPayDisabled={false}
+        walletPayDisabled={fixture.selectedAsset?.code !== 'ETH'}
         secondaryActionDisabled={false}
+        onPayDirect={noop}
+        onPayViaWallet={noop}
         onAction={noop}
         currentTier={market.currentTier}
         tokenPriceDisplay={formatCurrency(market.tokenPriceUsd, 4)}
@@ -140,8 +143,10 @@ export function WalletBuyFixturesPageClient(props: {
         listingReferenceDisplay={formatCurrency(market.listingReferenceUsd, 2)}
         paymentWalletAddress={fixture.connectedWalletAddress ?? ''}
         onPaymentWalletAddressChange={noop}
-        paymentWalletModalOpen={false}
-        onPaymentWalletModalOpenChange={noop}
+        directPaymentWalletModalOpen={false}
+        onDirectPaymentWalletModalOpenChange={noop}
+        walletConnectModalOpen={false}
+        onWalletConnectModalOpenChange={noop}
         paymentWalletError={null}
         activePayment={null}
         paymentInstruction={null}

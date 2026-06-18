@@ -6,15 +6,10 @@ import { formatUnits, isAddress } from 'viem';
 import type { BuySnapshot } from '@/components/flowdex/buy-page-types';
 import { buildBuyMarketModel } from '@/components/flowdex/buy-page-market';
 import { formatCompact, formatCurrency, formatDateTime, formatPlainNumber } from '@/components/flowdex/utils';
-import { QUICK_BUY_AMOUNTS } from '@/components/flowdex/buy-page-content';
 import {
   buildWalletSupportRegistry,
-  getApprovedDirectWalletDisplayNames,
   getBuyWalletPickerEntries,
-  getWalletConnectEntry,
   getWalletSupportRuntime,
-  getWalletSupportSummary,
-  getPrimaryWalletSupportCopy,
 } from '@/constants/wallet-support';
 import {
   paymentsQueryKeys,
@@ -49,6 +44,7 @@ import type {
 } from '../types/buy-view-model';
 
 const ACTIVE_PAYMENT_STORAGE_KEY = 'flowdex.activePaymentIntent.v1';
+const DEFAULT_BUY_AMOUNT = '500';
 const PAYMENT_STATUS_POLL_INTERVAL_MS = 12_000;
 const PAYMENT_STATUS_RATE_LIMIT_BACKOFF_MS = 30_000;
 
@@ -225,13 +221,16 @@ export function useBuyCheckoutController(snapshot: BuySnapshot) {
 
   const [activePayment, setActivePayment] = useState<ActivePaymentView | null>(null);
   const [paymentWalletAddress, setPaymentWalletAddress] = useState('');
-  const [paymentWalletModalOpen, setPaymentWalletModalOpen] = useState(false);
+  const [directPaymentWalletModalOpen, setDirectPaymentWalletModalOpen] = useState(false);
+  const [walletConnectModalOpen, setWalletConnectModalOpen] = useState(false);
+  const [walletPaymentRequested, setWalletPaymentRequested] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const statusRequestInFlightRef = useRef(false);
   const statusBackoffUntilRef = useRef(0);
   const manualSelectedAssetIdRef = useRef<string | null>(null);
+  const walletPaymentSubmissionInFlightRef = useRef(false);
 
   const checkoutInProgress = checkout.submission !== 'idle' || Boolean(activePayment);
   const manualSelectionIsCurrent = Boolean(
@@ -260,7 +259,7 @@ export function useBuyCheckoutController(snapshot: BuySnapshot) {
       return;
     }
 
-    setCheckoutAmountDisplay(String(QUICK_BUY_AMOUNTS[0]));
+    setCheckoutAmountDisplay(DEFAULT_BUY_AMOUNT);
   }, [checkout.amountDisplay, setCheckoutAmountDisplay]);
 
   useEffect(() => {
@@ -283,7 +282,6 @@ export function useBuyCheckoutController(snapshot: BuySnapshot) {
   const selectedAsset = supportedAssets.find(asset => asset.id === (checkout.selectedAssetId ?? preferredAssetId)) ?? null;
   const selectedChainLabel = selectedAsset ? getChainLabel(selectedAsset.chain) : 'No chain selected';
   const walletChainLabel = getChainLabelFromId(provider.chainId);
-  const verifiedChainLabel = getChainLabelFromId(verification.chainId);
   const walletStatusLabel = provider.status === 'connected' ? 'Connected optional' : 'Wallet optional';
 
   const walletSupportRegistry = useMemo(() => {
@@ -292,46 +290,49 @@ export function useBuyCheckoutController(snapshot: BuySnapshot) {
       walletConnectEnabled: runtime.walletConnectEnabled,
     });
   }, []);
-  const walletSupportSummary = useMemo(
-    () => getWalletSupportSummary(walletSupportRegistry),
-    [walletSupportRegistry],
-  );
-  const primaryWalletSupportCopy = useMemo(
-    () => getPrimaryWalletSupportCopy(walletSupportRegistry),
-    [walletSupportRegistry],
-  );
-  const approvedDirectWalletDisplayNames = useMemo(
-    () => getApprovedDirectWalletDisplayNames(walletSupportRegistry),
-    [walletSupportRegistry],
-  );
-  const walletConnectEnabled = useMemo(
-    () => getWalletConnectEntry(walletSupportRegistry)?.releaseTier === 'fallback',
-    [walletSupportRegistry],
-  );
   const walletButtons = useMemo(() => {
     const availableConnectorNames = new Set(provider.availableConnectorNames);
-    return getBuyWalletPickerEntries(walletSupportRegistry).map((entry) => {
+    return [...getBuyWalletPickerEntries(walletSupportRegistry)].sort((left, right) => {
+      if (left.id === 'wallet-connect') {
+        return -1;
+      }
+
+      if (right.id === 'wallet-connect') {
+        return 1;
+      }
+
+      return 0;
+    }).map((entry) => {
       const normalizedConnectorName = normalizeMarketingWalletConnectorName(entry.accountKitName);
       const isConnectedConnector = provider.status === 'connected'
         && provider.connectorName === normalizedConnectorName;
       const isUnavailable = !availableConnectorNames.has(normalizedConnectorName);
       const isLockedByActiveWallet = provider.status === 'connected' && !isConnectedConnector;
+      const displayName = entry.id === 'wallet-connect'
+        ? 'Wallet'
+        : entry.id === 'metamask'
+          ? 'Connect MetaMask'
+          : entry.id === 'coinbase-wallet'
+            ? 'Connect Coinbase'
+            : entry.displayName;
       return {
         id: entry.id,
-        label: entry.displayName,
+        label: displayName,
         caption: isConnectedConnector
           ? 'This is the active wallet for the current checkout.'
           : isLockedByActiveWallet
             ? 'Disconnect the active wallet before selecting this option.'
             : entry.releaseTier === 'fallback'
-              ? 'Connect with WalletConnect to prefill the payment wallet when supported.'
-              : 'Connect to prefill your payment wallet address.',
+              ? 'Connect with WalletConnect to pay from a supported wallet.'
+              : 'Connect this wallet to pay from its active address.',
         mode: entry.releaseTier === 'fallback' ? 'session-gated' as const : 'direct' as const,
         busy: provider.status === 'checking' && provider.pendingConnectorName === normalizedConnectorName,
         connected: isConnectedConnector,
         disabled: isUnavailable || provider.status === 'checking' || provider.status === 'connected',
         onClick: () => {
           clearCheckoutLifecycle();
+          setFormError(null);
+          setWalletPaymentRequested(true);
           marketingWallet.clearConnectionIssue();
           marketingWallet.connectByName(normalizedConnectorName, { chainId: 1 });
         },
@@ -349,12 +350,11 @@ export function useBuyCheckoutController(snapshot: BuySnapshot) {
   const usdAmount = Number(checkout.amountDisplay);
   const tokenAmount = market.tokenPriceUsd > 0 ? usdAmount / market.tokenPriceUsd : 0;
   const tokenAmountInput = formatTokenAmount(tokenAmount);
-  const selectedQuickBuyAmount = QUICK_BUY_AMOUNTS.includes(usdAmount) ? usdAmount : null;
   const estimatedTokensDisplay = tokenAmount > 0 ? formatPlainNumber(tokenAmount, 2) : '0';
   const estimatedContributionUsdDisplay = Number.isFinite(usdAmount) && usdAmount > 0 ? formatCurrency(usdAmount, 0) : '$0';
 
-  const paymentWalletValidation = useMemo(() => {
-    const address = paymentWalletAddress.trim();
+  function getPaymentWalletValidation(addressInput: string) {
+    const address = addressInput.trim();
     if (!selectedAsset) {
       return null;
     }
@@ -380,7 +380,9 @@ export function useBuyCheckoutController(snapshot: BuySnapshot) {
     }
 
     return null;
-  }, [paymentWalletAddress, selectedAsset]);
+  }
+
+  const paymentWalletValidation = getPaymentWalletValidation(paymentWalletAddress);
 
   const canSubmit = Boolean(
     selectedAsset
@@ -454,20 +456,57 @@ export function useBuyCheckoutController(snapshot: BuySnapshot) {
     setCheckoutAmountDisplay(value.replace(/[^\d.]/gu, ''));
   }
 
-  async function handleSubmitContribution() {
+  function getNormalizedSenderAddress(addressInput: string | undefined) {
+    if (!selectedAsset) {
+      return undefined;
+    }
+
+    const address = addressInput?.trim() ?? '';
+    if (!address) {
+      return undefined;
+    }
+
+    if (selectedAsset.chain === PAYMENT_CHAINS.ETHEREUM) {
+      return isAddress(address) ? address : undefined;
+    }
+
+    if (selectedAsset.chain === PAYMENT_CHAINS.SOLANA) {
+      return isSimpleSolanaAddress(address) ? address : undefined;
+    }
+
+    if (selectedAsset.chain === PAYMENT_CHAINS.BITCOIN) {
+      return isSimpleBitcoinAddress(address) ? address : undefined;
+    }
+
+    return undefined;
+  }
+
+  async function handleSubmitContribution(options?: {
+    senderAddressOverride?: string;
+    requireEthSenderModal?: boolean;
+  }) {
     if (!selectedAsset || !canSubmit || !isPaymentChain(selectedAsset.chain)) {
       return;
     }
 
-    if (selectedAsset.chain === PAYMENT_CHAINS.ETHEREUM && paymentWalletValidation) {
-      setFormError(paymentWalletValidation);
-      setPaymentWalletModalOpen(true);
+    const senderAddressInput = options?.senderAddressOverride ?? paymentWalletAddress;
+    const senderAddressValidation = getPaymentWalletValidation(senderAddressInput);
+
+    if (selectedAsset.chain === PAYMENT_CHAINS.ETHEREUM && senderAddressValidation) {
+      setFormError(senderAddressValidation);
+      if (options?.requireEthSenderModal !== false) {
+        setDirectPaymentWalletModalOpen(true);
+      }
       return;
     }
 
-    if (paymentWalletAddress.trim() && paymentWalletValidation) {
-      setFormError(paymentWalletValidation);
-      setPaymentWalletModalOpen(true);
+    const senderAddress = getNormalizedSenderAddress(senderAddressInput);
+
+    if (selectedAsset.chain === PAYMENT_CHAINS.ETHEREUM && !senderAddress) {
+      setFormError('Enter the Ethereum wallet address you will pay from.');
+      if (options?.requireEthSenderModal !== false) {
+        setDirectPaymentWalletModalOpen(true);
+      }
       return;
     }
 
@@ -477,7 +516,7 @@ export function useBuyCheckoutController(snapshot: BuySnapshot) {
         chain: selectedAsset.chain,
         asset: selectedAsset.code,
         tokenAmount: tokenAmountInput,
-        senderAddress: normalizeOptionalAddress(paymentWalletAddress),
+        senderAddress: senderAddress ? normalizeOptionalAddress(senderAddress) : undefined,
       });
 
       const nextPayment = {
@@ -485,13 +524,61 @@ export function useBuyCheckoutController(snapshot: BuySnapshot) {
         payment: null,
       };
       setActivePayment(nextPayment);
-      setPaymentWalletModalOpen(false);
+      setDirectPaymentWalletModalOpen(false);
+      setWalletConnectModalOpen(false);
+      setWalletPaymentRequested(false);
       writeStoredActivePayment(nextPayment);
     } catch (error) {
       const details = extractAxiosError(error);
       setFormError(details.message || 'Could not start this payment.');
+      if (options?.requireEthSenderModal === false) {
+        setWalletConnectModalOpen(false);
+        setWalletPaymentRequested(false);
+      }
     }
   }
+
+  function handlePayDirect() {
+    void handleSubmitContribution({ requireEthSenderModal: true });
+  }
+
+  function handlePayViaWallet() {
+    if (selectedAsset?.chain !== PAYMENT_CHAINS.ETHEREUM) {
+      setFormError('Pay via wallet is available for ETH payments only.');
+      return;
+    }
+
+    if (!canSubmit) {
+      return;
+    }
+
+    setFormError(null);
+    setWalletPaymentRequested(true);
+    setWalletConnectModalOpen(true);
+  }
+
+  useEffect(() => {
+    if (
+      !walletPaymentRequested
+      || walletPaymentSubmissionInFlightRef.current
+      || provider.status !== 'connected'
+      || !provider.address
+      || selectedAsset?.chain !== PAYMENT_CHAINS.ETHEREUM
+      || !canSubmit
+    ) {
+      return;
+    }
+
+    walletPaymentSubmissionInFlightRef.current = true;
+    setPaymentWalletAddress(provider.address);
+    void handleSubmitContribution({
+      senderAddressOverride: provider.address,
+      requireEthSenderModal: false,
+    }).finally(() => {
+      setWalletPaymentRequested(false);
+      walletPaymentSubmissionInFlightRef.current = false;
+    });
+  }, [canSubmit, handleSubmitContribution, provider.address, provider.status, selectedAsset?.chain, walletPaymentRequested]);
 
   function handleStartNewPayment() {
     setActivePayment(null);
@@ -501,7 +588,7 @@ export function useBuyCheckoutController(snapshot: BuySnapshot) {
   }
 
   const actionHandlers = {
-    submitContribution: handleSubmitContribution,
+    submitContribution: handlePayDirect,
     viewReceipts: () => {
       window.location.assign(ROUTES.USER.TRANSACTIONS);
     },
@@ -515,8 +602,6 @@ export function useBuyCheckoutController(snapshot: BuySnapshot) {
   return {
     walletStatusLabel,
     connectedWalletAddress: provider.address,
-    sessionWalletChecksum: verification.walletAddress,
-    verifiedChainLabel,
     walletChainLabel,
     selectedChainLabel,
     selectedAsset,
@@ -525,20 +610,16 @@ export function useBuyCheckoutController(snapshot: BuySnapshot) {
     onAssetChange: handleAssetChange,
     amountDisplay: checkout.amountDisplay,
     onAmountChange: handleAmountChange,
-    quickBuyAmounts: QUICK_BUY_AMOUNTS,
-    selectedQuickBuyAmount,
-    onQuickBuyAmountChange: (amount: number) => handleAmountChange(String(amount)),
     contributionEnabled: Boolean(selectedAsset && !activePayment),
     estimatedContributionUsdDisplay,
     estimatedTokensDisplay,
     latestExplorerUrl,
-    walletSupportSummary,
-    primaryWalletSupportCopy,
-    approvedDirectWalletDisplayNames,
-    walletConnectEnabled,
     walletButtons,
-    primaryActionDisabled: !canSubmit,
+    directPayDisabled: !canSubmit,
+    walletPayDisabled: !canSubmit || selectedAsset?.chain !== PAYMENT_CHAINS.ETHEREUM,
     secondaryActionDisabled: marketingWallet.isDisconnecting,
+    onPayDirect: handlePayDirect,
+    onPayViaWallet: handlePayViaWallet,
     onAction(actionId: BuyActionId | null) {
       if (!actionId) {
         return;
@@ -564,9 +645,16 @@ export function useBuyCheckoutController(snapshot: BuySnapshot) {
       setPaymentWalletAddress(value);
       setFormError(null);
     },
-    paymentWalletModalOpen,
-    onPaymentWalletModalOpenChange: setPaymentWalletModalOpen,
-    paymentWalletError: formError ?? (paymentWalletModalOpen ? paymentWalletValidation : null),
+    directPaymentWalletModalOpen,
+    onDirectPaymentWalletModalOpenChange: setDirectPaymentWalletModalOpen,
+    walletConnectModalOpen,
+    onWalletConnectModalOpenChange(open: boolean) {
+      setWalletConnectModalOpen(open);
+      if (!open) {
+        setWalletPaymentRequested(false);
+      }
+    },
+    paymentWalletError: formError ?? (directPaymentWalletModalOpen ? paymentWalletValidation : null),
     activePayment,
     paymentInstruction,
     isCreatingIntent: createPaymentIntent.isPending,

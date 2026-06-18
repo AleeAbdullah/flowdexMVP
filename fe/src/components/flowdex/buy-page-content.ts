@@ -24,8 +24,6 @@ export const ASSET_SHOWCASE = [
   '500+ more',
 ];
 
-export const QUICK_BUY_AMOUNTS = [500, 1000, 2500, 5000];
-
 export const SCENARIOS = [
   { label: 'Listing', multiplier: 50 },
   { label: '5x', multiplier: 250 },
