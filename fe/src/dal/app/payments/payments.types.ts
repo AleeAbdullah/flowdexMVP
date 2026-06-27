@@ -104,3 +104,15 @@ export type IPaymentIntentStatusResponse = {
 export type IPaymentsHistoryResponse = {
   items: IPaymentPublic[];
 };
+
+export type IPaymentLeader = {
+  rank: number;
+  walletAddress: string;
+  totalUsd: string;
+  paymentCount: number;
+  latestPaymentAt: string;
+};
+
+export type IPaymentLeadersResponse = {
+  items: IPaymentLeader[];
+};

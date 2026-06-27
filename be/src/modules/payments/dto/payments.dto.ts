@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, Matches } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsEnum, IsInt, IsOptional, IsString, Matches, Max, Min } from 'class-validator';
 
 import { PaymentAsset, PaymentChain, PaymentIntentStatus, PaymentStatus } from '../payments.types';
 
@@ -27,6 +28,16 @@ export class PaymentHistoryQueryDto {
   @ApiProperty()
   @IsString()
   walletAddress!: string;
+}
+
+export class PaymentLeadersQueryDto {
+  @ApiProperty({ required: false, minimum: 1, maximum: 50, default: 10 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  limit?: number;
 }
 
 export class PaymentInstructionsDto {
@@ -131,4 +142,26 @@ export class PaymentIntentStatusDto {
 
   @ApiProperty({ nullable: true })
   payment!: PaymentPublicDto | null;
+}
+
+export class PaymentLeaderDto {
+  @ApiProperty()
+  rank!: number;
+
+  @ApiProperty()
+  walletAddress!: string;
+
+  @ApiProperty()
+  totalUsd!: string;
+
+  @ApiProperty()
+  paymentCount!: number;
+
+  @ApiProperty()
+  latestPaymentAt!: Date;
+}
+
+export class PaymentLeadersResponseDto {
+  @ApiProperty({ type: [PaymentLeaderDto] })
+  items!: PaymentLeaderDto[];
 }

@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { BarChart3, ShieldCheck } from '@/icons';
 import { backendFetchJson } from '@/lib/auth-server';
 import { ROUTES } from '@/routes';
-import { DataKicker, GlassPanel, SectionHeading } from '@/components/flowdex/primitives';
+import { GlassPanel } from '@/components/glass-panel';
+import { DataKicker, SectionHeading } from '@/components/flowdex/primitives';
 import { formatDateTime, formatPlainNumber } from '@/components/flowdex/utils';
 import type { ReactNode } from 'react';
 

@@ -6,101 +6,14 @@ import type {
   PaymentIntentStatus,
 } from '@/dal/app/payments/payments.types';
 
-export type BuyFlowState =
-  | 'disconnected'
-  | 'checking_wallet'
-  | 'unsupported_wallet'
-  | 'unverified'
-  | 'wrong_chain'
-  | 'ready'
-  | 'submitting'
-  | 'success'
-  | 'creating_intent'
-  | 'waiting_payment'
-  | 'confirmed'
-  | 'failed';
-
-export type BuySubmissionState =
-  | 'idle'
-  | 'creating_intent'
-  | 'waiting_payment'
-  | 'success'
-  | 'failed'
-  | 'simulating'
-  | 'awaiting_wallet_approval'
-  | 'tracking';
-
-export type BuyIssueReason =
-  | 'connectionCanceled'
-  | 'connectionFailed'
-  | 'unsupportedWallet'
-  | 'verificationFailed'
-  | 'wrongChain'
-  | 'simulateFailed'
-  | 'sendCanceled'
-  | 'sendFailed'
-  | 'trackFailed'
-  | 'intentFailed'
-  | 'invalidPaymentWallet';
-
-export type BuyUiTone = 'default' | 'info' | 'success' | 'warning' | 'danger';
-
-export type BuyActionId =
-  | 'verifyWallet'
-  | 'switchNetwork'
-  | 'submitContribution'
-  | 'retryTracking'
-  | 'viewReceipts'
-  | 'disconnectWallet'
-  | 'startNewPayment';
-
-export type BuyInlineAlert = {
-  id: string;
-  title: string;
-  description: string;
-  tone: BuyUiTone;
-};
-
-export type BuyViewModel = {
-  state: BuyFlowState;
-  issueReason: BuyIssueReason | null;
-  tone: BuyUiTone;
-  status: string;
-  title: string;
-  description: string;
-  dominantActionId: BuyActionId | null;
-  dominantActionLabel: string | null;
-  secondaryActionId: BuyActionId | null;
-  secondaryActionLabel: string | null;
-  alerts: BuyInlineAlert[];
-  showWalletTray: boolean;
-  showContributionForm: boolean;
-  showContributionPlaceholder: boolean;
-  showSupportDisclosure: boolean;
-  isBusy: boolean;
-};
-
-export type BuyViewModelInput = {
-  flowState: BuyFlowState;
-  submissionState: BuySubmissionState;
-  issueReason: BuyIssueReason | null;
-  primaryWalletSupportCopy: string;
-  selectedAssetCode: string | null;
-  selectedChainLabel: string;
-  contributionErrorMessage: string | null;
-};
-
 export type SupportedAssetOption = {
   id: string;
   code: PaymentAsset;
   label: string;
-  chain: PaymentChain | 'BASE_SEPOLIA' | 'ETH_SEPOLIA';
-  networkLabel?: string;
+  chain: PaymentChain;
   chainId: number | null;
   decimals: number;
   usdPrice: number;
-  minAmount?: number;
-  minConfirmations?: number;
 };
 
 export type ActivePaymentView = {
@@ -112,12 +25,66 @@ export type PaymentInstructionSummary = {
   status: PaymentIntentStatus;
   statusTitle: string;
   statusDescription: string;
-  statusTone: BuyUiTone;
   exactAmountDisplay: string;
   receiverAddress: string;
   networkLabel: string;
   expiresAtDisplay: string;
   paymentUri: string | null;
   qrValue: string;
-  txHash: string | null;
+};
+
+export type MarketScenario = {
+  label: string;
+  price: string;
+  cap: string;
+  value: string;
+  roi: string;
+};
+
+export type BuyMarketView = {
+  currentTier: number;
+  raisedDisplay: string;
+  targetRaisedDisplay: string;
+  tokensSoldDisplay: string;
+  remainingTokensDisplay: string;
+  tokenPriceDisplay: string;
+  discountPercentDisplay: string;
+  nextTierPriceDisplay: string;
+  raisedProgressPercent: number;
+};
+
+export type BuyOrderView = {
+  selectedAsset: SupportedAssetOption | null;
+  supportedAssets: SupportedAssetOption[];
+  amountDisplay: string;
+  payDisplay: string;
+  receiveDisplay: string;
+  listingValueDisplay: string;
+  roiDisplay: string;
+  buyButtonLabel: string;
+  error: string | null;
+  canSubmit: boolean;
+  scenarios: MarketScenario[];
+};
+
+export type BuyPaymentView = {
+  instruction: PaymentInstructionSummary | null;
+  isCreating: boolean;
+  isCheckingStatus: boolean;
+  statusError: string | null;
+};
+
+export type BuyWalletView = {
+  paymentWalletAddress: string;
+  paymentWalletModalOpen: boolean;
+  paymentWalletError: string | null;
+};
+
+export type BuyActions = {
+  selectAsset: (assetId: string) => void;
+  changeAmount: (value: string) => void;
+  buy: () => void;
+  startNewPayment: () => void;
+  setPaymentWalletAddress: (value: string) => void;
+  setPaymentWalletModalOpen: (open: boolean) => void;
 };

@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import Image from 'next/image';
 import { PAYMENT_INTENT_STATUSES } from '@/dal/app/payments/payments.types';
 import { cn } from '@/lib/utils';
@@ -23,17 +22,6 @@ export function FlowdexWordmark({ compact = false }: { compact?: boolean }) {
           </div>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-export function GlassPanel(props: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={cn('glass-panel rounded-[1.35rem]', props.className)}>
-      {props.children}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { api, extractAxiosError } from '@/lib/axios';
 import { toast } from 'sonner';
 import type {
   CreatePaymentIntentInput,
+  IPaymentLeadersResponse,
   IPaymentIntentPublic,
   IPaymentIntentStatusResponse,
   IPaymentsHistoryResponse,
@@ -13,6 +14,7 @@ import type {
 export const paymentsQueryKeys = {
   intentStatus: (intentId: string | null | undefined) => ['app', 'payments', 'intent-status', intentId ?? 'none'] as const,
   history: (walletAddress: string | null | undefined) => ['app', 'payments', 'history', walletAddress ?? 'none'] as const,
+  leaders: (limit: number) => ['app', 'payments', 'leaders', limit] as const,
 };
 
 const browserPublicProxyConfig = typeof window === 'undefined'
@@ -37,6 +39,12 @@ export const paymentsService = {
     return api.get<IPaymentsHistoryResponse>(
       API_ROUTES.public.payments.root,
       { ...browserPublicProxyConfig, params: filters },
+    );
+  },
+  getPaymentLeaders(limit = 10) {
+    return api.get<IPaymentLeadersResponse>(
+      API_ROUTES.public.payments.leaders({ limit }),
+      browserPublicProxyConfig,
     );
   },
 };
@@ -66,5 +74,13 @@ export function usePaymentHistory(walletAddress: string | null) {
     queryKey: paymentsQueryKeys.history(walletAddress),
     queryFn: () => paymentsService.getPaymentHistory({ walletAddress: walletAddress! }),
     enabled: Boolean(walletAddress),
+  });
+}
+
+export function usePaymentLeaders(limit = 10) {
+  return useQuery({
+    queryKey: paymentsQueryKeys.leaders(limit),
+    queryFn: () => paymentsService.getPaymentLeaders(limit),
+    staleTime: 30_000,
   });
 }

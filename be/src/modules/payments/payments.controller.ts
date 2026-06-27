@@ -7,6 +7,8 @@ import {
   CreatePaymentIntentDto,
   PaymentHistoryQueryDto,
   PaymentIntentPublicDto,
+  PaymentLeadersQueryDto,
+  PaymentLeadersResponseDto,
   PaymentIntentStatusDto,
   PaymentPublicDto,
 } from './dto/payments.dto';
@@ -40,6 +42,12 @@ export class PaymentsController {
   @Throttle({ history: { limit: 20, ttl: 60_000 } })
   getHistory(@Query() query: PaymentHistoryQueryDto): Promise<{ items: PaymentPublicDto[] }> {
     return this.paymentsService.listPublicHistory(query.walletAddress);
+  }
+
+  @Get('leaders')
+  @Throttle({ leaders: { limit: 30, ttl: 60_000 } })
+  getLeaders(@Query() query: PaymentLeadersQueryDto): Promise<PaymentLeadersResponseDto> {
+    return this.paymentsService.listPublicLeaders(query.limit ?? 10);
   }
 
   @Post('webhooks/alchemy/ethereum')

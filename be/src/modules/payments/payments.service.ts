@@ -25,6 +25,8 @@ import {
 } from './dto/admin-payments.dto';
 import {
   CreatePaymentIntentDto,
+  PaymentLeaderDto,
+  PaymentLeadersResponseDto,
   PaymentIntentPublicDto,
   PaymentIntentStatusDto,
   PaymentPublicDto,
@@ -172,6 +174,42 @@ export class PaymentsService {
     });
 
     return { items: items.map(item => this.toPublicPayment(item)) };
+  }
+
+  async listPublicLeaders(limit = 10): Promise<PaymentLeadersResponseDto> {
+    const normalizedLimit = Number.isFinite(limit) ? Math.trunc(limit) : 10;
+    const safeLimit = Math.max(1, Math.min(50, normalizedLimit));
+    const rows = await this.paymentsRepository
+      .createQueryBuilder('payment')
+      .innerJoin('payment.intent', 'intent')
+      .select('payment.sender_address', 'walletAddress')
+      .addSelect('SUM(intent.usd_amount)', 'totalUsd')
+      .addSelect('COUNT(payment.id)', 'paymentCount')
+      .addSelect('MAX(payment.created_at)', 'latestPaymentAt')
+      .where('payment.status = :status', { status: PaymentStatus.CONFIRMED })
+      .andWhere('payment.sender_address IS NOT NULL')
+      .groupBy('payment.sender_address')
+      .orderBy('SUM(intent.usd_amount)', 'DESC')
+      .addOrderBy('MAX(payment.created_at)', 'DESC')
+      .limit(safeLimit)
+      .getRawMany<{
+        walletAddress: string;
+        totalUsd: string;
+        paymentCount: string;
+        latestPaymentAt: Date | string;
+      }>();
+
+    return {
+      items: rows.map((row, index): PaymentLeaderDto => ({
+        rank: index + 1,
+        walletAddress: row.walletAddress,
+        totalUsd: normalizeFixed(row.totalUsd),
+        paymentCount: Number(row.paymentCount),
+        latestPaymentAt: row.latestPaymentAt instanceof Date
+          ? row.latestPaymentAt
+          : new Date(row.latestPaymentAt),
+      })),
+    };
   }
 
   async listAdminPayments(filters: AdminPaymentFiltersDto): Promise<{ items: Array<PaymentPublicDto & {

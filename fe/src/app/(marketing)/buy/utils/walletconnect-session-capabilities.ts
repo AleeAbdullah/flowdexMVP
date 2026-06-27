@@ -1,4 +1,4 @@
-import { normalizeWalletAddress } from './buy-view-model';
+import { normalizeWalletAddress } from './buy-display';
 import type { BuyExecutionReadiness, BuyWalletProvider } from './buy-transaction.types';
 
 const WALLET_CONNECT_NAMESPACE = 'eip155';

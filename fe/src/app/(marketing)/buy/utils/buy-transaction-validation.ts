@@ -1,6 +1,6 @@
 import { isAddress, isHex } from 'viem';
 import type { IWalletTransactionRequest } from '@/dal/app/transactions/transactions.types';
-import { normalizeWalletAddress } from './buy-view-model';
+import { normalizeWalletAddress } from './buy-display';
 
 type ValidationErrorReason =
   | 'missing_provider'

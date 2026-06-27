@@ -9,7 +9,8 @@ import {
   getWalletConnectCompatibilityCopy,
   getWalletSupportRuntime,
 } from '@/constants/wallet-support';
-import { DataKicker, GlassPanel, SectionHeading, StatusPill } from '@/components/flowdex/primitives';
+import { GlassPanel } from '@/components/glass-panel';
+import { DataKicker, SectionHeading, StatusPill } from '@/components/flowdex/primitives';
 import { formatDateTime, truncateMiddle } from '@/components/flowdex/utils';
 import { Button } from '@/components/ui/button';
 import { useTransaction } from '@/dal/app/transactions/transactions.services';

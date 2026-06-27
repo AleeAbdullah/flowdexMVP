@@ -17,7 +17,8 @@ import {
   landingTokenDistribution,
   landingTrustSignals,
 } from './landing-page.data';
-import { GlassPanel, SectionHeading } from './primitives';
+import { GlassPanel } from '@/components/glass-panel';
+import { SectionHeading } from './primitives';
 import { cn } from '@/lib/utils';
 import { ROUTES } from '@/routes';
 

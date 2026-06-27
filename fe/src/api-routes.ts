@@ -40,6 +40,12 @@ export const API_ROUTES = {
       root: '/payments',
       intents: '/payments/intents',
       intentStatus: (intentId: string) => `/payments/intents/${intentId}/status`,
+      leaders: (params: { limit: number }) => {
+        const searchParams = new URLSearchParams({
+          limit: String(params.limit),
+        });
+        return `/payments/leaders?${searchParams.toString()}`;
+      },
     },
     presale: {
       stats: '/presale/stats',

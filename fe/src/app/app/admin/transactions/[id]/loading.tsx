@@ -1,4 +1,4 @@
-import { GlassPanel } from '@/components/flowdex/primitives';
+import { GlassPanel } from '@/components/glass-panel';
 
 export default function AdminTransactionDetailLoading() {
   return (

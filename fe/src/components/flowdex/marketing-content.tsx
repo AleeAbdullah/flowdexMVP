@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { HeroDitheringCard } from '@/components/ui/hero-dithering-card';
 import { ArrowRight } from '@/icons';
 import { cn } from '@/lib/utils';
-import { GlassPanel, SectionHeading } from './primitives';
+import { GlassPanel } from '@/components/glass-panel';
+import { SectionHeading } from './primitives';
 
 export function MarketingPageHero(props: {
   eyebrow: string;
