@@ -158,8 +158,12 @@ export function usePreparePaymentWalletAction() {
     mutationFn: (input: { intentId: string; payload: PreparePaymentWalletActionInput }) => (
       paymentsService.prepareWalletAction(axiosAuth, input.intentId, input.payload)
     ),
-    onError(error) {
+    onError(error, input) {
       const details = extractAxiosError(error);
+      if (input.payload.chain === 'SOLANA' && details.code === 'SOLANA_WALLET_CHECKOUT_UNAVAILABLE') {
+        return;
+      }
+
       toast.error(details.message || 'Could not prepare wallet payment');
     },
   });

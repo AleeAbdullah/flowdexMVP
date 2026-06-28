@@ -391,7 +391,7 @@ Change checkout stages or user actions:
 - Start in `src/app/(marketing)/buy/hooks/use-buy-checkout-controller.ts`.
 - Update `BuyCheckoutStage` and `BuyActions` in `types/buy-view-model.ts`.
 - Update stage rendering in `payment-dialogs.tsx`.
-- Add focused tests in `utils/buy-checkout-flow.test.ts` or a new route-local test.
+- Validate stage changes with typecheck, lint, and manual smoke coverage.
 
 Change public payment data:
 
@@ -433,11 +433,10 @@ Add a new endpoint:
 
 Good first tasks:
 
-- Add tests for a checkout stage transition.
 - Improve copy for one normalized provider error reason.
 - Add a missing loading or empty state in a buy-page panel.
 - Add a display-only metric from existing market or payment DTOs.
-- Add a portfolio formatting test.
+- Improve portfolio formatting using existing DTOs.
 
 Tasks that require extra review:
 
@@ -456,7 +455,7 @@ Frontend:
 cd fe
 npm run check:types
 npx eslint src/app/'(marketing)'/buy src/dal/app/payments src/dal/app/transactions src/hooks/use-marketing-wallet-sync.ts src/hooks/use-marketing-wallet-store.ts
-npm run test
+npm run build
 ```
 
 Backend:
@@ -479,7 +478,7 @@ Manual smoke path:
 8. Verify wallet signature.
 9. Run wallet checkout on testnet only.
 10. Confirm tx hash appears and a receipt public ID is shown or tracking state is visible.
-11. Test direct-send fallback and status polling.
+11. Test manual direct-send and status polling.
 12. Check portfolio and leaders still load.
 
 ## Quick Debug Guide

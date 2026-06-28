@@ -11,6 +11,7 @@ import { PaymentsScanner } from './payments.scanner';
 import { PaymentsService } from './payments.service';
 import { BtcAddressService } from './services/btc-address.service';
 import { EvmPaymentExecutionService } from './services/evm-payment-execution.service';
+import { AlchemySolanaProvider } from './services/alchemy-solana-provider.service';
 import { PaymentPricingService } from './services/payment-pricing.service';
 import { PaymentStateService } from './services/payment-state.service';
 import { SolanaPaymentExecutionService } from './services/solana-payment-execution.service';
@@ -27,6 +28,7 @@ import { SolanaPaymentExecutionService } from './services/solana-payment-executi
     PaymentsScanner,
     BtcAddressService,
     EvmPaymentExecutionService,
+    AlchemySolanaProvider,
     PaymentPricingService,
     PaymentStateService,
     SolanaPaymentExecutionService,

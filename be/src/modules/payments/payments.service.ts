@@ -2,7 +2,6 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
@@ -19,7 +18,6 @@ import {
   AlchemyService,
   BitcoinAddressTransaction,
   EvmTransfer,
-  SolanaParsedTransaction,
 } from '../alchemy/alchemy.service';
 import {
   AdminPaymentFiltersDto,
@@ -801,7 +799,7 @@ export class PaymentsService {
       case PaymentChain.ETHEREUM:
         return this.findEthereumMatch(intent);
       case PaymentChain.SOLANA:
-        return this.findSolanaMatch(intent);
+        return this.findSubmittedSolanaPaymentMatch(intent);
       case PaymentChain.BITCOIN:
         return this.findBitcoinMatch(intent);
     }
@@ -995,84 +993,87 @@ export class PaymentsService {
     return '0';
   }
 
-  private async findSolanaMatch(intent: PaymentIntentEntity): Promise<MatchResult> {
-    const lookupAddress = intent.solanaReference ?? intent.receiverAddress;
-    const signatures = await this.alchemyService.getSolanaSignaturesForAddress(lookupAddress, 20);
+  private async findSubmittedSolanaPaymentMatch(intent: PaymentIntentEntity): Promise<MatchResult> {
+    const payment = await this.findPaymentByIntent(intent.id);
+    if (!payment?.txHash || payment.status !== PaymentStatus.CONFIRMING) {
+      return null;
+    }
 
-    for (const signature of signatures) {
-      const tx = await this.alchemyService.getSolanaParsedTransaction(signature.signature);
-      if (!tx || signature.err) {
-        continue;
-      }
+    const payer = payment.senderAddress ?? intent.senderAddress;
+    if (!payer) {
+      return null;
+    }
 
-      const transfer = this.findSolanaTransfer(tx, intent);
-      if (!transfer) {
-        continue;
-      }
+    const verification = await this.solanaPaymentExecutionService.verifySolanaSignatureForIntent({
+      signature: payment.txHash,
+      payer,
+      recipientAddress: payment.receiverAddress || intent.receiverAddress,
+      lamports: payment.amountBaseUnits || intent.expectedAmountBaseUnits,
+      memoOrReference: intent.solanaReference ?? intent.id,
+    });
 
+    if (verification.status === 'not_found') {
       return {
-        status: this.classifyMatchedAmount(
-          intent,
-          transfer.lamports,
-          true,
-          signature.blockTime ? new Date(signature.blockTime * 1000) : null,
-        ),
-        amountBaseUnits: transfer.lamports,
-        senderAddress: transfer.source,
-        receiverAddress: intent.receiverAddress,
-        txHash: signature.signature,
+        status: PaymentStatus.CONFIRMING,
+        amountBaseUnits: payment.amountBaseUnits,
+        senderAddress: payer,
+        receiverAddress: payment.receiverAddress,
+        txHash: payment.txHash,
         outputIndex: null,
-        blockNumber: String(signature.slot),
-        confirmations: 1,
-        confirmedAt: signature.blockTime ? new Date(signature.blockTime * 1000) : new Date(),
-        rawPayload: this.redactPayload(tx),
+        blockNumber: payment.blockNumber,
+        confirmations: 0,
+        confirmedAt: null,
+        rawPayload: { source: 'wallet_tx_result_poll', verification },
       };
     }
 
-    return null;
-  }
-
-  private findSolanaTransfer(tx: SolanaParsedTransaction, intent: PaymentIntentEntity): {
-    source: string | null;
-    lamports: string;
-  } | null {
-    const transaction = tx.transaction as Record<string, unknown> | undefined;
-    const message = transaction?.message as Record<string, unknown> | undefined;
-    const instructions = Array.isArray(message?.instructions) ? message.instructions : [];
-    const accountKeys = Array.isArray(message?.accountKeys) ? message.accountKeys : [];
-    const referenceMatched = intent.solanaReference
-      ? accountKeys.some(key => typeof key === 'string'
-        ? key === intent.solanaReference
-        : typeof key === 'object' && key && (key as { pubkey?: unknown }).pubkey === intent.solanaReference)
-      : false;
-
-    for (const instruction of instructions) {
-      if (!instruction || typeof instruction !== 'object') {
-        continue;
-      }
-
-      const parsed = (instruction as { parsed?: unknown }).parsed;
-      if (!parsed || typeof parsed !== 'object') {
-        continue;
-      }
-
-      const info = (parsed as { info?: unknown }).info as Record<string, unknown> | undefined;
-      const type = (parsed as { type?: unknown }).type;
-      if (type !== 'transfer' || !info) {
-        continue;
-      }
-
-      const destination = String(info.destination ?? '');
-      const source = typeof info.source === 'string' ? info.source : null;
-      const lamports = String(info.lamports ?? '0');
-      const senderFallbackMatches = intent.senderAddress ? source === intent.senderAddress : false;
-
-      if (destination === intent.receiverAddress && (referenceMatched || senderFallbackMatches)) {
-        return { source, lamports };
-      }
+    if (verification.status === 'invalid') {
+      return {
+        status: PaymentStatus.FAILED,
+        amountBaseUnits: payment.amountBaseUnits,
+        senderAddress: payer,
+        receiverAddress: payment.receiverAddress,
+        txHash: payment.txHash,
+        outputIndex: null,
+        blockNumber: payment.blockNumber,
+        confirmations: payment.confirmations,
+        confirmedAt: null,
+        rawPayload: { source: 'wallet_tx_result_poll', verification },
+      };
     }
 
-    return null;
+    if (verification.status === 'confirming') {
+      return {
+        status: PaymentStatus.CONFIRMING,
+        amountBaseUnits: payment.amountBaseUnits,
+        senderAddress: payer,
+        receiverAddress: payment.receiverAddress,
+        txHash: payment.txHash,
+        outputIndex: null,
+        blockNumber: payment.blockNumber,
+        confirmations: verification.confirmations,
+        confirmedAt: null,
+        rawPayload: { source: 'wallet_tx_result_poll', verification },
+      };
+    }
+
+    return {
+      status: this.classifyMatchedAmount(
+        intent,
+        payment.amountBaseUnits,
+        true,
+        verification.confirmedAt,
+      ),
+      amountBaseUnits: payment.amountBaseUnits,
+      senderAddress: payer,
+      receiverAddress: payment.receiverAddress,
+      txHash: payment.txHash,
+      outputIndex: null,
+      blockNumber: verification.blockNumber,
+      confirmations: verification.confirmations,
+      confirmedAt: verification.confirmedAt,
+      rawPayload: { source: 'wallet_tx_result_poll', verification },
+    };
   }
 
   private async findBitcoinMatch(intent: PaymentIntentEntity): Promise<MatchResult> {

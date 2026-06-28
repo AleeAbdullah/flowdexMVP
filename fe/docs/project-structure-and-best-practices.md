@@ -305,7 +305,6 @@ Run from `fe/`:
 ```bash
 npm run check:types
 npm run lint
-npm run test
 npm run build
 ```
 

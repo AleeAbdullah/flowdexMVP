@@ -2,6 +2,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import type { BuySnapshot } from '@/components/flowdex/buy-page-types';
 import { buildBuyMarketModel } from '@/components/flowdex/buy-page-market';
 import { formatCompact, formatCurrency, formatDateTime, formatPlainNumber } from '@/components/flowdex/utils';
@@ -33,6 +34,7 @@ import {
 import { readStoredActivePayment, writeStoredActivePayment } from '../utils/buy-payment-storage';
 import { getInitialCheckoutStage } from '../utils/buy-checkout-flow';
 import { describeBuyExecutionReadinessBlock, getBuyExecutionReadiness } from '../utils/get-buy-execution-readiness';
+import { getCheckoutErrorMessage } from '../utils/get-checkout-error-message';
 import { buildSupportedAssetOptions } from '../utils/supported-asset-options';
 import { createEvmCheckoutWalletAdapter } from '../wallet-adapters/checkout-wallet-adapter';
 import {
@@ -436,8 +438,15 @@ export function useBuyCheckoutController() {
       setActivePayment({ intent: status.intent, payment: status.payment });
       setCheckoutStage('tracking');
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'Could not complete Solana wallet checkout.');
+      const errorView = getCheckoutErrorMessage(error);
+
+      setFormError(errorView.message);
       setCheckoutStage('failed');
+      if (errorView.variant === 'warning') {
+        toast.warning(errorView.title, { description: errorView.message });
+      } else {
+        toast.error(errorView.title, { description: errorView.message });
+      }
     }
   }
 

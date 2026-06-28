@@ -1,7 +1,16 @@
-import { BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import bs58 from 'bs58';
 
 import { env } from '../../../infrastructure/config/env';
+import {
+  AlchemySolanaParsedTransaction,
+  AlchemySolanaProvider,
+  createSolanaWalletCheckoutUnavailableException,
+} from './alchemy-solana-provider.service';
+export {
+  SOLANA_WALLET_CHECKOUT_UNAVAILABLE,
+  SOLANA_WALLET_CHECKOUT_UNAVAILABLE_MESSAGE,
+} from './alchemy-solana-provider.service';
 
 const MEMO_PROGRAM_ID = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
 const SOLANA_SIGNATURE_LENGTH = 64;
@@ -40,21 +49,17 @@ export type SolanaSignatureVerificationResult =
 
 @Injectable()
 export class SolanaPaymentExecutionService {
+  constructor(private readonly solanaProvider: AlchemySolanaProvider) {}
+
   buildConfig() {
-    const rpcUrl = env.solanaRpcUrl.trim()
-      || (env.alchemyApiKey ? `https://solana-mainnet.g.alchemy.com/v2/${env.alchemyApiKey}` : '');
     const recipientAddress = env.solTreasuryAddress.trim();
 
-    if (!rpcUrl) {
-      throw new ServiceUnavailableException('Solana RPC is not configured');
-    }
     if (!recipientAddress) {
-      throw new ServiceUnavailableException('Solana recipient address is not configured');
+      throw createSolanaWalletCheckoutUnavailableException();
     }
 
     return {
       cluster: 'mainnet-beta' as const,
-      rpcUrl,
       recipientAddress,
       minConfirmations: Math.max(1, env.solanaConfirmations),
       preparedActionTtlSeconds: Math.max(30, env.solanaPreparedActionTtlSeconds),
@@ -93,17 +98,15 @@ export class SolanaPaymentExecutionService {
 
     const config = this.buildConfig();
     const {
-      Connection,
       PublicKey,
       SystemProgram,
       Transaction,
       TransactionInstruction,
     } = await loadSolanaWeb3();
-    const connection = new Connection(config.rpcUrl, 'confirmed');
     const payer = new PublicKey(this.normalizePublicKey(input.payer, 'payer'));
     const recipient = new PublicKey(this.normalizePublicKey(input.recipientAddress, 'recipientAddress'));
     const reference = new PublicKey(this.normalizePublicKey(input.memoOrReference, 'memo/reference'));
-    const latestBlockhash = await connection.getLatestBlockhash('confirmed');
+    const latestBlockhash = await this.solanaProvider.getLatestBlockhash();
     const transaction = new Transaction();
 
     transaction.add(
@@ -149,16 +152,10 @@ export class SolanaPaymentExecutionService {
     }
 
     const config = this.buildConfig();
-    const { Connection } = await loadSolanaWeb3();
-    const connection = new Connection(config.rpcUrl, 'confirmed');
-    const [statusResponse, parsedTransaction] = await Promise.all([
-      connection.getSignatureStatuses([input.signature], { searchTransactionHistory: true }),
-      connection.getParsedTransaction(input.signature, {
-        commitment: 'confirmed',
-        maxSupportedTransactionVersion: 0,
-      }),
+    const [status, parsedTransaction] = await Promise.all([
+      this.solanaProvider.getSignatureStatus(input.signature),
+      this.solanaProvider.getParsedTransaction(input.signature),
     ]);
-    const status = statusResponse.value[0];
 
     if (!status && !parsedTransaction) {
       return { status: 'not_found' };
@@ -198,14 +195,7 @@ export class SolanaPaymentExecutionService {
   }
 
   private findMatchingTransfer(
-    transaction: {
-      transaction: {
-        message: {
-          instructions: unknown[];
-          accountKeys: Array<{ pubkey: { toBase58: () => string } }>;
-        };
-      };
-    } | null,
+    transaction: AlchemySolanaParsedTransaction,
     input: {
       payer: string;
       recipientAddress: string;

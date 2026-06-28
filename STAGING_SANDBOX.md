@@ -23,6 +23,7 @@ Never reuse production keys or webhook endpoints in staging.
 - Use `be/.env.local` for development
 - Fill if needed:
   - `ALCHEMY_API_KEY`
+  - `ALCHEMY_SOLANA_RPC_URL`
   - `ALCHEMY_WEBHOOK_SIGNING_KEY`
   - `ALCHEMY_NOTIFY_AUTH_TOKEN` (for webhook management API)
   - `TREASURY_ADDRESS_ETH_SEPOLIA`
@@ -92,6 +93,7 @@ Create an `ADDRESS_ACTIVITY` webhook in your staging Alchemy app:
 - Tracked tx appears in `GET /transactions`
 - Webhook updates status and metadata idempotently
 - Backfill cron reconciles missed events via Transfers API
+- SOL wallet checkout is confirmed only from a submitted wallet transaction signature (`/tx-result`); do not rely on treasury/reference address discovery scans for Solana.
 
 4. Admin reads
 - `GET /admin/stats` reflects ledger-backed counts/volume

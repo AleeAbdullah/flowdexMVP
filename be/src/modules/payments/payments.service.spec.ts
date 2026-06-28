@@ -139,7 +139,6 @@ function buildServiceForWalletActions(input: {
     normalizePublicKey: jest.fn((value: string) => value),
     buildConfig: jest.fn(() => ({
       cluster: 'mainnet-beta',
-      rpcUrl: 'https://example.invalid',
       recipientAddress: 'FEFZwPZy6r7Ni95AktZ8jd6m9TLUUEVPGnheUXx49GpL',
       minConfirmations: 1,
       preparedActionTtlSeconds: 60,
@@ -177,6 +176,58 @@ function buildServiceForWalletActions(input: {
     dataSource,
     manager,
     evmPaymentExecutionService,
+    solanaPaymentExecutionService,
+    stateService,
+  };
+}
+
+function buildServiceForStatusPolling(input: {
+  intent: PaymentIntentEntity;
+  payment?: PaymentEntity | null;
+}) {
+  const paymentIntentsRepository = {
+    findOne: jest.fn().mockResolvedValue(input.intent),
+    save: jest.fn(async (value: unknown) => value),
+  };
+  const paymentsRepository = {
+    findOne: jest.fn().mockResolvedValue(input.payment ?? null),
+  };
+  const alchemyService = {};
+  const solanaPaymentExecutionService = {
+    verifySolanaSignatureForIntent: jest.fn(async () => ({ status: 'not_found' })),
+    normalizePublicKey: jest.fn((value: string) => value),
+  };
+  const stateService = {
+    assertIntentTransition: jest.fn(),
+    toIntentStatus: jest.fn((status: PaymentStatus) => {
+      switch (status) {
+        case PaymentStatus.CONFIRMED:
+          return PaymentIntentStatus.CONFIRMED;
+        case PaymentStatus.FAILED:
+          return PaymentIntentStatus.FAILED;
+        default:
+          return PaymentIntentStatus.CONFIRMING;
+      }
+    }),
+  };
+  const service = new PaymentsService(
+    paymentIntentsRepository as never,
+    paymentsRepository as never,
+    {} as never,
+    {} as never,
+    alchemyService as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    solanaPaymentExecutionService as never,
+    stateService as never,
+  );
+
+  return {
+    service,
+    paymentIntentsRepository,
+    paymentsRepository,
+    alchemyService,
     solanaPaymentExecutionService,
     stateService,
   };
@@ -686,6 +737,39 @@ describe('PaymentsService', () => {
         status: PaymentStatus.CONFIRMING,
       }));
       expect(result.intent.status).toBe(PaymentIntentStatus.CONFIRMING);
+    });
+  });
+
+  describe('status polling', () => {
+    it('does not discover SOL payments by scanning addresses when no signature was submitted', async () => {
+      const intent = buildSolanaIntent({
+        status: PaymentIntentStatus.WAITING,
+        lastCheckedAt: null,
+        expiresAt: new Date(Date.now() + 60_000),
+      });
+      const {
+        service,
+        paymentIntentsRepository,
+        paymentsRepository,
+        solanaPaymentExecutionService,
+      } = buildServiceForStatusPolling({ intent });
+
+      const result = await service.getIntentStatus(intent.id);
+
+      expect(paymentsRepository.findOne).toHaveBeenCalledWith({ where: { intentId: intent.id } });
+      expect(solanaPaymentExecutionService.verifySolanaSignatureForIntent).not.toHaveBeenCalled();
+      expect(paymentIntentsRepository.save).toHaveBeenCalledWith(expect.objectContaining({
+        id: intent.id,
+        status: PaymentIntentStatus.WAITING,
+        lastCheckResult: { reason: 'NO_MATCH' },
+      }));
+      expect(result).toMatchObject({
+        intent: {
+          id: intent.id,
+          status: PaymentIntentStatus.WAITING,
+        },
+        payment: null,
+      });
     });
   });
 });

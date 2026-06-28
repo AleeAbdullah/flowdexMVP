@@ -4,8 +4,6 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { env } from '../../infrastructure/config/env';
 
 type EvmNetwork = 'eth-mainnet' | 'eth-sepolia' | 'base-sepolia';
-type SolanaNetwork = 'solana-mainnet';
-type BitcoinNetwork = 'bitcoin-mainnet';
 
 type RpcErrorShape = {
   code?: unknown;
@@ -45,15 +43,6 @@ export type EvmTransfer = {
   };
 };
 
-export type SolanaSignatureInfo = {
-  signature: string;
-  slot: number;
-  err: unknown;
-  blockTime: number | null;
-};
-
-export type SolanaParsedTransaction = Record<string, unknown>;
-
 export type BitcoinAddressTransaction = {
   txid: string;
   confirmations: number;
@@ -89,14 +78,6 @@ const JSON_RPC_HEADERS = {
 function resolveEvmRpcUrl(network: EvmNetwork): string {
   const host = network === 'base-sepolia' ? 'base-sepolia' : network;
   return `https://${host}.g.alchemy.com/v2/${env.alchemyApiKey}`;
-}
-
-function resolveSolanaRpcUrl(_network: SolanaNetwork): string {
-  return `https://solana-mainnet.g.alchemy.com/v2/${env.alchemyApiKey}`;
-}
-
-function resolveBitcoinRpcUrl(_network: BitcoinNetwork): string {
-  return `https://bitcoin-mainnet.g.alchemy.com/v2/${env.alchemyApiKey}`;
 }
 
 function resolveBitcoinUtxoUrl(pathname: string): string {
@@ -156,40 +137,6 @@ export class AlchemyService {
 
   async getEthereumTransactionReceipt(txHash: string): Promise<TransactionReceiptResult | null> {
     return this.getTransactionReceipt('eth-mainnet', txHash);
-  }
-
-  async getSolanaSignaturesForAddress(address: string, limit = 20): Promise<SolanaSignatureInfo[]> {
-    const result = await this.callSolanaRpc('getSignaturesForAddress', [
-      address,
-      { limit, commitment: 'finalized' },
-    ]);
-
-    if (!Array.isArray(result)) {
-      return [];
-    }
-
-    return result
-      .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
-      .map(item => ({
-        signature: String(item.signature ?? ''),
-        slot: typeof item.slot === 'number' ? item.slot : 0,
-        err: item.err ?? null,
-        blockTime: typeof item.blockTime === 'number' ? item.blockTime : null,
-      }))
-      .filter(item => item.signature);
-  }
-
-  async getSolanaParsedTransaction(signature: string): Promise<SolanaParsedTransaction | null> {
-    const result = await this.callSolanaRpc('getTransaction', [
-      signature,
-      {
-        encoding: 'jsonParsed',
-        commitment: 'finalized',
-        maxSupportedTransactionVersion: 0,
-      },
-    ]);
-
-    return result && typeof result === 'object' ? result as SolanaParsedTransaction : null;
   }
 
   async getBitcoinAddressTransactions(address: string): Promise<BitcoinAddressTransaction[]> {
@@ -465,10 +412,6 @@ export class AlchemyService {
 
   private async callEvmRpc(network: EvmNetwork, method: string, params: unknown[]): Promise<unknown> {
     return this.callRpc(resolveEvmRpcUrl(network), method, params);
-  }
-
-  private async callSolanaRpc(method: string, params: unknown[]): Promise<unknown> {
-    return this.callRpc(resolveSolanaRpcUrl('solana-mainnet'), method, params);
   }
 
   private async callRpc(url: string, method: string, params: unknown[]): Promise<unknown> {
