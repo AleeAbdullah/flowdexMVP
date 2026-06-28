@@ -5,6 +5,13 @@ import type { CheckoutWalletAdapter, CheckoutWalletStatus } from './checkout-wal
 import type { PreparedWalletAction, WalletTxResult } from '../types/checkout-wallet.types';
 
 const SOLANA_MAINNET_WALLET_CHAIN_ID = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1';
+const SOLANA_MAINNET_WALLET_CHAIN_ALIASES = new Set([
+  SOLANA_MAINNET_WALLET_CHAIN_ID,
+  'solana:mainnet',
+  'solana:mainnet-beta',
+  'mainnet',
+  'mainnet-beta',
+]);
 
 type WalletAccount = {
   address: string;
@@ -64,15 +71,39 @@ function decodeBase64(value: string) {
   return bytes;
 }
 
+function normalizeSolanaMainnetWalletChainId(value?: string | null) {
+  const normalized = value?.trim() ?? '';
+  if (!normalized || SOLANA_MAINNET_WALLET_CHAIN_ALIASES.has(normalized)) {
+    return SOLANA_MAINNET_WALLET_CHAIN_ID;
+  }
+
+  return null;
+}
+
 function getWalletChainId(account: WalletAccount) {
-  return account.chains?.find(chain => chain.startsWith('solana:')) ?? SOLANA_MAINNET_WALLET_CHAIN_ID;
+  const walletChainId = account.chains?.find(chain => chain.startsWith('solana:'));
+  return normalizeSolanaMainnetWalletChainId(walletChainId) ?? walletChainId ?? SOLANA_MAINNET_WALLET_CHAIN_ID;
+}
+
+function assertSolanaMainnetWalletChainId(value: string) {
+  const chain = normalizeSolanaMainnetWalletChainId(value);
+  if (!chain) {
+    throw new Error('Unsupported Solana wallet chain.');
+  }
+
+  return chain;
 }
 
 function normalizeError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error ?? '');
   const lowered = message.toLowerCase();
-  if (lowered.includes('reject') || lowered.includes('cancel') || lowered.includes('decline')) {
-    return 'The Solana wallet request was canceled.';
+  if (
+    lowered.includes('reject')
+    || lowered.includes('cancel')
+    || lowered.includes('decline')
+    || lowered.includes('denied')
+  ) {
+    return 'Transaction was rejected in your wallet.';
   }
   return message || 'Could not complete the Solana wallet request.';
 }
@@ -102,16 +133,20 @@ export function createSolanaMetaMaskCheckoutWalletAdapter(input: {
 
   function setConnected(nextAccount: WalletAccount, verified: boolean) {
     const walletChainId = getWalletChainId(nextAccount);
+    const supportsSignAndSend = Boolean(wallet?.features['solana:signAndSendTransaction']);
+    const isSupportedChain = walletChainId === SOLANA_MAINNET_WALLET_CHAIN_ID;
     account = nextAccount;
     input.setState({
       address: nextAccount.address,
       walletChainId,
       isConnected: true,
       isVerified: verified,
-      isReady: Boolean(wallet?.features['solana:signAndSendTransaction']),
-      error: wallet?.features['solana:signAndSendTransaction']
-        ? null
-        : 'This Solana wallet does not support sign-and-send transactions.',
+      isReady: supportsSignAndSend && isSupportedChain,
+      error: !supportsSignAndSend
+        ? 'This Solana wallet does not support sign-and-send transactions.'
+        : isSupportedChain
+          ? null
+          : 'MetaMask Solana is not connected to Solana mainnet.',
     });
   }
 
@@ -211,11 +246,18 @@ export function createSolanaMetaMaskCheckoutWalletAdapter(input: {
         throw new Error('This Solana wallet does not support sign-and-send transactions.');
       }
 
-      const [{ signature }] = await signAndSendTransaction({
-        account,
-        transaction: decodeBase64(action.transaction),
-        chain: action.walletChainId,
-      });
+      const chain = assertSolanaMainnetWalletChainId(action.walletChainId);
+      let result: readonly [{ signature: Uint8Array }];
+      try {
+        result = await signAndSendTransaction({
+          account,
+          transaction: decodeBase64(action.transaction),
+          chain,
+        });
+      } catch (error) {
+        throw new Error(normalizeError(error));
+      }
+      const [{ signature }] = result;
 
       return {
         paymentIntentId: action.paymentIntentId,

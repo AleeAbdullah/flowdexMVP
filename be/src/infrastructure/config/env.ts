@@ -8,7 +8,6 @@ export const env = {
   internalAuthAudience: process.env.INTERNAL_AUTH_AUDIENCE ?? "be-api",
   ethTreasuryAddress: process.env.ETH_TREASURY_ADDRESS ?? "",
   solTreasuryAddress: process.env.SOL_TREASURY_ADDRESS ?? "",
-  alchemySolanaRpcUrl: process.env.ALCHEMY_SOLANA_RPC_URL ?? "",
   solanaPreparedActionTtlSeconds: Number(process.env.SOLANA_PREPARED_ACTION_TTL_SECONDS ?? 75),
   solanaConfirmations: Number(process.env.SOLANA_CONFIRMATIONS ?? 1),
   btcTreasuryAddress: process.env.BTC_TREASURY_ADDRESS ?? "",
@@ -39,7 +38,6 @@ export function assertRequiredEnv(): void {
     "SOL_TREASURY_ADDRESS",
     ...(process.env.BTC_PAYMENTS_ENABLED === "true" ? ["BTC_TREASURY_EXTENDED_PUBLIC_KEY"] : []),
     "ALCHEMY_API_KEY",
-    "ALCHEMY_SOLANA_RPC_URL",
   ] as const;
 
   for (const key of required) {

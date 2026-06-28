@@ -60,7 +60,7 @@ export function DataKicker(props: {
       <div className="text-[10px] font-semibold tracking-[0.32em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
         {props.label}
       </div>
-      <div className="font-data text-xl font-semibold text-[var(--text)] md:text-2xl">{props.value}</div>
+      <div className="font-data font-semibold text-[var(--text)] text-md">{props.value}</div>
     </div>
   );
 }

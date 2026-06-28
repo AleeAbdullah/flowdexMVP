@@ -1,4 +1,7 @@
-import { PaymentsService } from './payments.service';
+import {
+  PaymentsService,
+  SOLANA_MAINNET_WALLET_CHAIN_ID,
+} from './payments.service';
 import { PaymentEntity } from './entities/payment.entity';
 import { PaymentIntentEntity } from './entities/payment-intent.entity';
 import { PaymentWalletActionEntity } from './entities/payment-wallet-action.entity';
@@ -670,20 +673,43 @@ describe('PaymentsService', () => {
         chain: PaymentChain.SOLANA,
         actionKind: PaymentWalletActionKind.SOLANA_TRANSACTION,
         senderAddress: solanaWalletAuth.walletAddressNormalized,
-        walletChainId: 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1',
+        walletChainId: SOLANA_MAINNET_WALLET_CHAIN_ID,
         requestJson: expect.objectContaining({
           transactionBase64: 'base64-tx',
           lastValidBlockHeight: 123,
+          walletChainId: SOLANA_MAINNET_WALLET_CHAIN_ID,
+          requestedWalletChainId: SOLANA_MAINNET_WALLET_CHAIN_ID,
         }),
       }));
       expect(result).toMatchObject({
         kind: PaymentWalletActionKind.SOLANA_TRANSACTION,
         paymentIntentId: intent.id,
         chain: PaymentChain.SOLANA,
+        walletChainId: SOLANA_MAINNET_WALLET_CHAIN_ID,
         transaction: 'base64-tx',
         transactionEncoding: 'base64',
         lastValidBlockHeight: 123,
       });
+    });
+
+    it('normalizes SOL wallet chain aliases before saving and returning the action', async () => {
+      const intent = buildSolanaIntent();
+      const { service, paymentWalletActionsRepository } = buildServiceForWalletActions({ intent });
+
+      const result = await service.prepareWalletAction(solanaWalletAuth, intent.id, {
+        chain: PaymentChain.SOLANA,
+        senderAddress: solanaWalletAuth.walletAddressNormalized,
+        walletChainId: 'solana:mainnet',
+      });
+
+      expect(paymentWalletActionsRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+        walletChainId: SOLANA_MAINNET_WALLET_CHAIN_ID,
+        requestJson: expect.objectContaining({
+          walletChainId: SOLANA_MAINNET_WALLET_CHAIN_ID,
+          requestedWalletChainId: 'solana:mainnet',
+        }),
+      }));
+      expect(result.walletChainId).toBe(SOLANA_MAINNET_WALLET_CHAIN_ID);
     });
 
     it('attaches a SOL signature as confirming after tx-result submission', async () => {

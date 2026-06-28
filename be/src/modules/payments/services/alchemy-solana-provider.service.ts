@@ -4,6 +4,7 @@ import type { Connection } from '@solana/web3.js';
 import { env } from '../../../infrastructure/config/env';
 
 const SOLANA_COMMITMENT = 'confirmed';
+const ALCHEMY_SOLANA_MAINNET_RPC_URL = 'https://solana-mainnet.g.alchemy.com/v2';
 
 export const SOLANA_WALLET_CHECKOUT_UNAVAILABLE = 'SOLANA_WALLET_CHECKOUT_UNAVAILABLE';
 export const SOLANA_WALLET_CHECKOUT_UNAVAILABLE_MESSAGE = 'Solana wallet checkout is temporarily unavailable. Please try again later.';
@@ -82,9 +83,10 @@ export class AlchemySolanaProvider {
   }
 
   private async getConnection(): Promise<Connection> {
-    const rpcUrl = env.alchemySolanaRpcUrl.trim();
+    const apiKey = env.alchemyApiKey.trim();
+    const rpcUrl = apiKey ? `${ALCHEMY_SOLANA_MAINNET_RPC_URL}/${apiKey}` : '';
     if (!rpcUrl) {
-      this.logger.error('Alchemy Solana provider is not configured: missing ALCHEMY_SOLANA_RPC_URL');
+      this.logger.error('Alchemy Solana provider is not configured: missing ALCHEMY_API_KEY');
       throw createSolanaWalletCheckoutUnavailableException();
     }
 

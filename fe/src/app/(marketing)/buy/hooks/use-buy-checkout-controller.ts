@@ -34,7 +34,7 @@ import {
 import { readStoredActivePayment, writeStoredActivePayment } from '../utils/buy-payment-storage';
 import { getInitialCheckoutStage } from '../utils/buy-checkout-flow';
 import { describeBuyExecutionReadinessBlock, getBuyExecutionReadiness } from '../utils/get-buy-execution-readiness';
-import { getCheckoutErrorMessage } from '../utils/get-checkout-error-message';
+import { getCheckoutErrorMessage, toCheckoutStepError } from '../utils/get-checkout-error-message';
 import { buildSupportedAssetOptions } from '../utils/supported-asset-options';
 import { createEvmCheckoutWalletAdapter } from '../wallet-adapters/checkout-wallet-adapter';
 import {
@@ -385,6 +385,8 @@ export function useBuyCheckoutController() {
         asset: selectedAsset.code,
         tokenAmount: tokenAmountInput,
         senderAddress: solanaAddress,
+      }).catch(error => {
+        throw toCheckoutStepError('create_intent', PAYMENT_CHAINS.SOLANA, error);
       });
       setActivePayment({ intent, payment: null });
 
@@ -395,6 +397,8 @@ export function useBuyCheckoutController() {
           senderAddress: solanaAddress,
           walletChainId,
         },
+      }).catch(error => {
+        throw toCheckoutStepError('prepare_wallet_action', PAYMENT_CHAINS.SOLANA, error);
       });
 
       setCheckoutStage('waiting_for_wallet_approval');
@@ -412,11 +416,15 @@ export function useBuyCheckoutController() {
               senderAddress: solanaAddress,
               walletChainId,
             },
+          }).catch(nextError => {
+            throw toCheckoutStepError('prepare_wallet_action', PAYMENT_CHAINS.SOLANA, nextError);
           });
           setCheckoutStage('waiting_for_wallet_approval');
-          nextWalletTxResult = await solanaWalletAdapter.sendPreparedAction(preparedWalletAction);
+          nextWalletTxResult = await solanaWalletAdapter.sendPreparedAction(preparedWalletAction).catch(nextError => {
+            throw toCheckoutStepError('wallet_approval', PAYMENT_CHAINS.SOLANA, nextError);
+          });
         } else {
-          throw error;
+          throw toCheckoutStepError('wallet_approval', PAYMENT_CHAINS.SOLANA, error);
         }
       }
 
@@ -434,6 +442,8 @@ export function useBuyCheckoutController() {
           txIdKind: nextWalletTxResult.txIdKind,
           txId: nextWalletTxResult.txId,
         },
+      }).catch(error => {
+        throw toCheckoutStepError('submit_tx_result', PAYMENT_CHAINS.SOLANA, error);
       });
       setActivePayment({ intent: status.intent, payment: status.payment });
       setCheckoutStage('tracking');

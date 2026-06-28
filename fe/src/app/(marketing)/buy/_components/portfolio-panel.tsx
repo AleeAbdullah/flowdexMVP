@@ -6,8 +6,8 @@ import { formatCurrency, formatDateTime, formatPlainNumber, truncateMiddle } fro
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePaymentPortfolio } from '@/dal/app/payments/payments.services';
-import type { IPaymentPortfolioBreakdown, IPaymentPortfolioTransaction } from '@/dal/app/payments/payments.types';
-import { Loader2, Lock, ReceiptText, Search, Wallet } from '@/icons';
+import type { IPaymentPortfolioTransaction } from '@/dal/app/payments/payments.types';
+import { Loader2, ReceiptText, Search, Wallet } from '@/icons';
 import { useMarketingWalletStore } from '@/hooks/use-marketing-wallet-store';
 import { cn } from '@/lib/utils';
 import type { BuyMarketView } from '../types/buy-view-model';
@@ -36,8 +36,6 @@ export function PortfolioPanel(props: {
   const confirmedTokenAmount = Number(portfolio?.summary.confirmedTokenAmount ?? 0);
   const currentPresaleValue = confirmedTokenAmount * props.market.tokenPriceUsd;
   const estimatedListingValue = confirmedTokenAmount * props.market.listingReferenceUsd;
-  const tgeUnlockAmount = confirmedTokenAmount * 0.05;
-  const lockedAmount = Math.max(0, confirmedTokenAmount - tgeUnlockAmount);
   const hasLookupAddress = Boolean(lookupAddress);
 
   function submitLookup() {
@@ -53,7 +51,7 @@ export function PortfolioPanel(props: {
         <div>
           <h1 className="text-[10px] font-bold tracking-[0.32em] text-[var(--cyan)] uppercase">Portfolio</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-            Confirmed presale allocation, payment activity, vesting preview, and future utility status for a wallet.
+            Confirmed presale allocation and payment activity for a wallet.
           </p>
           {lookupAddress ? (
             <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[#050c16] px-3 py-1.5 font-data text-xs text-[var(--text)]">
@@ -111,15 +109,6 @@ export function PortfolioPanel(props: {
             <PortfolioMetric label="Avg. Entry" value={formatCurrency(portfolio.summary.averageEntryPriceUsd, 4)} />
           </div>
 
-          <div className="mt-8 grid gap-6 xl:grid-cols-[1fr_0.85fr]">
-            <VestingPreview tgeUnlockAmount={tgeUnlockAmount} lockedAmount={lockedAmount} />
-            <PortfolioBreakdowns
-              assetBreakdowns={portfolio.breakdowns.byAsset}
-              chainBreakdowns={portfolio.breakdowns.byChain}
-              statusBreakdowns={portfolio.breakdowns.byStatus}
-            />
-          </div>
-
           <PortfolioTransactions transactions={portfolio.transactions} />
         </>
       ) : null}
@@ -145,72 +134,6 @@ function PortfolioMetric(props: {
     <div className="rounded-[0.85rem] border border-[var(--card-border)] bg-[#050c16] px-4 py-5">
       <DataKicker label={props.label} value={props.value} className={cn(props.accent && '[&>div:last-child]:text-emerald-300')} />
       {props.note ? <div className="mt-2 text-xs text-[var(--muted)]">{props.note}</div> : null}
-    </div>
-  );
-}
-
-function VestingPreview(props: {
-  tgeUnlockAmount: number;
-  lockedAmount: number;
-}) {
-  return (
-    <div className="rounded-[0.85rem] border border-[var(--card-border)] bg-[#050c16] p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-[10px] font-bold tracking-[0.32em] text-[var(--cyan)] uppercase">Vesting Preview</h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Claim support will unlock after TGE and Merkle proof publication.</p>
-        </div>
-        <Lock className="h-5 w-5 text-yellow-200" />
-      </div>
-      <div className="mt-5 grid h-10 overflow-hidden rounded-sm text-[10px] font-black md:grid-cols-[0.05fr_0.35fr_0.6fr]">
-        <div className="flex items-center justify-center bg-[var(--cyan)] text-[#02111c]">5%</div>
-        <div className="flex items-center justify-center bg-[#112337] text-[var(--muted)]">12mo Cliff</div>
-        <div className="flex items-center justify-center bg-[#0d9cb4] text-[var(--text)]">24mo Vest</div>
-      </div>
-      <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <DataKicker label="TGE Unlock" value={`${formatPlainNumber(props.tgeUnlockAmount, 0)} FDN`} />
-        <DataKicker label="Locked" value={`${formatPlainNumber(props.lockedAmount, 0)} FDN`} />
-      </div>
-    </div>
-  );
-}
-
-function PortfolioBreakdowns(props: {
-  assetBreakdowns: IPaymentPortfolioBreakdown[];
-  chainBreakdowns: IPaymentPortfolioBreakdown[];
-  statusBreakdowns: IPaymentPortfolioBreakdown[];
-}) {
-  return (
-    <div className="rounded-[0.85rem] border border-[var(--card-border)] bg-[#050c16] p-5">
-      <h2 className="text-[10px] font-bold tracking-[0.32em] text-[var(--cyan)] uppercase">Breakdown</h2>
-      <div className="mt-5 space-y-5">
-        <BreakdownGroup title="Confirmed Assets" items={props.assetBreakdowns} emptyLabel="No confirmed assets yet." />
-        <BreakdownGroup title="Confirmed Chains" items={props.chainBreakdowns} emptyLabel="No confirmed chains yet." />
-        <BreakdownGroup title="Status" items={props.statusBreakdowns} emptyLabel="No activity yet." />
-      </div>
-    </div>
-  );
-}
-
-function BreakdownGroup(props: {
-  title: string;
-  items: IPaymentPortfolioBreakdown[];
-  emptyLabel: string;
-}) {
-  return (
-    <div>
-      <div className="text-[10px] font-bold tracking-[0.24em] text-[var(--muted)] uppercase">{props.title}</div>
-      <div className="mt-3 space-y-2">
-        {props.items.length === 0 ? <div className="text-xs text-[var(--muted)]">{props.emptyLabel}</div> : null}
-        {props.items.map(item => (
-          <div key={`${props.title}-${item.key}`} className="flex items-center justify-between gap-4 text-sm">
-            <span className="font-bold text-[var(--text)]">{item.key}</span>
-            <span className="text-right font-data text-xs text-[var(--muted)]">
-              {formatCurrency(item.totalUsd, 0)} / {formatPlainNumber(item.tokenAmount, 0)} FDN
-            </span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

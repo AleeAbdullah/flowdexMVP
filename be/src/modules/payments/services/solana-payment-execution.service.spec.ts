@@ -1,6 +1,6 @@
 import { Logger, ServiceUnavailableException } from '@nestjs/common';
 
-import { assertRequiredEnv, env } from '../../../infrastructure/config/env';
+import { env } from '../../../infrastructure/config/env';
 import {
   AlchemySolanaProvider,
   createSolanaWalletCheckoutUnavailableException,
@@ -78,7 +78,7 @@ describe('SolanaPaymentExecutionService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     loggerErrorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation();
-    env.alchemySolanaRpcUrl = 'https://alchemy.example.invalid/v2/app-key';
+    env.alchemyApiKey = 'app-key';
     env.solTreasuryAddress = validPublicKey;
     env.solanaConfirmations = 1;
     env.solanaPreparedActionTtlSeconds = 60;
@@ -129,23 +129,6 @@ describe('SolanaPaymentExecutionService', () => {
       expectSanitizedSolanaUnavailable(error);
     }
     expect(solanaProvider.getSignatureStatus).toHaveBeenCalledWith(validSignature);
-  });
-
-  it('requires Alchemy Solana RPC config at startup', () => {
-    const originalEnv = { ...process.env };
-    process.env.DATABASE_URL = 'postgres://example.invalid/flowdex';
-    process.env.INTERNAL_AUTH_JWT_SECRET = 'secret';
-    process.env.ETH_TREASURY_ADDRESS = '0x2222222222222222222222222222222222222222';
-    process.env.SOL_TREASURY_ADDRESS = validPublicKey;
-    process.env.BTC_PAYMENTS_ENABLED = 'false';
-    process.env.ALCHEMY_API_KEY = 'app-key';
-    delete process.env.ALCHEMY_SOLANA_RPC_URL;
-
-    try {
-      expect(() => assertRequiredEnv()).toThrow('Missing required environment variable: ALCHEMY_SOLANA_RPC_URL');
-    } finally {
-      process.env = originalEnv;
-    }
   });
 
   it('uses the same sanitized checkout unavailable error when the SOL treasury address is missing', async () => {

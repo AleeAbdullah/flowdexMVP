@@ -75,6 +75,14 @@ const BTC_DERIVATION_ADVISORY_LOCK = 810_200_001;
 const PAYMENT_SCANNER_ADVISORY_LOCK = 810_200_002;
 const OPEN_BTC_INTENT_LIMIT = 3;
 const ETHEREUM_MAINNET_CHAIN_ID = 1;
+export const SOLANA_MAINNET_WALLET_CHAIN_ID = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1';
+const SOLANA_MAINNET_WALLET_CHAIN_ALIASES = new Set([
+  SOLANA_MAINNET_WALLET_CHAIN_ID,
+  'solana:mainnet',
+  'solana:mainnet-beta',
+  'mainnet',
+  'mainnet-beta',
+]);
 const PAYMENT_WALLET_ACTION_TTL_MS = 5 * 60 * 1000;
 const TX_HASH_PATTERN = /^0x[a-fA-F0-9]{64}$/;
 const SOLANA_SIGNATURE_PATTERN = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
@@ -247,9 +255,8 @@ export class PaymentsService {
     if (input.chain !== PaymentChain.SOLANA) {
       throw new BadRequestException('Unsupported wallet action chain');
     }
-    if (!input.walletChainId || typeof input.walletChainId !== 'string') {
-      throw new BadRequestException('Solana walletChainId is required');
-    }
+    const requestedWalletChainId = typeof input.walletChainId === 'string' ? input.walletChainId : null;
+    const walletChainId = this.normalizeSolanaWalletChainId(requestedWalletChainId);
 
     this.assertWalletIntentIsUsable(intent, senderAddress, PaymentChain.SOLANA);
 
@@ -271,6 +278,8 @@ export class PaymentsService {
       blockhash: prepared.blockhash,
       lastValidBlockHeight: prepared.lastValidBlockHeight,
       memoOrReference: prepared.memoOrReference,
+      walletChainId,
+      requestedWalletChainId,
     };
     const action = await this.paymentWalletActionsRepository.save(
       this.paymentWalletActionsRepository.create({
@@ -278,7 +287,7 @@ export class PaymentsService {
         chain: PaymentChain.SOLANA,
         actionKind: PaymentWalletActionKind.SOLANA_TRANSACTION,
         senderAddress,
-        walletChainId: input.walletChainId,
+        walletChainId,
         status: PaymentWalletActionStatus.PREPARED,
         requestJson,
         expiresAt,
@@ -294,7 +303,7 @@ export class PaymentsService {
       preparedActionId: action.id,
       chain: PaymentChain.SOLANA,
       cluster: prepared.cluster,
-      walletChainId: input.walletChainId,
+      walletChainId,
       payer: prepared.payer,
       transaction: prepared.transactionBase64,
       transactionEncoding: prepared.transactionEncoding,
@@ -1251,6 +1260,15 @@ export class PaymentsService {
     }
 
     return parsed;
+  }
+
+  private normalizeSolanaWalletChainId(value?: string | null): string {
+    const normalized = value?.trim() ?? '';
+    if (!normalized || SOLANA_MAINNET_WALLET_CHAIN_ALIASES.has(normalized)) {
+      return SOLANA_MAINNET_WALLET_CHAIN_ID;
+    }
+
+    throw new BadRequestException('Unsupported Solana wallet chain.');
   }
 
   private assertChainAsset(chain: PaymentChain, asset: PaymentAsset): void {
