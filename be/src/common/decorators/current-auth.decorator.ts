@@ -8,6 +8,7 @@ export interface AuthContext {
   sessionId: string;
   walletAddressNormalized?: string;
   walletAddressChecksum?: string;
+  walletChain?: 'ETHEREUM' | 'SOLANA';
   lastVerifiedChainId?: number | null;
 }
 

@@ -1,8 +1,10 @@
-import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 
+import { AuthContext, CurrentAuth } from '../../common/decorators/current-auth.decorator';
+import { InternalJwtGuard } from '../../common/guards/internal-jwt.guard';
 import {
   CreatePaymentIntentDto,
   PaymentHistoryQueryDto,
@@ -10,7 +12,11 @@ import {
   PaymentLeadersQueryDto,
   PaymentLeadersResponseDto,
   PaymentIntentStatusDto,
+  PaymentPortfolioResponseDto,
   PaymentPublicDto,
+  PreparedWalletActionDto,
+  PreparePaymentWalletActionDto,
+  SubmitPaymentTxResultDto,
 } from './dto/payments.dto';
 import { PaymentsService } from './payments.service';
 
@@ -36,6 +42,36 @@ export class PaymentsController {
   @Throttle({ status: { limit: 30, ttl: 60_000 } })
   getIntentStatus(@Param('intentId') intentId: string): Promise<PaymentIntentStatusDto> {
     return this.paymentsService.getIntentStatus(intentId);
+  }
+
+  @Post('intents/:intentId/wallet-action')
+  @ApiBearerAuth()
+  @UseGuards(InternalJwtGuard)
+  @Throttle({ walletAction: { limit: 10, ttl: 60_000 } })
+  prepareWalletAction(
+    @CurrentAuth() auth: AuthContext,
+    @Param('intentId') intentId: string,
+    @Body() body: PreparePaymentWalletActionDto,
+  ): Promise<PreparedWalletActionDto> {
+    return this.paymentsService.prepareWalletAction(auth, intentId, body);
+  }
+
+  @Post('intents/:intentId/tx-result')
+  @ApiBearerAuth()
+  @UseGuards(InternalJwtGuard)
+  @Throttle({ walletTxResult: { limit: 10, ttl: 60_000 } })
+  submitWalletTxResult(
+    @CurrentAuth() auth: AuthContext,
+    @Param('intentId') intentId: string,
+    @Body() body: SubmitPaymentTxResultDto,
+  ): Promise<PaymentIntentStatusDto> {
+    return this.paymentsService.submitWalletTxResult(auth, intentId, body);
+  }
+
+  @Get('portfolio')
+  @Throttle({ portfolio: { limit: 20, ttl: 60_000 } })
+  getPortfolio(@Query() query: PaymentHistoryQueryDto): Promise<PaymentPortfolioResponseDto> {
+    return this.paymentsService.getPublicPortfolio(query.walletAddress);
   }
 
   @Get()

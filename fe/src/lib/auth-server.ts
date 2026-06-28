@@ -88,6 +88,7 @@ async function mintWalletBackendAccessToken(session: WalletSession) {
   return new SignJWT({
     authType: 'wallet',
     sessionId: session.sessionId,
+    walletChain: session.walletChain,
     walletAddressNormalized: session.walletAddressNormalized,
     walletAddressChecksum: session.walletAddressChecksum,
     lastVerifiedChainId: session.lastVerifiedChainId,
@@ -165,7 +166,7 @@ export async function proxyBackendRequest(
 
   const topLevel = pathSegments[0];
 
-  if (topLevel === 'transactions') {
+  if (topLevel === 'transactions' || topLevel === 'payments') {
     const walletSession = await getOptionalWalletSessionFromRequest(request);
 
     if (!walletSession) {

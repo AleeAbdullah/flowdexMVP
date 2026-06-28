@@ -10,6 +10,8 @@ import { LeadersPanel } from './_components/leaders-panel';
 import { MarketScenarios } from './_components/market-scenarios';
 import { PaymentCard } from './_components/payment-card';
 import { PaymentDialogs } from './_components/payment-dialogs';
+import { PortfolioPanel } from './_components/portfolio-panel';
+import { WalletConnectionStatus } from './_components/wallet-connection-status';
 import { useBuyCheckoutController } from './hooks/use-buy-checkout-controller';
 
 const tabs = ['Buy $FDN', 'Portfolio'] as const;
@@ -23,7 +25,7 @@ export default function BuyRoute() {
 
   return (
     <main className="section-shell section-pad">
-      <PaymentDialogs wallet={wallet} payment={payment} actions={actions} />
+      <PaymentDialogs order={order} wallet={wallet} payment={payment} actions={actions} />
 
       <GlassPanel as="section" className="rounded-[1.15rem] bg-[var(--buy-panel)] p-6 md:p-8">
         <div className="grid gap-6 md:grid-cols-3 md:items-center">
@@ -91,7 +93,7 @@ export default function BuyRoute() {
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_31rem] xl:items-start">
         <div className="space-y-6">
-          <GlassPanel as="nav" className="grid max-w-[35rem] grid-cols-3 rounded-[0.7rem] bg-[var(--buy-panel)] p-1">
+          <GlassPanel as="nav" className="grid max-w-[35rem] grid-cols-2 rounded-[0.7rem] bg-[var(--buy-panel)] p-1">
             {tabs.map(tab => (
               <button
                 key={tab}
@@ -118,15 +120,14 @@ export default function BuyRoute() {
               </>
             ) : null}
 
-            {activeTab !== 'Buy $FDN' ? (
-              <div className="rounded-md border border-[var(--card-border)] bg-[#050c16] px-4 py-8 text-center text-sm text-[var(--muted)]">
-                {activeTab} is coming soon.
-              </div>
+            {activeTab === 'Portfolio' ? (
+              <PortfolioPanel market={market} />
             ) : null}
           </GlassPanel>
         </div>
 
         <aside className="space-y-6">
+          <WalletConnectionStatus wallet={wallet} actions={actions} />
           <BuySidebar />
           <GlassPanel as="section" className="rounded-[1.15rem] bg-[var(--buy-panel)] p-7">
             <LeadersPanel

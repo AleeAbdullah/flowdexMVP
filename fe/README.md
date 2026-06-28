@@ -1,3 +1,10 @@
+## Developer onboarding
+
+- Buy page crash course: [docs/buy-page-crash-course.md](docs/buy-page-crash-course.md)
+- Frontend standards: [docs/project-structure-and-best-practices.md](docs/project-structure-and-best-practices.md)
+
+## Wallet and transaction flow sketch
+
 1. User opens wallet page.
 2. User chooses Alchemy Embedded or MetaMask.
 

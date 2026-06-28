@@ -1,16 +1,19 @@
-import { normalizeWalletAddress } from './buy-display';
-import type { BuyExecutionReadiness, BuyWalletProvider } from './buy-transaction.types';
+import type { BuyWalletProvider, EvmExecutionReadiness } from './buy-transaction.types';
 
 const WALLET_CONNECT_NAMESPACE = 'eip155';
 const ETH_SEND_TRANSACTION_METHOD = 'eth_sendTransaction';
 const SWITCH_CHAIN_METHOD = 'wallet_switchEthereumChain';
+
+function normalizeWalletAddress(address: string | null | undefined) {
+  return address?.trim().toLowerCase() ?? null;
+}
 
 export function getWalletConnectSessionCapabilities(input: {
   provider: BuyWalletProvider;
   activeAddress: string | null;
   activeChainId: number | null;
   requiredChainId: number;
-}): BuyExecutionReadiness {
+}): EvmExecutionReadiness {
   const session = input.provider.session;
   const namespace = session?.namespaces?.[WALLET_CONNECT_NAMESPACE];
 

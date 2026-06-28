@@ -1,5 +1,5 @@
 import { isAddress, isHex } from 'viem';
-import type { IWalletTransactionRequest } from '@/dal/app/transactions/transactions.types';
+import type { IPaymentWalletTransactionRequest } from '@/dal/app/payments/payments.types';
 import { normalizeWalletAddress } from './buy-display';
 
 type ValidationErrorReason =
@@ -31,7 +31,7 @@ function assertHexQuantity(value: string, label: string) {
   }
 }
 
-export function validateBuySimulationRequest(request: IWalletTransactionRequest) {
+export function validateBuySimulationRequest(request: IPaymentWalletTransactionRequest) {
   if (!isAddress(request.to)) {
     throw new BuyTransactionValidationError('rpc_error', 'Simulation returned an invalid recipient address.');
   }
@@ -68,7 +68,7 @@ export function validateBuySimulationRequest(request: IWalletTransactionRequest)
 }
 
 export function assertSimulationMatchesWallet(input: {
-  request: IWalletTransactionRequest;
+  request: IPaymentWalletTransactionRequest;
   connectedAddress: string | null;
   verifiedWalletAddress: string | null;
   activeChainId: number | null;
@@ -93,7 +93,7 @@ export function assertSimulationMatchesWallet(input: {
 
 export function buildWalletRpcTransaction(input: {
   connectedAddress: `0x${string}`;
-  request: IWalletTransactionRequest;
+  request: IPaymentWalletTransactionRequest;
 }) {
   validateBuySimulationRequest(input.request);
 

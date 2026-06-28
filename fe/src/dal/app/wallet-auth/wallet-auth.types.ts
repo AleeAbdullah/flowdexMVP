@@ -1,10 +1,12 @@
 export type WalletChallengeInput = {
   walletAddress: string;
-  chainId: number;
+  chainId?: number;
+  walletChain?: 'ETHEREUM' | 'SOLANA';
 };
 
 export type IWalletChallenge = {
   challengeId: string;
+  walletChain: 'ETHEREUM' | 'SOLANA';
   domain: string;
   uri: string;
   walletAddressNormalized: string;
@@ -20,12 +22,14 @@ export type IWalletChallenge = {
 export type WalletVerifyInput = {
   challengeId: string;
   walletAddress: string;
-  chainId: number;
-  signature: `0x${string}`;
+  chainId?: number;
+  walletChain?: 'ETHEREUM' | 'SOLANA';
+  signature: string;
 };
 
 export type IWalletSession = {
   sessionId: string;
+  walletChain: 'ETHEREUM' | 'SOLANA';
   walletAddressNormalized: string;
   walletAddressChecksum: string;
   lastVerifiedChainId: number | null;
