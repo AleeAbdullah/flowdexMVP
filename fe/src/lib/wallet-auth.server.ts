@@ -4,6 +4,8 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { cookies, headers } from 'next/headers';
 import type { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
+import bs58 from 'bs58';
+import nacl from 'tweetnacl';
 import { getAddress, isAddress, recoverMessageAddress } from 'viem';
 import { Env } from '@/libs/Env';
 
@@ -13,6 +15,7 @@ const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 type WalletAuthChallengeRecord = {
   id: string;
+  wallet_chain: WalletChain;
   wallet_address_normalized: string;
   wallet_address_checksum: string;
   chain_id: number;
@@ -28,6 +31,7 @@ type WalletAuthChallengeRecord = {
 
 type WalletAuthSessionRecord = {
   id: string;
+  wallet_chain: WalletChain;
   wallet_address_normalized: string;
   wallet_address_checksum: string;
   last_verified_chain_id: number | null;
@@ -37,6 +41,7 @@ type WalletAuthSessionRecord = {
 
 export type WalletSession = {
   sessionId: string;
+  walletChain: WalletChain;
   walletAddressNormalized: string;
   walletAddressChecksum: string;
   lastVerifiedChainId: number | null;
@@ -45,6 +50,7 @@ export type WalletSession = {
 
 export type WalletChallengePayload = {
   challengeId: string;
+  walletChain: WalletChain;
   domain: string;
   uri: string;
   walletAddressNormalized: string;
@@ -56,6 +62,8 @@ export type WalletChallengePayload = {
   statement: string;
   message: string;
 };
+
+export type WalletChain = 'ETHEREUM' | 'SOLANA';
 
 const globalForWalletAuth = globalThis as typeof globalThis & {
   flowdexWalletAuthPool?: Pool;
@@ -79,9 +87,11 @@ async function ensureWalletAuthTables() {
   if (!globalForWalletAuth.flowdexWalletAuthEnsurePromise) {
     globalForWalletAuth.flowdexWalletAuthEnsurePromise = (async () => {
       try {
+        await pool.query('CREATE SCHEMA IF NOT EXISTS fe_auth');
         await pool.query(`
           CREATE TABLE IF NOT EXISTS wallet_auth_challenges (
             id uuid PRIMARY KEY,
+            wallet_chain varchar(16) NOT NULL DEFAULT 'ETHEREUM',
             wallet_address_normalized varchar(64) NOT NULL,
             wallet_address_checksum varchar(64) NOT NULL,
             chain_id int NOT NULL,
@@ -103,6 +113,7 @@ async function ensureWalletAuthTables() {
         await pool.query(`
           CREATE TABLE IF NOT EXISTS wallet_auth_sessions (
             id uuid PRIMARY KEY,
+            wallet_chain varchar(16) NOT NULL DEFAULT 'ETHEREUM',
             wallet_address_normalized varchar(64) NOT NULL,
             wallet_address_checksum varchar(64) NOT NULL,
             last_verified_chain_id int,
@@ -115,7 +126,9 @@ async function ensureWalletAuthTables() {
         await pool.query(`
           CREATE INDEX IF NOT EXISTS idx_wallet_auth_sessions_wallet
           ON wallet_auth_sessions (wallet_address_normalized, created_at)
-        `);
+      `);
+        await pool.query('ALTER TABLE wallet_auth_challenges ADD COLUMN IF NOT EXISTS wallet_chain varchar(16) NOT NULL DEFAULT \'ETHEREUM\'');
+        await pool.query('ALTER TABLE wallet_auth_sessions ADD COLUMN IF NOT EXISTS wallet_chain varchar(16) NOT NULL DEFAULT \'ETHEREUM\'');
       } catch (error) {
         globalForWalletAuth.flowdexWalletAuthEnsurePromise = undefined;
         throw error;
@@ -135,6 +148,26 @@ function normalizeWalletAddress(address: string) {
     normalized: address.trim().toLowerCase(),
     checksum: getAddress(address),
   };
+}
+
+function normalizeSolanaAddress(address: string) {
+  const trimmed = address.trim();
+  try {
+    const decoded = bs58.decode(trimmed);
+    if (decoded.length !== 32) {
+      throw new Error('Invalid Solana public key length');
+    }
+    return {
+      normalized: trimmed,
+      checksum: trimmed,
+    };
+  } catch {
+    throw new Error('Invalid Solana wallet address');
+  }
+}
+
+function normalizeWalletForChain(chain: WalletChain, address: string) {
+  return chain === 'SOLANA' ? normalizeSolanaAddress(address) : normalizeWalletAddress(address);
 }
 
 function resolveAllowedOrigins(baseUrl?: string) {
@@ -169,6 +202,7 @@ function assertTrustedOrigin(request: NextRequest) {
 }
 
 function buildChallengeMessage(input: {
+  walletChain: WalletChain;
   domain: string;
   uri: string;
   walletAddressChecksum: string;
@@ -185,6 +219,7 @@ function buildChallengeMessage(input: {
     '',
     `URI: ${input.uri}`,
     `Domain: ${input.domain}`,
+    `Wallet Chain: ${input.walletChain}`,
     `Wallet Address: ${input.walletAddressChecksum}`,
     `Chain ID: ${input.chainId}`,
     `Nonce: ${input.nonce}`,
@@ -208,11 +243,17 @@ function resolveCookieOptions(expiresAt: Date) {
 export async function createWalletChallenge(input: {
   request: NextRequest;
   walletAddress: string;
-  chainId: number;
+  chainId?: number;
+  walletChain?: WalletChain;
 }): Promise<WalletChallengePayload> {
   await ensureWalletAuthTables();
   const origin = assertTrustedOrigin(input.request);
-  const wallet = normalizeWalletAddress(input.walletAddress);
+  const walletChain = input.walletChain ?? 'ETHEREUM';
+  const chainId = walletChain === 'SOLANA' ? 0 : input.chainId;
+  if (typeof chainId !== 'number') {
+    throw new Error('chainId is required for EVM wallet verification');
+  }
+  const wallet = normalizeWalletForChain(walletChain, input.walletAddress);
   const issuedAt = new Date();
   const expiresAt = new Date(issuedAt.getTime() + CHALLENGE_TTL_MS);
   const domain = new URL(origin).host;
@@ -223,7 +264,8 @@ export async function createWalletChallenge(input: {
     domain,
     uri,
     walletAddressChecksum: wallet.checksum,
-    chainId: input.chainId,
+    walletChain,
+    chainId,
     nonce,
     issuedAt,
     expiresAt,
@@ -237,6 +279,7 @@ export async function createWalletChallenge(input: {
         id,
         wallet_address_normalized,
         wallet_address_checksum,
+        wallet_chain,
         chain_id,
         domain,
         uri,
@@ -245,13 +288,14 @@ export async function createWalletChallenge(input: {
         message,
         issued_at,
         expires_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
     `,
     [
       challengeId,
       wallet.normalized,
       wallet.checksum,
-      input.chainId,
+      walletChain,
+      chainId,
       domain,
       uri,
       nonce,
@@ -264,11 +308,12 @@ export async function createWalletChallenge(input: {
 
   return {
     challengeId,
+    walletChain,
     domain,
     uri,
     walletAddressNormalized: wallet.normalized,
     walletAddressChecksum: wallet.checksum,
-    chainId: input.chainId,
+    chainId,
     nonce,
     issuedAt: issuedAt.toISOString(),
     expiresAt: expiresAt.toISOString(),
@@ -281,22 +326,29 @@ export async function verifyWalletChallenge(input: {
   request: NextRequest;
   challengeId: string;
   walletAddress: string;
-  chainId: number;
-  signature: `0x${string}`;
+  chainId?: number;
+  walletChain?: WalletChain;
+  signature: string;
 }): Promise<WalletSession> {
   await ensureWalletAuthTables();
   assertTrustedOrigin(input.request);
-  const wallet = normalizeWalletAddress(input.walletAddress);
+  const walletChain = input.walletChain ?? 'ETHEREUM';
+  const chainId = walletChain === 'SOLANA' ? 0 : input.chainId;
+  if (typeof chainId !== 'number') {
+    throw new Error('chainId is required for EVM wallet verification');
+  }
+  const wallet = normalizeWalletForChain(walletChain, input.walletAddress);
   const challengeResult = await pool.query<WalletAuthChallengeRecord>(
     `
       SELECT *
       FROM wallet_auth_challenges
       WHERE id = $1
         AND wallet_address_normalized = $2
-        AND chain_id = $3
+        AND wallet_chain = $3
+        AND chain_id = $4
       LIMIT 1
     `,
-    [input.challengeId, wallet.normalized, input.chainId],
+    [input.challengeId, wallet.normalized, walletChain, chainId],
   );
   const challenge = challengeResult.rows[0];
 
@@ -310,13 +362,22 @@ export async function verifyWalletChallenge(input: {
     throw new Error('Wallet challenge expired');
   }
 
-  const recoveredAddress = await recoverMessageAddress({
-    message: challenge.message,
-    signature: input.signature,
-  });
+  if (walletChain === 'SOLANA') {
+    const signature = bs58.decode(input.signature);
+    const publicKey = bs58.decode(wallet.normalized);
+    const message = new TextEncoder().encode(challenge.message);
+    if (!nacl.sign.detached.verify(message, signature, publicKey)) {
+      throw new Error('Wallet signature does not match the requested address');
+    }
+  } else {
+    const recoveredAddress = await recoverMessageAddress({
+      message: challenge.message,
+      signature: input.signature as `0x${string}`,
+    });
 
-  if (recoveredAddress.toLowerCase() !== wallet.normalized) {
-    throw new Error('Wallet signature does not match the requested address');
+    if (recoveredAddress.toLowerCase() !== wallet.normalized) {
+      throw new Error('Wallet signature does not match the requested address');
+    }
   }
 
   await pool.query(
@@ -333,19 +394,21 @@ export async function verifyWalletChallenge(input: {
         id,
         wallet_address_normalized,
         wallet_address_checksum,
+        wallet_chain,
         last_verified_chain_id,
         expires_at,
         updated_at
-      ) VALUES ($1,$2,$3,$4,$5,now())
+      ) VALUES ($1,$2,$3,$4,$5,$6,now())
     `,
-    [sessionId, wallet.normalized, wallet.checksum, input.chainId, expiresAt.toISOString()],
+    [sessionId, wallet.normalized, wallet.checksum, walletChain, walletChain === 'SOLANA' ? null : chainId, expiresAt.toISOString()],
   );
 
   return {
     sessionId,
+    walletChain,
     walletAddressNormalized: wallet.normalized,
     walletAddressChecksum: wallet.checksum,
-    lastVerifiedChainId: input.chainId,
+    lastVerifiedChainId: walletChain === 'SOLANA' ? null : chainId,
     expiresAt: expiresAt.toISOString(),
   };
 }
@@ -375,6 +438,7 @@ async function readWalletSessionById(sessionId: string | null | undefined): Prom
 
   return {
     sessionId: session.id,
+    walletChain: session.wallet_chain,
     walletAddressNormalized: session.wallet_address_normalized,
     walletAddressChecksum: session.wallet_address_checksum,
     lastVerifiedChainId: session.last_verified_chain_id,

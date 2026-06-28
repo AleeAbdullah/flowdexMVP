@@ -5,8 +5,9 @@ import { attachWalletSessionCookie, clearWalletSessionCookie, clearWalletSession
 const schema = z.object({
   challengeId: z.string().uuid(),
   walletAddress: z.string().min(1),
-  chainId: z.number().int().positive(),
-  signature: z.string().startsWith('0x'),
+  chainId: z.number().int().positive().optional(),
+  walletChain: z.enum(['ETHEREUM', 'SOLANA']).optional(),
+  signature: z.string().min(1),
 });
 
 export const dynamic = 'force-dynamic';
@@ -24,7 +25,8 @@ export async function POST(request: NextRequest) {
       challengeId: body.challengeId,
       walletAddress: body.walletAddress,
       chainId: body.chainId,
-      signature: body.signature as `0x${string}`,
+      walletChain: body.walletChain,
+      signature: body.signature,
     });
 
     const response = NextResponse.json(session);

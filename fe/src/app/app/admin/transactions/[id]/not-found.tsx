@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { GlassPanel } from '@/components/flowdex/primitives';
+import { GlassPanel } from '@/components/glass-panel';
 import { ROUTES } from '@/routes';
 
 export default function AdminTransactionNotFound() {

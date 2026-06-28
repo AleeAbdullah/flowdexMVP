@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { DataKicker, GlassPanel, SectionHeading, StatusPill } from '@/components/flowdex/primitives';
+import { GlassPanel } from '@/components/glass-panel';
+import { DataKicker, SectionHeading, StatusPill } from '@/components/flowdex/primitives';
 import { formatDateTime, truncateMiddle } from '@/components/flowdex/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

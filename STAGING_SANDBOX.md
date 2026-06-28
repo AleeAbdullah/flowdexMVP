@@ -92,6 +92,7 @@ Create an `ADDRESS_ACTIVITY` webhook in your staging Alchemy app:
 - Tracked tx appears in `GET /transactions`
 - Webhook updates status and metadata idempotently
 - Backfill cron reconciles missed events via Transfers API
+- SOL wallet checkout derives the Alchemy Solana mainnet RPC endpoint from `ALCHEMY_API_KEY` and is confirmed only from a submitted wallet transaction signature (`/tx-result`); do not rely on treasury/reference address discovery scans for Solana.
 
 4. Admin reads
 - `GET /admin/stats` reflects ledger-backed counts/volume

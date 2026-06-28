@@ -4,7 +4,8 @@ import { createWalletChallenge } from '@/lib/wallet-auth.server';
 
 const schema = z.object({
   walletAddress: z.string().min(1),
-  chainId: z.number().int().positive(),
+  chainId: z.number().int().positive().optional(),
+  walletChain: z.enum(['ETHEREUM', 'SOLANA']).optional(),
 });
 
 export const dynamic = 'force-dynamic';
@@ -16,6 +17,7 @@ export async function POST(request: NextRequest) {
       request,
       walletAddress: body.walletAddress,
       chainId: body.chainId,
+      walletChain: body.walletChain,
     });
 
     return NextResponse.json(challenge);

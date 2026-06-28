@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { FlowdexWordmark, GlassPanel } from '../primitives';
+import { GlassPanel } from '@/components/glass-panel';
+import { FlowdexWordmark } from '../primitives';
 
 export function AuthFormShell(props: {
   badge: string;

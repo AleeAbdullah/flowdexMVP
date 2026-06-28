@@ -2,432 +2,234 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { formatUnits, isAddress } from 'viem';
+import { toast } from 'sonner';
 import type { BuySnapshot } from '@/components/flowdex/buy-page-types';
 import { buildBuyMarketModel } from '@/components/flowdex/buy-page-market';
 import { formatCompact, formatCurrency, formatDateTime, formatPlainNumber } from '@/components/flowdex/utils';
 import {
-  buildWalletSupportRegistry,
-  getBuyWalletPickerEntries,
-  getWalletSupportRuntime,
-} from '@/constants/wallet-support';
-import {
   paymentsQueryKeys,
   paymentsService,
   useCreatePaymentIntent,
+  usePreparePaymentWalletAction,
+  useSubmitPaymentIntentTxResult,
 } from '@/dal/app/payments/payments.services';
-import {
-  PAYMENT_CHAINS,
-  PAYMENT_INTENT_STATUSES,
-  PAYMENT_TERMINAL_STATUSES,
-  type IPaymentIntentPublic,
-  type IPaymentPublic,
-  type PaymentAsset,
-  type PaymentChain,
-  type PaymentIntentStatus,
-} from '@/dal/app/payments/payments.types';
-import { extractAxiosError } from '@/lib/axios';
-import { ROUTES } from '@/routes';
+import { PAYMENT_CHAINS, PAYMENT_TERMINAL_STATUSES } from '@/dal/app/payments/payments.types';
 import { useMarketingWalletStore } from '@/hooks/use-marketing-wallet-store';
-import { normalizeMarketingWalletConnectorName, useMarketingWalletSync } from '@/hooks/use-marketing-wallet-sync';
+import { useMarketingWalletSync } from '@/hooks/use-marketing-wallet-sync';
+import { usePricing } from '@/dal/market/pricing/pricing.services';
+import { usePresaleConfig, usePresaleStats, usePresaleTiers } from '@/dal/market/presale/presale.services';
+import { extractAxiosError } from '@/lib/axios';
+import type { ActivePaymentView, BuyCheckoutStage, PaymentInstructionSummary } from '../types/buy-view-model';
+import type { WalletTxResult } from '../types/checkout-wallet.types';
 import {
-  buildSupportedAssetOptions,
+  formatCompactCurrency,
+  formatPaymentAmount,
+  formatTokenAmount,
   getChainLabel,
-  getChainLabelFromId,
-  resolvePreferredSupportedAssetId,
-} from '../utils/supported-asset-options';
-import type {
-  ActivePaymentView,
-  BuyActionId,
-  BuyUiTone,
-  PaymentInstructionSummary,
-} from '../types/buy-view-model';
+  getPaymentStatusCopy,
+  normalizeWalletAddress,
+  normalizeOptionalAddress,
+  validateSenderAddress,
+} from '../utils/buy-display';
+import { readStoredActivePayment, writeStoredActivePayment } from '../utils/buy-payment-storage';
+import { getInitialCheckoutStage } from '../utils/buy-checkout-flow';
+import { describeBuyExecutionReadinessBlock, getBuyExecutionReadiness } from '../utils/get-buy-execution-readiness';
+import { getCheckoutErrorMessage, toCheckoutStepError } from '../utils/get-checkout-error-message';
+import { buildSupportedAssetOptions } from '../utils/supported-asset-options';
+import { createEvmCheckoutWalletAdapter } from '../wallet-adapters/checkout-wallet-adapter';
+import {
+  createSolanaMetaMaskCheckoutWalletAdapter,
+  initialSolanaCheckoutWalletAdapterState,
+} from '../wallet-adapters/solana-metamask-checkout-wallet-adapter';
 
-const ACTIVE_PAYMENT_STORAGE_KEY = 'flowdex.activePaymentIntent.v1';
-const DEFAULT_BUY_AMOUNT = '500';
+const DEFAULT_BUY_AMOUNT = '1.7544';
 const PAYMENT_STATUS_POLL_INTERVAL_MS = 12_000;
 const PAYMENT_STATUS_RATE_LIMIT_BACKOFF_MS = 30_000;
 
-const ASSET_DECIMALS: Record<PaymentAsset, number> = {
-  ETH: 18,
-  SOL: 9,
-  BTC: 8,
-};
-
-type StoredActivePayment = {
-  intent: IPaymentIntentPublic;
-  payment: IPaymentPublic | null;
-};
-
-function readStoredActivePayment(): ActivePaymentView | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  try {
-    const raw = window.sessionStorage.getItem(ACTIVE_PAYMENT_STORAGE_KEY);
-    if (!raw) {
-      return null;
-    }
-
-    const parsed = JSON.parse(raw) as StoredActivePayment;
-    if (!parsed.intent?.id) {
-      return null;
-    }
-
-    return {
-      intent: parsed.intent,
-      payment: parsed.payment ?? null,
-    };
-  } catch {
-    return null;
-  }
-}
-
-function writeStoredActivePayment(payment: ActivePaymentView | null) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  if (!payment) {
-    window.sessionStorage.removeItem(ACTIVE_PAYMENT_STORAGE_KEY);
-    return;
-  }
-
-  window.sessionStorage.setItem(ACTIVE_PAYMENT_STORAGE_KEY, JSON.stringify(payment));
-}
-
-function formatTokenAmount(input: number) {
-  if (!Number.isFinite(input) || input <= 0) {
-    return '';
-  }
-
-  return input.toFixed(6).replace(/\.?0+$/u, '');
-}
-
-function formatPaymentAmount(baseUnits: string, asset: PaymentAsset) {
-  try {
-    return `${formatUnits(BigInt(baseUnits), ASSET_DECIMALS[asset])} ${asset}`;
-  } catch {
-    return `${baseUnits} ${asset}`;
-  }
-}
-
-function formatCompactCurrency(value: number, maximumFractionDigits = 2) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    notation: 'compact',
-    maximumFractionDigits,
-  }).format(value);
-}
-
-function getPaymentStatusCopy(status: PaymentIntentStatus): {
-  title: string;
-  description: string;
-  tone: BuyUiTone;
-} {
-  switch (status) {
-    case PAYMENT_INTENT_STATUSES.WAITING:
-      return {
-        title: 'Waiting for payment',
-        description: 'Send the exact amount shown. This page will update when the payment is detected.',
-        tone: 'info',
-      };
-    case PAYMENT_INTENT_STATUSES.DETECTED:
-      return {
-        title: 'Payment detected',
-        description: 'The payment was found on-chain and is moving toward confirmation.',
-        tone: 'info',
-      };
-    case PAYMENT_INTENT_STATUSES.CONFIRMING:
-      return {
-        title: 'Confirming payment',
-        description: 'The payment is on-chain. We are waiting for the required confirmations.',
-        tone: 'info',
-      };
-    case PAYMENT_INTENT_STATUSES.CONFIRMED:
-      return {
-        title: 'Payment confirmed',
-        description: 'Your presale payment is confirmed and recorded for admin allocation review.',
-        tone: 'success',
-      };
-    case PAYMENT_INTENT_STATUSES.UNDERPAID:
-      return {
-        title: 'Amount was too low',
-        description: 'The received amount was lower than the required amount. Support review is needed.',
-        tone: 'warning',
-      };
-    case PAYMENT_INTENT_STATUSES.OVERPAID:
-      return {
-        title: 'Amount was higher than expected',
-        description: 'The received amount was higher than expected. Support review is needed.',
-        tone: 'warning',
-      };
-    case PAYMENT_INTENT_STATUSES.EXPIRED:
-      return {
-        title: 'Payment window expired',
-        description: 'This payment window expired before a matching payment was confirmed. Start a new purchase.',
-        tone: 'warning',
-      };
-    case PAYMENT_INTENT_STATUSES.LATE_PAID:
-      return {
-        title: 'Payment arrived after expiry',
-        description: 'A payment was detected after expiry. Support review is needed before allocation.',
-        tone: 'warning',
-      };
-    case PAYMENT_INTENT_STATUSES.FAILED:
-    default:
-      return {
-        title: 'Payment could not be confirmed',
-        description: 'The payment could not be confirmed. Start a new purchase or contact support.',
-        tone: 'danger',
-      };
-  }
-}
-
-function normalizeOptionalAddress(value: string) {
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-}
-
-function isPaymentChain(value: string): value is PaymentChain {
-  return value === PAYMENT_CHAINS.ETHEREUM
-    || value === PAYMENT_CHAINS.SOLANA
-    || value === PAYMENT_CHAINS.BITCOIN;
-}
-
-function isSimpleSolanaAddress(value: string) {
-  return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/u.test(value.trim());
-}
-
-function isSimpleBitcoinAddress(value: string) {
-  return /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,90}$/u.test(value.trim());
-}
-
-export function useBuyCheckoutController(snapshot: BuySnapshot) {
-  const market = buildBuyMarketModel(snapshot);
+export function useBuyCheckoutController() {
+  const pricing = usePricing();
+  const presaleStats = usePresaleStats();
+  const presaleTiers = usePresaleTiers();
+  const presaleConfig = usePresaleConfig();
+  const snapshot: BuySnapshot = pricing.data && presaleStats.data && presaleTiers.data && presaleConfig.data
+    ? {
+        pricing: pricing.data,
+        presaleStats: presaleStats.data,
+        presaleTiers: presaleTiers.data,
+        presaleConfig: presaleConfig.data,
+      }
+    : null;
+  const marketModel = buildBuyMarketModel(snapshot);
   const supportedAssets = useMemo(() => buildSupportedAssetOptions(snapshot), [snapshot]);
   const queryClient = useQueryClient();
-  const marketingWallet = useMarketingWalletSync();
   const createPaymentIntent = useCreatePaymentIntent();
+  const prepareWalletAction = usePreparePaymentWalletAction();
+  const submitPaymentIntentTxResult = useSubmitPaymentIntentTxResult();
+  const marketingWallet = useMarketingWalletSync();
+  const walletProvider = useMarketingWalletStore(state => state.provider);
+  const walletVerification = useMarketingWalletStore(state => state.verification);
+  const setProviderExecutionState = useMarketingWalletStore(state => state.setProviderExecutionState);
 
-  const provider = useMarketingWalletStore(state => state.provider);
-  const verification = useMarketingWalletStore(state => state.verification);
-  const checkout = useMarketingWalletStore(state => state.checkout);
-  const setCheckoutSelectedAssetId = useMarketingWalletStore(state => state.setCheckoutSelectedAssetId);
-  const setCheckoutAmountDisplay = useMarketingWalletStore(state => state.setCheckoutAmountDisplay);
-  const clearCheckoutLifecycle = useMarketingWalletStore(state => state.clearCheckoutLifecycle);
-
+  const [selectedAssetId, setSelectedAssetId] = useState('');
+  const [amountDisplay, setAmountDisplay] = useState(DEFAULT_BUY_AMOUNT);
   const [activePayment, setActivePayment] = useState<ActivePaymentView | null>(null);
   const [paymentWalletAddress, setPaymentWalletAddress] = useState('');
-  const [directPaymentWalletModalOpen, setDirectPaymentWalletModalOpen] = useState(false);
-  const [walletConnectModalOpen, setWalletConnectModalOpen] = useState(false);
-  const [walletPaymentRequested, setWalletPaymentRequested] = useState(false);
+  const [checkoutStage, setCheckoutStage] = useState<BuyCheckoutStage>('closed');
   const [formError, setFormError] = useState<string | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
-  const statusRequestInFlightRef = useRef(false);
-  const statusBackoffUntilRef = useRef(0);
-  const manualSelectedAssetIdRef = useRef<string | null>(null);
-  const walletPaymentSubmissionInFlightRef = useRef(false);
-
-  const checkoutInProgress = checkout.submission !== 'idle' || Boolean(activePayment);
-  const manualSelectionIsCurrent = Boolean(
-    manualSelectedAssetIdRef.current
-    && checkout.selectedAssetId === manualSelectedAssetIdRef.current
-    && supportedAssets.some(asset => asset.id === manualSelectedAssetIdRef.current),
-  );
-  const preferredAssetId = resolvePreferredSupportedAssetId({
-    selectedAssetId: checkout.selectedAssetId,
-    preserveSelectedAsset: manualSelectionIsCurrent || checkoutInProgress,
-    supportedAssets,
-    verifiedChainId: verification.chainId,
-    providerChainId: provider.status === 'connected' ? provider.chainId : null,
-  });
+  const [statusBackoffUntil, setStatusBackoffUntil] = useState(0);
+  const [walletTxResult, setWalletTxResult] = useState<WalletTxResult | null>(null);
+  const [solanaWalletState, setSolanaWalletState] = useState(initialSolanaCheckoutWalletAdapterState);
+  const solanaWalletStateRef = useRef(solanaWalletState);
 
   useEffect(() => {
-    if (checkout.selectedAssetId === preferredAssetId) {
-      return;
-    }
+    solanaWalletStateRef.current = solanaWalletState;
+  }, [solanaWalletState]);
 
-    setCheckoutSelectedAssetId(preferredAssetId);
-  }, [checkout.selectedAssetId, preferredAssetId, setCheckoutSelectedAssetId]);
-
-  useEffect(() => {
-    if (checkout.amountDisplay) {
-      return;
-    }
-
-    setCheckoutAmountDisplay(DEFAULT_BUY_AMOUNT);
-  }, [checkout.amountDisplay, setCheckoutAmountDisplay]);
+  const solanaWalletAdapter = useMemo(() => createSolanaMetaMaskCheckoutWalletAdapter({
+    getState: () => solanaWalletStateRef.current,
+    setState: (state) => {
+      solanaWalletStateRef.current = state;
+      setSolanaWalletState(state);
+    },
+  }), []);
 
   useEffect(() => {
-    const stored = readStoredActivePayment();
-    if (stored) {
-      setActivePayment(stored);
+    if (!selectedAssetId && supportedAssets[0]) {
+      setSelectedAssetId(supportedAssets[0].id);
     }
+  }, [selectedAssetId, supportedAssets]);
+
+  useEffect(() => {
+    setActivePayment(readStoredActivePayment());
   }, []);
 
   useEffect(() => {
     writeStoredActivePayment(activePayment);
   }, [activePayment]);
 
+  const selectedAsset = supportedAssets.find(asset => asset.id === selectedAssetId) ?? supportedAssets[0] ?? null;
+  const assetAmount = Number(amountDisplay);
+  const contributionUsd = selectedAsset && Number.isFinite(assetAmount) ? assetAmount * selectedAsset.usdPrice : 0;
+  const tokenAmount = marketModel.tokenPriceUsd > 0 ? contributionUsd / marketModel.tokenPriceUsd : 0;
+  const tokenAmountInput = formatTokenAmount(tokenAmount);
+  const listingValue = tokenAmount * marketModel.listingReferenceUsd;
+  const roiPercent = contributionUsd > 0 ? ((listingValue - contributionUsd) / contributionUsd) * 100 : 0;
+  const remainingTokens = Math.max(0, marketModel.remainingRaiseUsd / Math.max(marketModel.tokenPriceUsd, 0.000001));
+  const validationError = selectedAsset ? validateSenderAddress(selectedAsset.chain, paymentWalletAddress) : null;
+  const canSubmit = Boolean(selectedAsset && !createPaymentIntent.isPending && contributionUsd > 0 && tokenAmountInput);
+  const selectedChainLabel = selectedAsset ? getChainLabel(selectedAsset.chain) : 'Ethereum';
+  const canUseWalletCheckout = selectedAsset?.chain === PAYMENT_CHAINS.SOLANA
+    || Boolean(selectedAsset?.chainId);
+
   useEffect(() => {
-    if (provider.status === 'connected' && provider.address && !paymentWalletAddress) {
-      setPaymentWalletAddress(provider.address);
+    let canceled = false;
+
+    async function syncExecutionReadiness() {
+      if (selectedAsset?.chain !== PAYMENT_CHAINS.ETHEREUM) {
+        setProviderExecutionState({
+          executionReadiness: 'checking',
+          unsupportedReason: null,
+        });
+        return;
+      }
+
+      if (!walletProvider.address || !selectedAsset.chainId) {
+        setProviderExecutionState({
+          executionReadiness: 'checking',
+          unsupportedReason: null,
+        });
+        return;
+      }
+
+      const readiness = await getBuyExecutionReadiness({
+        asset: selectedAsset.code,
+        chain: selectedAsset.chain,
+        selectedCheckoutMode: 'wallet',
+        providerAccount: marketingWallet.providerAccount,
+        requiredChainId: selectedAsset.chainId,
+      });
+
+      if (canceled) {
+        return;
+      }
+
+      setProviderExecutionState({
+        executionReadiness: readiness.status === 'ready'
+          ? 'ready'
+          : readiness.status === 'checking' || readiness.status === 'wallet_not_connected'
+            ? 'checking'
+            : 'unsupported',
+        unsupportedReason: 'reason' in readiness ? readiness.reason : null,
+        walletConnectTopic: walletProvider.walletConnectTopic,
+      });
     }
-  }, [paymentWalletAddress, provider.address, provider.status]);
 
-  const selectedAsset = supportedAssets.find(asset => asset.id === (checkout.selectedAssetId ?? preferredAssetId)) ?? null;
-  const selectedChainLabel = selectedAsset ? getChainLabel(selectedAsset.chain) : 'No chain selected';
-  const walletChainLabel = getChainLabelFromId(provider.chainId);
-  const walletStatusLabel = provider.status === 'connected' ? 'Connected optional' : 'Wallet optional';
+    void syncExecutionReadiness();
 
-  const walletSupportRegistry = useMemo(() => {
-    const runtime = getWalletSupportRuntime();
-    return buildWalletSupportRegistry({
-      walletConnectEnabled: runtime.walletConnectEnabled,
-    });
-  }, []);
-  const walletButtons = useMemo(() => {
-    const availableConnectorNames = new Set(provider.availableConnectorNames);
-    return [...getBuyWalletPickerEntries(walletSupportRegistry)].sort((left, right) => {
-      if (left.id === 'wallet-connect') {
-        return -1;
-      }
-
-      if (right.id === 'wallet-connect') {
-        return 1;
-      }
-
-      return 0;
-    }).map((entry) => {
-      const normalizedConnectorName = normalizeMarketingWalletConnectorName(entry.accountKitName);
-      const isConnectedConnector = provider.status === 'connected'
-        && provider.connectorName === normalizedConnectorName;
-      const isUnavailable = !availableConnectorNames.has(normalizedConnectorName);
-      const isLockedByActiveWallet = provider.status === 'connected' && !isConnectedConnector;
-      const displayName = entry.id === 'wallet-connect'
-        ? 'Wallet'
-        : entry.id === 'metamask'
-          ? 'Connect MetaMask'
-          : entry.id === 'coinbase-wallet'
-            ? 'Connect Coinbase'
-            : entry.displayName;
-      return {
-        id: entry.id,
-        label: displayName,
-        caption: isConnectedConnector
-          ? 'This is the active wallet for the current checkout.'
-          : isLockedByActiveWallet
-            ? 'Disconnect the active wallet before selecting this option.'
-            : entry.releaseTier === 'fallback'
-              ? 'Connect with WalletConnect to pay from a supported wallet.'
-              : 'Connect this wallet to pay from its active address.',
-        mode: entry.releaseTier === 'fallback' ? 'session-gated' as const : 'direct' as const,
-        busy: provider.status === 'checking' && provider.pendingConnectorName === normalizedConnectorName,
-        connected: isConnectedConnector,
-        disabled: isUnavailable || provider.status === 'checking' || provider.status === 'connected',
-        onClick: () => {
-          clearCheckoutLifecycle();
-          setFormError(null);
-          setWalletPaymentRequested(true);
-          marketingWallet.clearConnectionIssue();
-          marketingWallet.connectByName(normalizedConnectorName, { chainId: 1 });
-        },
-      };
-    });
+    return () => {
+      canceled = true;
+    };
   }, [
-    clearCheckoutLifecycle,
-    marketingWallet,
-    provider.availableConnectorNames,
-    provider.pendingConnectorName,
-    provider.status,
-    walletSupportRegistry,
+    marketingWallet.providerAccount,
+    selectedAsset?.chainId,
+    selectedAsset?.chain,
+    selectedAsset?.code,
+    setProviderExecutionState,
+    walletProvider.address,
+    walletProvider.walletConnectTopic,
   ]);
 
-  const usdAmount = Number(checkout.amountDisplay);
-  const tokenAmount = market.tokenPriceUsd > 0 ? usdAmount / market.tokenPriceUsd : 0;
-  const tokenAmountInput = formatTokenAmount(tokenAmount);
-  const estimatedTokensDisplay = tokenAmount > 0 ? formatPlainNumber(tokenAmount, 2) : '0';
-  const estimatedContributionUsdDisplay = Number.isFinite(usdAmount) && usdAmount > 0 ? formatCurrency(usdAmount, 0) : '$0';
+  const selectedWalletAddress = selectedAsset?.chain === PAYMENT_CHAINS.SOLANA
+    ? solanaWalletState.address
+    : walletProvider.address;
 
-  function getPaymentWalletValidation(addressInput: string) {
-    const address = addressInput.trim();
-    if (!selectedAsset) {
-      return null;
+  useEffect(() => {
+    if ((checkoutStage === 'choose_method' || checkoutStage === 'connecting_wallet') && selectedWalletAddress) {
+      setCheckoutStage('wallet_ready');
     }
 
-    if (selectedAsset.chain === PAYMENT_CHAINS.ETHEREUM) {
-      if (!address) {
-        return 'Enter the Ethereum wallet address you will pay from.';
-      }
-
-      return isAddress(address) ? null : 'Enter a valid EVM wallet address.';
+    if (
+      (
+        checkoutStage === 'wallet_ready'
+        || checkoutStage === 'verifying_wallet'
+        || checkoutStage === 'preparing_wallet_action'
+        || checkoutStage === 'waiting_for_wallet_approval'
+        || checkoutStage === 'submitting_tx_result'
+      )
+      && !selectedWalletAddress
+    ) {
+      setCheckoutStage(getInitialCheckoutStage({
+        hasActivePayment: false,
+        canUseWalletCheckout,
+      }));
     }
-
-    if (!address) {
-      return null;
-    }
-
-    if (selectedAsset.chain === PAYMENT_CHAINS.SOLANA) {
-      return isSimpleSolanaAddress(address) ? null : 'Enter a valid Solana public key or leave this blank.';
-    }
-
-    if (selectedAsset.chain === PAYMENT_CHAINS.BITCOIN) {
-      return isSimpleBitcoinAddress(address) ? null : 'Enter a valid Bitcoin address or leave this blank.';
-    }
-
-    return null;
-  }
-
-  const paymentWalletValidation = getPaymentWalletValidation(paymentWalletAddress);
-
-  const canSubmit = Boolean(
-    selectedAsset
-    && !activePayment
-    && !createPaymentIntent.isPending
-    && checkout.submission !== 'creating_intent'
-    && checkout.amountDisplay
-    && Number.isFinite(usdAmount)
-    && usdAmount > 0
-    && tokenAmountInput
-  );
-
-  const paymentInstruction = activePayment
-    ? buildPaymentInstructionSummary(activePayment.intent, activePayment.payment, selectedChainLabel)
-    : null;
-  const latestExplorerUrl = activePayment?.payment?.txHash
-    ? getExplorerUrl(activePayment.payment.chain, activePayment.payment.txHash)
-    : null;
+  }, [canUseWalletCheckout, checkoutStage, selectedWalletAddress]);
 
   async function refreshStatus(intentId: string) {
-    if (statusRequestInFlightRef.current || Date.now() < statusBackoffUntilRef.current) {
+    if (Date.now() < statusBackoffUntil) {
       return;
     }
 
-    statusRequestInFlightRef.current = true;
     setIsCheckingStatus(true);
-
     try {
       const result = await paymentsService.getPaymentIntentStatus(intentId);
-      setActivePayment({
-        intent: result.intent,
-        payment: result.payment,
-      });
+      setActivePayment({ intent: result.intent, payment: result.payment });
       setStatusError(null);
-      await queryClient.invalidateQueries({ queryKey: paymentsQueryKeys.history(result.intent.senderAddress) });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: paymentsQueryKeys.history(result.intent.senderAddress) }),
+        queryClient.invalidateQueries({ queryKey: paymentsQueryKeys.portfolio(result.intent.senderAddress) }),
+      ]);
     } catch (error) {
       const details = extractAxiosError(error);
       if (details.status === 429) {
-        statusBackoffUntilRef.current = Date.now() + PAYMENT_STATUS_RATE_LIMIT_BACKOFF_MS;
+        setStatusBackoffUntil(Date.now() + PAYMENT_STATUS_RATE_LIMIT_BACKOFF_MS);
         setStatusError('Payment status is updating slowly. Checking again shortly.');
       } else {
         setStatusError(details.message || 'Could not refresh payment status. Retrying shortly.');
       }
     } finally {
-      statusRequestInFlightRef.current = false;
       setIsCheckingStatus(false);
     }
   }
@@ -443,70 +245,59 @@ export function useBuyCheckoutController(snapshot: BuySnapshot) {
     }, PAYMENT_STATUS_POLL_INTERVAL_MS);
 
     return () => window.clearInterval(interval);
-  }, [activePayment?.intent.id, activePayment?.intent.status]);
+  }, [activePayment?.intent.id, activePayment?.intent.status, statusBackoffUntil]);
 
-  function handleAssetChange(assetId: string) {
-    manualSelectedAssetIdRef.current = assetId;
-    setFormError(null);
-    setCheckoutSelectedAssetId(assetId);
-  }
-
-  function handleAmountChange(value: string) {
-    setFormError(null);
-    setCheckoutAmountDisplay(value.replace(/[^\d.]/gu, ''));
-  }
-
-  function getNormalizedSenderAddress(addressInput: string | undefined) {
-    if (!selectedAsset) {
-      return undefined;
-    }
-
-    const address = addressInput?.trim() ?? '';
-    if (!address) {
-      return undefined;
-    }
-
-    if (selectedAsset.chain === PAYMENT_CHAINS.ETHEREUM) {
-      return isAddress(address) ? address : undefined;
-    }
-
-    if (selectedAsset.chain === PAYMENT_CHAINS.SOLANA) {
-      return isSimpleSolanaAddress(address) ? address : undefined;
-    }
-
-    if (selectedAsset.chain === PAYMENT_CHAINS.BITCOIN) {
-      return isSimpleBitcoinAddress(address) ? address : undefined;
-    }
-
-    return undefined;
-  }
-
-  async function handleSubmitContribution(options?: {
-    senderAddressOverride?: string;
-    requireEthSenderModal?: boolean;
-  }) {
-    if (!selectedAsset || !canSubmit || !isPaymentChain(selectedAsset.chain)) {
+  function openCheckout() {
+    if (!selectedAsset || !canSubmit) {
       return;
     }
 
-    const senderAddressInput = options?.senderAddressOverride ?? paymentWalletAddress;
-    const senderAddressValidation = getPaymentWalletValidation(senderAddressInput);
-
-    if (selectedAsset.chain === PAYMENT_CHAINS.ETHEREUM && senderAddressValidation) {
-      setFormError(senderAddressValidation);
-      if (options?.requireEthSenderModal !== false) {
-        setDirectPaymentWalletModalOpen(true);
-      }
+    setFormError(null);
+    if (activePayment) {
+      setCheckoutStage('direct_instructions');
       return;
     }
 
-    const senderAddress = getNormalizedSenderAddress(senderAddressInput);
+    setCheckoutStage(getInitialCheckoutStage({
+      hasActivePayment: Boolean(activePayment),
+      canUseWalletCheckout,
+    }));
+  }
 
-    if (selectedAsset.chain === PAYMENT_CHAINS.ETHEREUM && !senderAddress) {
-      setFormError('Enter the Ethereum wallet address you will pay from.');
-      if (options?.requireEthSenderModal !== false) {
-        setDirectPaymentWalletModalOpen(true);
-      }
+  function closeCheckout() {
+    setCheckoutStage('closed');
+    setFormError(null);
+  }
+
+  function useDirectSend() {
+    const address = selectedAsset?.chain === PAYMENT_CHAINS.SOLANA
+      ? solanaWalletState.address
+      : walletProvider.address;
+    if (address && !paymentWalletAddress.trim()) {
+      setPaymentWalletAddress(address);
+    }
+    setFormError(null);
+    setCheckoutStage(getInitialCheckoutStage({
+      hasActivePayment: Boolean(activePayment),
+      canUseWalletCheckout: false,
+    }));
+  }
+
+  async function createDirectPayment() {
+    if (!selectedAsset || !canSubmit) {
+      return;
+    }
+
+    if (!paymentWalletAddress.trim()) {
+      setFormError('Enter the wallet address you will pay from.');
+      setCheckoutStage('direct_address');
+      return;
+    }
+
+    const senderValidation = validateSenderAddress(selectedAsset.chain, paymentWalletAddress);
+    if (senderValidation) {
+      setFormError(senderValidation);
+      setCheckoutStage('direct_address');
       return;
     }
 
@@ -516,182 +307,455 @@ export function useBuyCheckoutController(snapshot: BuySnapshot) {
         chain: selectedAsset.chain,
         asset: selectedAsset.code,
         tokenAmount: tokenAmountInput,
-        senderAddress: senderAddress ? normalizeOptionalAddress(senderAddress) : undefined,
+        senderAddress: normalizeOptionalAddress(paymentWalletAddress),
       });
-
-      const nextPayment = {
-        intent,
-        payment: null,
-      };
-      setActivePayment(nextPayment);
-      setDirectPaymentWalletModalOpen(false);
-      setWalletConnectModalOpen(false);
-      setWalletPaymentRequested(false);
-      writeStoredActivePayment(nextPayment);
+      setActivePayment({ intent, payment: null });
+      setCheckoutStage('direct_instructions');
     } catch (error) {
       const details = extractAxiosError(error);
       setFormError(details.message || 'Could not start this payment.');
-      if (options?.requireEthSenderModal === false) {
-        setWalletConnectModalOpen(false);
-        setWalletPaymentRequested(false);
+      setCheckoutStage('failed');
+    }
+  }
+
+  async function verifyConnectedWallet() {
+    if (selectedAsset?.chain === PAYMENT_CHAINS.SOLANA) {
+      setFormError(null);
+      setCheckoutStage('verifying_wallet');
+      try {
+        if (!solanaWalletStateRef.current.address) {
+          await solanaWalletAdapter.connect();
+        }
+        await solanaWalletAdapter.verify?.();
+        setCheckoutStage('wallet_ready');
+      } catch (error) {
+        setFormError(error instanceof Error ? error.message : 'Could not verify Solana wallet.');
+        setCheckoutStage('failed');
+      }
+      return;
+    }
+
+    if (!selectedAsset?.chainId) {
+      useDirectSend();
+      return;
+    }
+
+    if (!walletProvider.address) {
+      setFormError('Connect a wallet before continuing.');
+      setCheckoutStage('choose_method');
+      return;
+    }
+
+    setFormError(null);
+    setCheckoutStage('verifying_wallet');
+    await marketingWallet.verifyWallet({ chainId: selectedAsset.chainId });
+    const nextVerification = useMarketingWalletStore.getState().verification;
+    setCheckoutStage(nextVerification.status === 'verified' ? 'wallet_ready' : 'failed');
+  }
+
+  async function submitSolanaWalletPayment() {
+    if (!selectedAsset || selectedAsset.chain !== PAYMENT_CHAINS.SOLANA) {
+      useDirectSend();
+      return;
+    }
+
+    setFormError(null);
+    setWalletTxResult(null);
+
+    try {
+      if (!solanaWalletStateRef.current.address) {
+        setCheckoutStage('connecting_wallet');
+        await solanaWalletAdapter.connect();
+      }
+
+      if (!solanaWalletStateRef.current.isVerified) {
+        setCheckoutStage('verifying_wallet');
+        await solanaWalletAdapter.verify?.();
+      }
+
+      const solanaAddress = solanaWalletStateRef.current.address;
+      const walletChainId = solanaWalletStateRef.current.walletChainId;
+      if (!solanaAddress || !walletChainId) {
+        throw new Error('Connect MetaMask Solana before continuing.');
+      }
+
+      setCheckoutStage('preparing_wallet_action');
+      const intent = await createPaymentIntent.mutateAsync({
+        chain: selectedAsset.chain,
+        asset: selectedAsset.code,
+        tokenAmount: tokenAmountInput,
+        senderAddress: solanaAddress,
+      }).catch(error => {
+        throw toCheckoutStepError('create_intent', PAYMENT_CHAINS.SOLANA, error);
+      });
+      setActivePayment({ intent, payment: null });
+
+      let preparedWalletAction = await prepareWalletAction.mutateAsync({
+        intentId: intent.id,
+        payload: {
+          chain: PAYMENT_CHAINS.SOLANA,
+          senderAddress: solanaAddress,
+          walletChainId,
+        },
+      }).catch(error => {
+        throw toCheckoutStepError('prepare_wallet_action', PAYMENT_CHAINS.SOLANA, error);
+      });
+
+      setCheckoutStage('waiting_for_wallet_approval');
+      let nextWalletTxResult: WalletTxResult;
+      try {
+        nextWalletTxResult = await solanaWalletAdapter.sendPreparedAction(preparedWalletAction);
+      } catch (error) {
+        if (error instanceof Error && error.message === 'Prepared Solana transaction expired') {
+          setFormError('Your Solana transaction expired before approval. Preparing a fresh transaction...');
+          setCheckoutStage('preparing_wallet_action');
+          preparedWalletAction = await prepareWalletAction.mutateAsync({
+            intentId: intent.id,
+            payload: {
+              chain: PAYMENT_CHAINS.SOLANA,
+              senderAddress: solanaAddress,
+              walletChainId,
+            },
+          }).catch(nextError => {
+            throw toCheckoutStepError('prepare_wallet_action', PAYMENT_CHAINS.SOLANA, nextError);
+          });
+          setCheckoutStage('waiting_for_wallet_approval');
+          nextWalletTxResult = await solanaWalletAdapter.sendPreparedAction(preparedWalletAction).catch(nextError => {
+            throw toCheckoutStepError('wallet_approval', PAYMENT_CHAINS.SOLANA, nextError);
+          });
+        } else {
+          throw toCheckoutStepError('wallet_approval', PAYMENT_CHAINS.SOLANA, error);
+        }
+      }
+
+      if (nextWalletTxResult.chain !== PAYMENT_CHAINS.SOLANA) {
+        throw new Error('Unsupported wallet transaction result for this checkout.');
+      }
+      setWalletTxResult(nextWalletTxResult);
+
+      setCheckoutStage('submitting_tx_result');
+      const status = await submitPaymentIntentTxResult.mutateAsync({
+        intentId: intent.id,
+        payload: {
+          chain: nextWalletTxResult.chain,
+          preparedActionId: nextWalletTxResult.preparedActionId,
+          txIdKind: nextWalletTxResult.txIdKind,
+          txId: nextWalletTxResult.txId,
+        },
+      }).catch(error => {
+        throw toCheckoutStepError('submit_tx_result', PAYMENT_CHAINS.SOLANA, error);
+      });
+      setActivePayment({ intent: status.intent, payment: status.payment });
+      setCheckoutStage('tracking');
+    } catch (error) {
+      const errorView = getCheckoutErrorMessage(error);
+
+      setFormError(errorView.message);
+      setCheckoutStage('failed');
+      if (errorView.variant === 'warning') {
+        toast.warning(errorView.title, { description: errorView.message });
+      } else {
+        toast.error(errorView.title, { description: errorView.message });
       }
     }
   }
 
-  function handlePayDirect() {
-    void handleSubmitContribution({ requireEthSenderModal: true });
-  }
-
-  function handlePayViaWallet() {
-    if (selectedAsset?.chain !== PAYMENT_CHAINS.ETHEREUM) {
-      setFormError('Pay via wallet is available for ETH payments only.');
+  async function submitWalletPayment() {
+    if (selectedAsset?.chain === PAYMENT_CHAINS.SOLANA) {
+      await submitSolanaWalletPayment();
       return;
     }
 
-    if (!canSubmit) {
+    if (!selectedAsset?.chainId) {
+      useDirectSend();
       return;
     }
 
+    if (!walletProvider.address || !marketingWallet.providerAccount.connector) {
+      setFormError('Connect a wallet before continuing.');
+      setCheckoutStage('choose_method');
+      return;
+    }
+
+    const requiredChainId = selectedAsset.chainId;
     setFormError(null);
-    setWalletPaymentRequested(true);
-    setWalletConnectModalOpen(true);
-  }
+    setWalletTxResult(null);
 
-  useEffect(() => {
-    if (
-      !walletPaymentRequested
-      || walletPaymentSubmissionInFlightRef.current
-      || provider.status !== 'connected'
-      || !provider.address
-      || selectedAsset?.chain !== PAYMENT_CHAINS.ETHEREUM
-      || !canSubmit
-    ) {
-      return;
+    try {
+      let verifiedWalletAddress = walletVerification.status === 'verified'
+        ? walletVerification.walletAddress
+        : null;
+
+      if (!verifiedWalletAddress || normalizeWalletAddress(verifiedWalletAddress) !== normalizeWalletAddress(walletProvider.address)) {
+        setCheckoutStage('verifying_wallet');
+        await marketingWallet.verifyWallet({ chainId: selectedAsset.chainId });
+        const nextVerification = useMarketingWalletStore.getState().verification;
+        verifiedWalletAddress = nextVerification.status === 'verified'
+          ? nextVerification.walletAddress
+          : null;
+      }
+
+      if (!verifiedWalletAddress) {
+        throw new Error(useMarketingWalletStore.getState().verification.error || 'Could not verify this wallet.');
+      }
+
+      const readiness = await getBuyExecutionReadiness({
+        asset: selectedAsset.code,
+        chain: selectedAsset.chain,
+        selectedCheckoutMode: 'wallet',
+        providerAccount: marketingWallet.providerAccount,
+        requiredChainId: selectedAsset.chainId,
+      });
+
+      if (readiness.status !== 'ready') {
+        throw new Error(describeBuyExecutionReadinessBlock(readiness));
+      }
+
+      setCheckoutStage('preparing_wallet_action');
+      const intent = await createPaymentIntent.mutateAsync({
+        chain: selectedAsset.chain,
+        asset: selectedAsset.code,
+        tokenAmount: tokenAmountInput,
+        senderAddress: normalizeOptionalAddress(verifiedWalletAddress),
+      });
+      setActivePayment({ intent, payment: null });
+
+      const preparedWalletAction = await prepareWalletAction.mutateAsync({
+        intentId: intent.id,
+        payload: {
+          chain: PAYMENT_CHAINS.ETHEREUM,
+          senderAddress: verifiedWalletAddress,
+          walletChainId: walletProvider.chainId ?? selectedAsset.chainId,
+        },
+      });
+
+      const walletAdapter = createEvmCheckoutWalletAdapter({
+        status: {
+          chain: 'ETHEREUM',
+          address: walletProvider.address,
+          chainId: walletProvider.chainId ?? selectedAsset.chainId,
+          connectorName: walletProvider.connectorName ?? 'Ethereum wallet',
+          isConnected: Boolean(walletProvider.address),
+          isVerified: Boolean(verifiedWalletAddress),
+          isReady: readiness.status === 'ready',
+        },
+        connector: marketingWallet.providerAccount.connector,
+        connectedAddress: walletProvider.address,
+        verifiedWalletAddress,
+        connect: () => {
+          if (walletProvider.connectorName) {
+            marketingWallet.connectByName(walletProvider.connectorName, { chainId: requiredChainId });
+          }
+        },
+        disconnect: marketingWallet.disconnectWallet,
+        verify: () => marketingWallet.verifyWallet({ chainId: requiredChainId }),
+      });
+
+      setCheckoutStage('waiting_for_wallet_approval');
+      const nextWalletTxResult = await walletAdapter.sendPreparedAction(preparedWalletAction);
+      if (nextWalletTxResult.chain !== PAYMENT_CHAINS.ETHEREUM) {
+        throw new Error('Unsupported wallet transaction result for this checkout.');
+      }
+      setWalletTxResult(nextWalletTxResult);
+
+      setCheckoutStage('submitting_tx_result');
+      const status = await submitPaymentIntentTxResult.mutateAsync({
+        intentId: intent.id,
+        payload: {
+          chain: nextWalletTxResult.chain,
+          preparedActionId: nextWalletTxResult.preparedActionId,
+          txIdKind: nextWalletTxResult.txIdKind,
+          txId: nextWalletTxResult.txId,
+        },
+      });
+      setActivePayment({ intent: status.intent, payment: status.payment });
+      setCheckoutStage('tracking');
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Could not complete wallet checkout.');
+      setCheckoutStage('failed');
     }
-
-    walletPaymentSubmissionInFlightRef.current = true;
-    setPaymentWalletAddress(provider.address);
-    void handleSubmitContribution({
-      senderAddressOverride: provider.address,
-      requireEthSenderModal: false,
-    }).finally(() => {
-      setWalletPaymentRequested(false);
-      walletPaymentSubmissionInFlightRef.current = false;
-    });
-  }, [canSubmit, handleSubmitContribution, provider.address, provider.status, selectedAsset?.chain, walletPaymentRequested]);
-
-  function handleStartNewPayment() {
-    setActivePayment(null);
-    setStatusError(null);
-    setFormError(null);
-    writeStoredActivePayment(null);
   }
 
-  const actionHandlers = {
-    submitContribution: handlePayDirect,
-    viewReceipts: () => {
-      window.location.assign(ROUTES.USER.TRANSACTIONS);
-    },
-    disconnectWallet: marketingWallet.disconnectWallet,
-    switchNetwork: () => undefined,
-    startNewPayment: handleStartNewPayment,
-    verifyWallet: () => undefined,
-    retryTracking: () => undefined,
-  };
+  const paymentInstruction = activePayment
+    ? buildPaymentInstructionSummary(activePayment, selectedChainLabel)
+    : null;
 
   return {
-    walletStatusLabel,
-    connectedWalletAddress: provider.address,
-    walletChainLabel,
-    selectedChainLabel,
-    selectedAsset,
-    supportedAssets,
-    selectedAssetId: checkout.selectedAssetId ?? preferredAssetId ?? '',
-    onAssetChange: handleAssetChange,
-    amountDisplay: checkout.amountDisplay,
-    onAmountChange: handleAmountChange,
-    contributionEnabled: Boolean(selectedAsset && !activePayment),
-    estimatedContributionUsdDisplay,
-    estimatedTokensDisplay,
-    latestExplorerUrl,
-    walletButtons,
-    directPayDisabled: !canSubmit,
-    walletPayDisabled: !canSubmit || selectedAsset?.chain !== PAYMENT_CHAINS.ETHEREUM,
-    secondaryActionDisabled: marketingWallet.isDisconnecting,
-    onPayDirect: handlePayDirect,
-    onPayViaWallet: handlePayViaWallet,
-    onAction(actionId: BuyActionId | null) {
-      if (!actionId) {
-        return;
-      }
-
-      void actionHandlers[actionId]?.();
+    market: {
+      currentTier: marketModel.currentTier,
+      tokenPriceUsd: marketModel.tokenPriceUsd,
+      listingReferenceUsd: marketModel.listingReferenceUsd,
+      raisedDisplay: formatCurrency(marketModel.fundsRaisedUsd, 0),
+      targetRaisedDisplay: marketModel.targetRaisedUsd > 0 ? formatCompactCurrency(marketModel.targetRaisedUsd) : '$5.00M',
+      tokensSoldDisplay: `${formatCompact(marketModel.tokensSold, 2)} FDN`,
+      remainingTokensDisplay: formatCompact(remainingTokens, 2),
+      tokenPriceDisplay: formatCurrency(marketModel.tokenPriceUsd, 4),
+      discountPercentDisplay: `-${marketModel.discountPercent}%`,
+      nextTierPriceDisplay: marketModel.nextTierTokenPriceUsd ? formatCurrency(marketModel.nextTierTokenPriceUsd, 4) : formatCurrency(marketModel.listingReferenceUsd, 3),
+      raisedProgressPercent: marketModel.raisedProgressPercent,
     },
-    currentTier: market.currentTier,
-    tokenPriceDisplay: formatCurrency(market.tokenPriceUsd, 4),
-    raisedDisplay: formatCurrency(market.fundsRaisedUsd, 0),
-    targetRaisedDisplay: market.targetRaisedUsd > 0 ? formatCompactCurrency(market.targetRaisedUsd) : '$0',
-    remainingRaiseDisplay: formatCurrency(market.remainingRaiseUsd, 0),
-    tokensSoldDisplay: `${formatCompact(market.tokensSold, 2)} $FDP`,
-    nextTierPriceDisplay: market.nextTierTokenPriceUsd
-      ? formatCurrency(market.nextTierTokenPriceUsd, 4)
-      : formatCurrency(market.listingReferenceUsd, 2),
-    discountPercentDisplay: `${market.discountPercent}% Discount`,
-    raisedProgressPercent: market.raisedProgressPercent,
-    sourceUpdatedAt: market.sourceUpdatedAt,
-    listingReferenceDisplay: formatCurrency(market.listingReferenceUsd, 2),
-    paymentWalletAddress,
-    onPaymentWalletAddressChange(value: string) {
-      setPaymentWalletAddress(value);
-      setFormError(null);
+    order: {
+      selectedAsset,
+      supportedAssets,
+      amountDisplay,
+      payDisplay: selectedAsset ? `${amountDisplay || '0'} ${selectedAsset.code}` : '0',
+      receiveDisplay: `${formatPlainNumber(tokenAmount, 0)} $FDN`,
+      listingValueDisplay: formatCurrency(listingValue, 0),
+      roiDisplay: contributionUsd > 0 ? `+${formatPlainNumber(roiPercent, 0)}%` : '+0%',
+      buyButtonLabel: `Buy ${formatPlainNumber(tokenAmount, 0)} $FDN`,
+      error: formError,
+      canSubmit,
+      scenarios: buildScenarioCards(tokenAmount, contributionUsd, marketModel.listingReferenceUsd),
     },
-    directPaymentWalletModalOpen,
-    onDirectPaymentWalletModalOpenChange: setDirectPaymentWalletModalOpen,
-    walletConnectModalOpen,
-    onWalletConnectModalOpenChange(open: boolean) {
-      setWalletConnectModalOpen(open);
-      if (!open) {
-        setWalletPaymentRequested(false);
-      }
+    payment: {
+      instruction: paymentInstruction,
+      isCreating: createPaymentIntent.isPending || prepareWalletAction.isPending || submitPaymentIntentTxResult.isPending,
+      isCheckingStatus,
+      statusError,
+      walletTxResult,
     },
-    paymentWalletError: formError ?? (directPaymentWalletModalOpen ? paymentWalletValidation : null),
-    activePayment,
-    paymentInstruction,
-    isCreatingIntent: createPaymentIntent.isPending,
-    isCheckingStatus,
-    statusError,
+    wallet: {
+      checkoutStage,
+      paymentWalletAddress,
+      paymentWalletError: formError ?? (checkoutStage === 'direct_address' ? validationError : null),
+      canUseWalletCheckout,
+      walletStatus: selectedAsset?.chain === PAYMENT_CHAINS.SOLANA
+        ? {
+            providerStatus: solanaWalletState.isConnected ? 'connected' as const : 'disconnected' as const,
+            address: solanaWalletState.address,
+            chainId: null,
+            walletChainId: solanaWalletState.walletChainId,
+            connectorName: solanaWalletState.address ? 'metamask-solana' : null,
+            pendingConnectorName: checkoutStage === 'connecting_wallet' ? 'metamask-solana' : null,
+            availableConnectorNames: ['metamask-solana'],
+            executionReadiness: solanaWalletState.isReady ? 'ready' as const : 'checking' as const,
+            unsupportedReason: null,
+            connectionErrorMessage: solanaWalletState.error,
+            verificationStatus: solanaWalletState.isVerified ? 'verified' as const : 'unverified' as const,
+            verifiedWalletAddress: solanaWalletState.isVerified ? solanaWalletState.address : null,
+            verificationError: solanaWalletState.error,
+            isDisconnecting: false,
+            isVerifying: checkoutStage === 'verifying_wallet',
+          }
+        : {
+            providerStatus: walletProvider.status,
+            address: walletProvider.address,
+            chainId: walletProvider.chainId,
+            walletChainId: walletProvider.chainId ? String(walletProvider.chainId) : null,
+            connectorName: walletProvider.connectorName,
+            pendingConnectorName: walletProvider.pendingConnectorName,
+            availableConnectorNames: walletProvider.availableConnectorNames,
+            executionReadiness: walletProvider.executionReadiness,
+            unsupportedReason: walletProvider.unsupportedReason,
+            connectionErrorMessage: walletProvider.connectionErrorMessage,
+            verificationStatus: walletVerification.status,
+            verifiedWalletAddress: walletVerification.walletAddress,
+            verificationError: walletVerification.error,
+            isDisconnecting: marketingWallet.isDisconnecting,
+            isVerifying: marketingWallet.isVerifying,
+          },
+    },
+    actions: {
+      selectAsset(assetId: string) {
+        setSelectedAssetId(assetId);
+        setFormError(null);
+      },
+      changeAmount(value: string) {
+        setAmountDisplay(value.replace(/[^\d.]/gu, ''));
+        setFormError(null);
+      },
+      buy: openCheckout,
+      closeCheckout,
+      connectWallet(connectorName: string) {
+        setFormError(null);
+        setCheckoutStage('connecting_wallet');
+        if (selectedAsset?.chain === PAYMENT_CHAINS.SOLANA) {
+          void solanaWalletAdapter.connect()
+            .then(() => setCheckoutStage('wallet_ready'))
+            .catch((error) => {
+              setFormError(error instanceof Error ? error.message : 'Could not connect MetaMask Solana.');
+              setCheckoutStage('failed');
+            });
+          return;
+        }
+        marketingWallet.connectByName(connectorName, selectedAsset?.chainId ? { chainId: selectedAsset.chainId } : undefined);
+      },
+      disconnectWallet() {
+        if (selectedAsset?.chain === PAYMENT_CHAINS.SOLANA) {
+          void solanaWalletAdapter.disconnect?.();
+          return;
+        }
+        void marketingWallet.disconnectWallet();
+      },
+      verifyWallet() {
+        void verifyConnectedWallet();
+      },
+      startWalletPayment() {
+        void submitWalletPayment();
+      },
+      useDirectSend,
+      createDirectPayment() {
+        void createDirectPayment();
+      },
+      startNewPayment() {
+        setActivePayment(null);
+        setStatusError(null);
+        setFormError(null);
+        setWalletTxResult(null);
+        writeStoredActivePayment(null);
+        setCheckoutStage(getInitialCheckoutStage({
+          hasActivePayment: false,
+          canUseWalletCheckout,
+        }));
+      },
+      setPaymentWalletAddress(value: string) {
+        setPaymentWalletAddress(value);
+        setFormError(null);
+      },
+    },
   };
 }
 
 function buildPaymentInstructionSummary(
-  intent: IPaymentIntentPublic,
-  payment: IPaymentPublic | null,
+  activePayment: ActivePaymentView,
   fallbackNetworkLabel: string,
 ): PaymentInstructionSummary {
-  const copy = getPaymentStatusCopy(intent.status);
+  const { intent } = activePayment;
+  const [statusTitle, statusDescription] = getPaymentStatusCopy(intent.status);
   const paymentUri = intent.instructions.paymentUri;
+
   return {
+    intentId: intent.id,
     status: intent.status,
-    statusTitle: copy.title,
-    statusDescription: copy.description,
-    statusTone: copy.tone,
+    statusTitle,
+    statusDescription,
     exactAmountDisplay: formatPaymentAmount(intent.instructions.expectedAmountBaseUnits, intent.asset),
     receiverAddress: intent.instructions.receiverAddress,
     networkLabel: getChainLabel(intent.chain) ?? fallbackNetworkLabel,
     expiresAtDisplay: formatDateTime(intent.expiresAt),
     paymentUri,
     qrValue: paymentUri ?? intent.instructions.receiverAddress,
-    txHash: payment?.txHash ?? null,
   };
 }
 
-function getExplorerUrl(chain: IPaymentPublic['chain'], txHash: string) {
-  switch (chain) {
-    case PAYMENT_CHAINS.ETHEREUM:
-      return `https://etherscan.io/tx/${txHash}`;
-    case PAYMENT_CHAINS.SOLANA:
-      return `https://solscan.io/tx/${txHash}`;
-    case PAYMENT_CHAINS.BITCOIN:
-      return `https://mempool.space/tx/${txHash}`;
-  }
+function buildScenarioCards(tokenAmount: number, contributionUsd: number, listingReferenceUsd: number) {
+  const scenarios = [
+    { label: 'Listing', multiple: 1, cap: '$500M MCAP' },
+    { label: '5x', multiple: 5, cap: '$2.5B MCAP' },
+    { label: '10x', multiple: 10, cap: '$5B MCAP' },
+    { label: '50x', multiple: 50, cap: '$25B MCAP' },
+  ];
+
+  return scenarios.map((scenario) => {
+    const price = listingReferenceUsd * scenario.multiple;
+    const value = tokenAmount * price;
+    const roi = contributionUsd > 0 ? ((value - contributionUsd) / contributionUsd) * 100 : 0;
+    return {
+      label: scenario.label,
+      price: `${formatCurrency(price, 2)} / FDN`,
+      cap: scenario.cap,
+      value: formatCompactCurrency(value),
+      roi: `+${formatPlainNumber(roi, 0)}%`,
+    };
+  });
 }

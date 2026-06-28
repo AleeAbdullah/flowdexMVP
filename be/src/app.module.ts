@@ -25,6 +25,10 @@ import { HealthModule } from './infrastructure/health/health.module';
         { name: 'intent', ttl: 60_000, limit: 5 },
         { name: 'status', ttl: 60_000, limit: 30 },
         { name: 'history', ttl: 60_000, limit: 20 },
+        { name: 'portfolio', ttl: 60_000, limit: 20 },
+        { name: 'leaders', ttl: 60_000, limit: 30 },
+        { name: 'walletAction', ttl: 60_000, limit: 10 },
+        { name: 'walletTxResult', ttl: 60_000, limit: 10 },
       ],
     }),
     TypeOrmModule.forRootAsync({

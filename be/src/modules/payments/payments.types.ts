@@ -32,6 +32,23 @@ export enum PaymentStatus {
   LATE_PAID = 'LATE_PAID',
 }
 
+export enum PaymentWalletActionKind {
+  EVM_TRANSACTION = 'evm_transaction',
+  SOLANA_TRANSACTION = 'solana_transaction',
+}
+
+export enum PaymentWalletActionStatus {
+  PREPARED = 'PREPARED',
+  USED = 'USED',
+  EXPIRED = 'EXPIRED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum PaymentWalletTxIdKind {
+  EVM_TX_HASH = 'evm_tx_hash',
+  SOLANA_SIGNATURE = 'solana_signature',
+}
+
 export const PAYMENT_ASSET_DECIMALS: Record<PaymentAsset, number> = {
   [PaymentAsset.ETH]: 18,
   [PaymentAsset.SOL]: 9,

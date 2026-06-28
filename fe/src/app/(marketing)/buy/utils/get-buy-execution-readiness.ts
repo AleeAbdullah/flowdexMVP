@@ -1,8 +1,10 @@
+import type { PaymentAsset, PaymentChain } from '../../../../dal/app/payments/payments.types';
 import { getWalletConnectSessionCapabilities } from './walletconnect-session-capabilities';
 import type {
   BuyExecutionReadiness,
   BuyProviderAccountSnapshot,
   BuyWalletProvider,
+  EvmExecutionReadiness,
   UnsupportedReason,
 } from './buy-transaction.types';
 
@@ -42,11 +44,22 @@ function supportsSwitchChain(provider: BuyWalletProvider) {
 }
 
 export async function getBuyExecutionReadiness(input: {
+  asset?: PaymentAsset;
+  chain?: PaymentChain;
+  selectedCheckoutMode?: 'wallet' | 'direct';
   providerAccount: BuyProviderAccountSnapshot;
   requiredChainId: number | null;
 }): Promise<BuyExecutionReadiness> {
+  if (input.selectedCheckoutMode === 'direct') {
+    return { status: 'manual_only' };
+  }
+
+  if (input.chain && input.chain !== 'ETHEREUM') {
+    return input.asset ? { status: 'manual_only' } : { status: 'unsupported_asset' };
+  }
+
   if (!input.providerAccount.isConnected || !input.providerAccount.connector) {
-    return { status: 'checking' };
+    return { status: 'wallet_not_connected' };
   }
 
   const connectorName = normalizeWalletConnectorName(
@@ -55,7 +68,7 @@ export async function getBuyExecutionReadiness(input: {
 
   if (!connectorName) {
     return {
-      status: 'unsupported',
+      status: 'unsupported_wallet',
       reason: 'missing_provider',
       walletKind: null,
       capabilityKey: null,
@@ -63,13 +76,13 @@ export async function getBuyExecutionReadiness(input: {
   }
 
   if (!input.requiredChainId) {
-    return { status: 'checking' };
+    return { status: 'unsupported_asset' };
   }
 
   const provider = await input.providerAccount.connector.getProvider().catch(() => null) as BuyWalletProvider | null;
   if (!provider || typeof provider.request !== 'function') {
     return {
-      status: 'unsupported',
+      status: 'unsupported_wallet',
       reason: 'missing_provider',
       walletKind: isWalletConnectConnector(connectorName) ? 'walletconnect' : 'injected',
       capabilityKey: null,
@@ -77,18 +90,27 @@ export async function getBuyExecutionReadiness(input: {
   }
 
   if (isWalletConnectConnector(connectorName)) {
-    return getWalletConnectSessionCapabilities({
+    return mapEvmExecutionReadiness(getWalletConnectSessionCapabilities({
       provider,
       activeAddress: input.providerAccount.address ?? null,
       activeChainId: input.providerAccount.chainId ?? null,
       requiredChainId: input.requiredChainId,
-    });
+    }));
   }
 
   if (!SUPPORTED_INJECTED_CONNECTORS.has(connectorName)) {
     return {
-      status: 'unsupported',
+      status: 'unsupported_wallet',
       reason: 'unsupported_injected_provider',
+      walletKind: 'injected',
+      capabilityKey: null,
+    };
+  }
+
+  if (input.providerAccount.chainId !== input.requiredChainId) {
+    return {
+      status: 'wrong_chain',
+      reason: 'wrong_chain',
       walletKind: 'injected',
       capabilityKey: null,
     };
@@ -103,6 +125,46 @@ export async function getBuyExecutionReadiness(input: {
   };
 }
 
+function mapEvmExecutionReadiness(readiness: EvmExecutionReadiness): BuyExecutionReadiness {
+  if (readiness.status === 'ready' || readiness.status === 'checking') {
+    return readiness;
+  }
+
+  if (readiness.reason === 'wrong_chain') {
+    return {
+      status: 'wrong_chain',
+      reason: readiness.reason,
+      walletKind: readiness.walletKind,
+      capabilityKey: readiness.capabilityKey,
+    };
+  }
+
+  return {
+    status: 'unsupported_wallet',
+    reason: readiness.reason,
+    walletKind: readiness.walletKind,
+    capabilityKey: readiness.capabilityKey,
+  };
+}
+
 export function describeUnsupportedWalletReason(reason: UnsupportedReason) {
   return UNSUPPORTED_REASON_MESSAGES[reason];
+}
+
+export function describeBuyExecutionReadinessBlock(readiness: Exclude<BuyExecutionReadiness, { status: 'ready' }>) {
+  switch (readiness.status) {
+    case 'checking':
+      return 'Wallet readiness is still being checked. Try again in a moment.';
+    case 'wallet_not_connected':
+      return 'Connect a wallet before continuing.';
+    case 'wallet_not_verified':
+      return 'Verify this wallet before continuing.';
+    case 'manual_only':
+      return 'This asset uses direct-send instructions. Continue with manual payment instead.';
+    case 'unsupported_asset':
+      return 'This asset is not available for checkout right now.';
+    case 'wrong_chain':
+    case 'unsupported_wallet':
+      return describeUnsupportedWalletReason(readiness.reason);
+  }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { GlassPanel } from '@/components/flowdex/primitives';
+import { GlassPanel } from '@/components/glass-panel';
 
 export default function AppError(props: {
   error: Error & { digest?: string };

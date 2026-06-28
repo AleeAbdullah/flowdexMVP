@@ -1,6 +1,6 @@
 import type { Connector } from '@wagmi/core';
 import { getAddress } from 'viem';
-import type { IWalletTransactionRequest } from '@/dal/app/transactions/transactions.types';
+import type { IPaymentWalletTransactionRequest } from '@/dal/app/payments/payments.types';
 import { assertSimulationMatchesWallet, buildWalletRpcTransaction, BuyTransactionValidationError } from './buy-transaction-validation';
 import { normalizeProviderError } from './normalize-provider-error';
 import type { BuyWalletProvider, NormalizedBuySendError } from './buy-transaction.types';
@@ -56,7 +56,7 @@ export async function sendBuyTransaction(input: {
   connector: Connector;
   connectedAddress: `0x${string}`;
   verifiedWalletAddress: string;
-  request: IWalletTransactionRequest;
+  request: IPaymentWalletTransactionRequest;
 }): Promise<{ txHash: `0x${string}` } | { error: NormalizedBuySendError }> {
   try {
     const provider = await input.connector.getProvider().catch(() => null) as BuyWalletProvider | null;

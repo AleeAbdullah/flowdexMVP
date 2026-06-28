@@ -3,7 +3,8 @@
 import { useQueryStates } from 'nuqs';
 import { useAdminPayments } from '@/dal/app/admin/admin.services';
 import type { IAdminPaymentsResponse } from '@/dal/app/admin/admin.types';
-import { GlassPanel, SectionHeading } from '@/components/flowdex/primitives';
+import { GlassPanel } from '@/components/glass-panel';
+import { SectionHeading } from '@/components/flowdex/primitives';
 import { AdminTransactionMetrics } from './_components/admin-transaction-metrics';
 import { AdminTransactionsFilters } from './_components/admin-transactions-filters';
 import { AdminTransactionsList } from './_components/admin-transactions-list';

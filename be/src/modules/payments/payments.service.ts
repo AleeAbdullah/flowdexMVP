@@ -2,7 +2,6 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
@@ -12,25 +11,34 @@ import { formatUnits, getAddress, isAddress } from 'ethers';
 import { DataSource, EntityManager, In, Repository } from 'typeorm';
 
 import { normalizeAddress } from '../../common/utils/address';
-import { formatFixed, normalizeFixed, parseFixed } from '../../common/utils/decimal';
+import { AuthContext } from '../../common/decorators/current-auth.decorator';
+import { divideFixed, formatFixed, normalizeFixed, parseFixed } from '../../common/utils/decimal';
 import { env } from '../../infrastructure/config/env';
 import {
   AlchemyService,
   BitcoinAddressTransaction,
   EvmTransfer,
-  SolanaParsedTransaction,
 } from '../alchemy/alchemy.service';
 import {
   AdminPaymentFiltersDto,
 } from './dto/admin-payments.dto';
 import {
   CreatePaymentIntentDto,
+  PaymentLeaderDto,
+  PaymentLeadersResponseDto,
   PaymentIntentPublicDto,
   PaymentIntentStatusDto,
+  PaymentPortfolioBreakdownDto,
+  PaymentPortfolioResponseDto,
+  PaymentPortfolioTransactionDto,
   PaymentPublicDto,
+  PreparedWalletActionDto,
+  PreparePaymentWalletActionDto,
+  SubmitPaymentTxResultDto,
 } from './dto/payments.dto';
 import { PaymentIntentEntity } from './entities/payment-intent.entity';
 import { PaymentEntity } from './entities/payment.entity';
+import { PaymentWalletActionEntity } from './entities/payment-wallet-action.entity';
 import {
   CHAIN_ASSET,
   PAYMENT_ASSET_DECIMALS,
@@ -38,11 +46,16 @@ import {
   PaymentChain,
   PaymentIntentStatus,
   PaymentStatus,
+  PaymentWalletActionKind,
+  PaymentWalletActionStatus,
+  PaymentWalletTxIdKind,
   TERMINAL_PAYMENT_INTENT_STATUSES,
 } from './payments.types';
 import { BtcAddressService } from './services/btc-address.service';
+import { EvmPaymentExecutionService } from './services/evm-payment-execution.service';
 import { PaymentPricingService } from './services/payment-pricing.service';
 import { PaymentStateService } from './services/payment-state.service';
+import { SolanaPaymentExecutionService } from './services/solana-payment-execution.service';
 
 type MatchResult = {
   status: PaymentStatus;
@@ -61,6 +74,38 @@ const MAX_ETH_TRANSFER_PAGES = 5;
 const BTC_DERIVATION_ADVISORY_LOCK = 810_200_001;
 const PAYMENT_SCANNER_ADVISORY_LOCK = 810_200_002;
 const OPEN_BTC_INTENT_LIMIT = 3;
+const ETHEREUM_MAINNET_CHAIN_ID = 1;
+export const SOLANA_MAINNET_WALLET_CHAIN_ID = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1';
+const SOLANA_MAINNET_WALLET_CHAIN_ALIASES = new Set([
+  SOLANA_MAINNET_WALLET_CHAIN_ID,
+  'solana:mainnet',
+  'solana:mainnet-beta',
+  'mainnet',
+  'mainnet-beta',
+]);
+const PAYMENT_WALLET_ACTION_TTL_MS = 5 * 60 * 1000;
+const TX_HASH_PATTERN = /^0x[a-fA-F0-9]{64}$/;
+const SOLANA_SIGNATURE_PATTERN = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
+const PORTFOLIO_PENDING_STATUSES = new Set<PaymentIntentStatus>([
+  PaymentIntentStatus.WAITING,
+  PaymentIntentStatus.DETECTED,
+  PaymentIntentStatus.CONFIRMING,
+]);
+const PORTFOLIO_REVIEW_STATUSES = new Set<PaymentIntentStatus>([
+  PaymentIntentStatus.UNDERPAID,
+  PaymentIntentStatus.OVERPAID,
+  PaymentIntentStatus.LATE_PAID,
+]);
+const PORTFOLIO_FAILED_STATUSES = new Set<PaymentIntentStatus>([
+  PaymentIntentStatus.FAILED,
+  PaymentIntentStatus.EXPIRED,
+]);
+
+type PortfolioBreakdownAccumulator = {
+  totalUsd: bigint;
+  tokenAmount: bigint;
+  transactionCount: number;
+};
 
 @Injectable()
 export class PaymentsService {
@@ -69,10 +114,14 @@ export class PaymentsService {
     private readonly paymentIntentsRepository: Repository<PaymentIntentEntity>,
     @InjectRepository(PaymentEntity)
     private readonly paymentsRepository: Repository<PaymentEntity>,
+    @InjectRepository(PaymentWalletActionEntity)
+    private readonly paymentWalletActionsRepository: Repository<PaymentWalletActionEntity>,
     private readonly dataSource: DataSource,
     private readonly alchemyService: AlchemyService,
     private readonly pricingService: PaymentPricingService,
     private readonly btcAddressService: BtcAddressService,
+    private readonly evmPaymentExecutionService: EvmPaymentExecutionService,
+    private readonly solanaPaymentExecutionService: SolanaPaymentExecutionService,
     private readonly stateService: PaymentStateService,
   ) {}
 
@@ -142,6 +191,255 @@ export class PaymentsService {
     return this.toStatusDto(updatedIntent, await this.findPaymentByIntent(updatedIntent.id));
   }
 
+  async prepareWalletAction(
+    auth: AuthContext,
+    intentId: string,
+    input: PreparePaymentWalletActionDto,
+  ): Promise<PreparedWalletActionDto> {
+    const wallet = this.requireWalletSession(auth);
+    if (wallet.chain !== input.chain) {
+      throw new UnauthorizedException('Wallet session chain does not match wallet action chain');
+    }
+
+    const senderAddress = this.normalizeSender(input.chain, input.senderAddress);
+    if (senderAddress !== wallet.normalized) {
+      throw new BadRequestException('senderAddress does not match wallet session');
+    }
+
+    const intent = await this.paymentIntentsRepository.findOne({ where: { id: intentId } });
+    if (!intent) {
+      throw new NotFoundException('Payment intent not found');
+    }
+
+    if (input.chain === PaymentChain.ETHEREUM) {
+      const walletChainId = this.normalizeWalletChainId(input.walletChainId);
+      if (walletChainId !== null && walletChainId !== ETHEREUM_MAINNET_CHAIN_ID) {
+        throw new BadRequestException('Wallet is connected to the wrong chain');
+      }
+
+      this.assertWalletIntentIsUsable(intent, senderAddress, PaymentChain.ETHEREUM);
+
+      const request = this.evmPaymentExecutionService.buildNativeEthPaymentRequest({
+        receiverAddress: intent.receiverAddress,
+        amountBaseUnits: intent.expectedAmountBaseUnits,
+        chainId: ETHEREUM_MAINNET_CHAIN_ID,
+      });
+      const expiresAt = new Date(Date.now() + PAYMENT_WALLET_ACTION_TTL_MS);
+      const action = await this.paymentWalletActionsRepository.save(
+        this.paymentWalletActionsRepository.create({
+          paymentIntentId: intent.id,
+          chain: PaymentChain.ETHEREUM,
+          actionKind: PaymentWalletActionKind.EVM_TRANSACTION,
+          senderAddress,
+          walletChainId: walletChainId === null ? null : String(walletChainId),
+          status: PaymentWalletActionStatus.PREPARED,
+          requestJson: request,
+          expiresAt,
+          usedAt: null,
+          txId: null,
+          txIdKind: null,
+        }),
+      );
+
+      return {
+        kind: PaymentWalletActionKind.EVM_TRANSACTION,
+        paymentIntentId: intent.id,
+        preparedActionId: action.id,
+        chain: PaymentChain.ETHEREUM,
+        chainId: request.chainId,
+        request,
+        expiresAt: action.expiresAt,
+      };
+    }
+
+    if (input.chain !== PaymentChain.SOLANA) {
+      throw new BadRequestException('Unsupported wallet action chain');
+    }
+    const requestedWalletChainId = typeof input.walletChainId === 'string' ? input.walletChainId : null;
+    const walletChainId = this.normalizeSolanaWalletChainId(requestedWalletChainId);
+
+    this.assertWalletIntentIsUsable(intent, senderAddress, PaymentChain.SOLANA);
+
+    const config = this.solanaPaymentExecutionService.buildConfig();
+    const prepared = await this.solanaPaymentExecutionService.buildSolanaTransferAction({
+      payer: senderAddress,
+      recipientAddress: config.recipientAddress,
+      lamports: intent.expectedAmountBaseUnits,
+      memoOrReference: intent.solanaReference ?? intent.id,
+    });
+    const expiresAt = new Date(Date.now() + config.preparedActionTtlSeconds * 1000);
+    const requestJson = {
+      cluster: prepared.cluster,
+      payer: prepared.payer,
+      recipientAddress: prepared.recipientAddress,
+      lamports: prepared.lamports,
+      transactionEncoding: prepared.transactionEncoding,
+      transactionBase64: prepared.transactionBase64,
+      blockhash: prepared.blockhash,
+      lastValidBlockHeight: prepared.lastValidBlockHeight,
+      memoOrReference: prepared.memoOrReference,
+      walletChainId,
+      requestedWalletChainId,
+    };
+    const action = await this.paymentWalletActionsRepository.save(
+      this.paymentWalletActionsRepository.create({
+        paymentIntentId: intent.id,
+        chain: PaymentChain.SOLANA,
+        actionKind: PaymentWalletActionKind.SOLANA_TRANSACTION,
+        senderAddress,
+        walletChainId,
+        status: PaymentWalletActionStatus.PREPARED,
+        requestJson,
+        expiresAt,
+        usedAt: null,
+        txId: null,
+        txIdKind: null,
+      }),
+    );
+
+    return {
+      kind: PaymentWalletActionKind.SOLANA_TRANSACTION,
+      paymentIntentId: intent.id,
+      preparedActionId: action.id,
+      chain: PaymentChain.SOLANA,
+      cluster: prepared.cluster,
+      walletChainId,
+      payer: prepared.payer,
+      transaction: prepared.transactionBase64,
+      transactionEncoding: prepared.transactionEncoding,
+      expiresAt: action.expiresAt,
+      lastValidBlockHeight: prepared.lastValidBlockHeight,
+    };
+  }
+
+  async submitWalletTxResult(
+    auth: AuthContext,
+    intentId: string,
+    input: SubmitPaymentTxResultDto,
+  ): Promise<PaymentIntentStatusDto> {
+    const wallet = this.requireWalletSession(auth);
+    if (wallet.chain !== input.chain) {
+      throw new UnauthorizedException('Wallet session chain does not match tx-result chain');
+    }
+
+    if (input.chain === PaymentChain.ETHEREUM && input.txIdKind !== PaymentWalletTxIdKind.EVM_TX_HASH) {
+      throw new BadRequestException('ETH wallet checkout requires an EVM transaction hash');
+    }
+    if (input.chain === PaymentChain.SOLANA && input.txIdKind !== PaymentWalletTxIdKind.SOLANA_SIGNATURE) {
+      throw new BadRequestException('SOL wallet checkout requires a Solana signature');
+    }
+    if (input.chain !== PaymentChain.ETHEREUM && input.chain !== PaymentChain.SOLANA) {
+      throw new BadRequestException('Unsupported tx-result chain');
+    }
+    if (input.chain === PaymentChain.ETHEREUM && !TX_HASH_PATTERN.test(input.txId)) {
+      throw new BadRequestException('txId must be a 32-byte EVM transaction hash');
+    }
+    if (input.chain === PaymentChain.SOLANA && !SOLANA_SIGNATURE_PATTERN.test(input.txId)) {
+      throw new BadRequestException('txId must be a base58 Solana signature');
+    }
+
+    const result = await this.dataSource.transaction(async manager => {
+      const intent = await manager.findOne(PaymentIntentEntity, { where: { id: intentId } });
+      if (!intent) {
+        throw new NotFoundException('Payment intent not found');
+      }
+      this.assertWalletIntentIsUsable(intent, wallet.normalized, input.chain);
+
+      const action = await manager.findOne(PaymentWalletActionEntity, {
+        where: {
+          id: input.preparedActionId,
+          paymentIntentId: intent.id,
+        },
+      });
+      if (!action) {
+        throw new NotFoundException('Prepared wallet action not found');
+      }
+      this.assertWalletActionIsUsable(action, wallet.normalized, input.chain);
+
+      const duplicate = await manager.findOne(PaymentWalletActionEntity, {
+        where: {
+          txIdKind: input.txIdKind,
+          txId: input.txId,
+        },
+      });
+      if (duplicate && duplicate.paymentIntentId !== intent.id) {
+        throw new BadRequestException('Transaction hash is already attached to another payment intent');
+      }
+
+      const duplicatePayment = await manager.findOne(PaymentEntity, {
+        where: {
+          chain: input.chain,
+          txHash: input.txId,
+        },
+      });
+      if (duplicatePayment && duplicatePayment.intentId !== intent.id) {
+        throw new BadRequestException('Transaction hash is already attached to another payment intent');
+      }
+
+      action.status = PaymentWalletActionStatus.USED;
+      action.usedAt = new Date();
+      action.txId = input.txId;
+      action.txIdKind = input.txIdKind;
+      await manager.save(action);
+
+      const solanaVerification = input.chain === PaymentChain.SOLANA
+        ? await this.verifySolanaWalletAction(action, input.txId)
+        : null;
+      const nextPaymentStatus = solanaVerification?.status === 'confirmed'
+        ? PaymentStatus.CONFIRMED
+        : solanaVerification?.status === 'invalid'
+          ? PaymentStatus.FAILED
+          : PaymentStatus.CONFIRMING;
+      const nextIntentStatus = this.stateService.toIntentStatus(nextPaymentStatus);
+
+      const existing = await manager.findOne(PaymentEntity, { where: { intentId: intent.id } });
+      const payment = manager.create(PaymentEntity, {
+        ...(existing ?? {}),
+        intentId: intent.id,
+        chain: intent.chain,
+        asset: intent.asset,
+        amountBaseUnits: intent.expectedAmountBaseUnits,
+        senderAddress: intent.senderAddress,
+        receiverAddress: intent.receiverAddress,
+        txHash: input.txId,
+        outputIndex: null,
+        status: nextPaymentStatus,
+        blockNumber: solanaVerification?.status === 'confirmed' ? solanaVerification.blockNumber : null,
+        confirmations: solanaVerification?.status === 'confirmed' || solanaVerification?.status === 'confirming'
+          ? solanaVerification.confirmations
+          : 0,
+        confirmedAt: solanaVerification?.status === 'confirmed' ? solanaVerification.confirmedAt : null,
+        rawPayload: {
+          source: 'wallet_tx_result',
+          preparedActionId: action.id,
+          txIdKind: input.txIdKind,
+          verification: solanaVerification,
+        },
+      });
+      await manager.save(payment);
+
+      this.stateService.assertIntentTransition(intent.status, nextIntentStatus);
+      intent.status = nextIntentStatus;
+      intent.lastCheckedAt = solanaVerification?.status === 'confirmed' || solanaVerification?.status === 'invalid'
+        ? new Date()
+        : null;
+      intent.lastCheckResult = {
+        source: 'WALLET_TX_RESULT',
+        status: nextPaymentStatus,
+        txHash: input.txId,
+        verification: solanaVerification,
+      };
+      const savedIntent = await manager.save(intent);
+
+      return {
+        intent: savedIntent,
+        payment,
+      };
+    });
+
+    return this.toStatusDto(result.intent, result.payment);
+  }
+
   async processEthereumAlchemyWebhook(input: {
     rawBody: string;
     signature: string;
@@ -172,6 +470,121 @@ export class PaymentsService {
     });
 
     return { items: items.map(item => this.toPublicPayment(item)) };
+  }
+
+  async listPublicLeaders(limit = 10): Promise<PaymentLeadersResponseDto> {
+    const normalizedLimit = Number.isFinite(limit) ? Math.trunc(limit) : 10;
+    const safeLimit = Math.max(1, Math.min(50, normalizedLimit));
+    const rows = await this.paymentsRepository
+      .createQueryBuilder('payment')
+      .innerJoin('payment.intent', 'intent')
+      .select('payment.sender_address', 'walletAddress')
+      .addSelect('SUM(intent.usd_amount)', 'totalUsd')
+      .addSelect('COUNT(payment.id)', 'paymentCount')
+      .addSelect('MAX(payment.created_at)', 'latestPaymentAt')
+      .where('payment.status = :status', { status: PaymentStatus.CONFIRMED })
+      .andWhere('payment.sender_address IS NOT NULL')
+      .groupBy('payment.sender_address')
+      .orderBy('SUM(intent.usd_amount)', 'DESC')
+      .addOrderBy('MAX(payment.created_at)', 'DESC')
+      .limit(safeLimit)
+      .getRawMany<{
+        walletAddress: string;
+        totalUsd: string;
+        paymentCount: string;
+        latestPaymentAt: Date | string;
+      }>();
+
+    return {
+      items: rows.map((row, index): PaymentLeaderDto => ({
+        rank: index + 1,
+        walletAddress: row.walletAddress,
+        totalUsd: normalizeFixed(row.totalUsd),
+        paymentCount: Number(row.paymentCount),
+        latestPaymentAt: row.latestPaymentAt instanceof Date
+          ? row.latestPaymentAt
+          : new Date(row.latestPaymentAt),
+      })),
+    };
+  }
+
+  async getPublicPortfolio(walletAddress: string): Promise<PaymentPortfolioResponseDto> {
+    const addresses = this.buildAddressLookupValues(walletAddress);
+    const intents = await this.paymentIntentsRepository.find({
+      where: addresses.map(senderAddress => ({ senderAddress })),
+      order: { createdAt: 'DESC' },
+    });
+    const payments = intents.length
+      ? await this.paymentsRepository.find({ where: { intentId: In(intents.map(intent => intent.id)) } })
+      : [];
+    const paymentsByIntentId = new Map(payments.map(payment => [payment.intentId, payment]));
+    const byAsset = new Map<string, PortfolioBreakdownAccumulator>();
+    const byChain = new Map<string, PortfolioBreakdownAccumulator>();
+    const byStatus = new Map<string, PortfolioBreakdownAccumulator>();
+    let totalInvestedUsd = 0n;
+    let confirmedTokenAmount = 0n;
+    let pendingTokenAmount = 0n;
+    let reviewTokenAmount = 0n;
+    let confirmedTransactions = 0;
+    let pendingTransactions = 0;
+    let reviewTransactions = 0;
+    let failedTransactions = 0;
+    let firstPaymentAt: Date | null = null;
+    let latestPaymentAt: Date | null = null;
+
+    const transactions = intents.map((intent): PaymentPortfolioTransactionDto => {
+      const payment = paymentsByIntentId.get(intent.id) ?? null;
+      const tokenAmount = parseFixed(intent.tokenAmount);
+      const usdAmount = parseFixed(intent.usdAmount);
+
+      firstPaymentAt = firstPaymentAt && firstPaymentAt < intent.createdAt ? firstPaymentAt : intent.createdAt;
+      latestPaymentAt = latestPaymentAt && latestPaymentAt > intent.createdAt ? latestPaymentAt : intent.createdAt;
+      this.addPortfolioBreakdown(byStatus, intent.status, usdAmount, tokenAmount);
+
+      if (intent.status === PaymentIntentStatus.CONFIRMED) {
+        totalInvestedUsd += usdAmount;
+        confirmedTokenAmount += tokenAmount;
+        confirmedTransactions += 1;
+        this.addPortfolioBreakdown(byAsset, intent.asset, usdAmount, tokenAmount);
+        this.addPortfolioBreakdown(byChain, intent.chain, usdAmount, tokenAmount);
+      } else if (PORTFOLIO_PENDING_STATUSES.has(intent.status)) {
+        pendingTokenAmount += tokenAmount;
+        pendingTransactions += 1;
+      } else if (PORTFOLIO_REVIEW_STATUSES.has(intent.status)) {
+        reviewTokenAmount += tokenAmount;
+        reviewTransactions += 1;
+      } else if (PORTFOLIO_FAILED_STATUSES.has(intent.status)) {
+        failedTransactions += 1;
+      }
+
+      return this.toPortfolioTransaction(intent, payment);
+    });
+
+    return {
+      walletAddress,
+      summary: {
+        totalInvestedUsd: formatFixed(totalInvestedUsd),
+        confirmedTokenAmount: formatFixed(confirmedTokenAmount),
+        pendingTokenAmount: formatFixed(pendingTokenAmount),
+        reviewTokenAmount: formatFixed(reviewTokenAmount),
+        totalTransactions: intents.length,
+        confirmedTransactions,
+        pendingTransactions,
+        reviewTransactions,
+        failedTransactions,
+        averageEntryPriceUsd: confirmedTokenAmount > 0n
+          ? divideFixed(formatFixed(totalInvestedUsd), formatFixed(confirmedTokenAmount))
+          : '0',
+        firstPaymentAt,
+        latestPaymentAt,
+      },
+      breakdowns: {
+        byAsset: this.toPortfolioBreakdowns(byAsset),
+        byChain: this.toPortfolioBreakdowns(byChain),
+        byStatus: this.toPortfolioBreakdowns(byStatus),
+      },
+      transactions,
+    };
   }
 
   async listAdminPayments(filters: AdminPaymentFiltersDto): Promise<{ items: Array<PaymentPublicDto & {
@@ -395,7 +808,7 @@ export class PaymentsService {
       case PaymentChain.ETHEREUM:
         return this.findEthereumMatch(intent);
       case PaymentChain.SOLANA:
-        return this.findSolanaMatch(intent);
+        return this.findSubmittedSolanaPaymentMatch(intent);
       case PaymentChain.BITCOIN:
         return this.findBitcoinMatch(intent);
     }
@@ -589,84 +1002,87 @@ export class PaymentsService {
     return '0';
   }
 
-  private async findSolanaMatch(intent: PaymentIntentEntity): Promise<MatchResult> {
-    const lookupAddress = intent.solanaReference ?? intent.receiverAddress;
-    const signatures = await this.alchemyService.getSolanaSignaturesForAddress(lookupAddress, 20);
+  private async findSubmittedSolanaPaymentMatch(intent: PaymentIntentEntity): Promise<MatchResult> {
+    const payment = await this.findPaymentByIntent(intent.id);
+    if (!payment?.txHash || payment.status !== PaymentStatus.CONFIRMING) {
+      return null;
+    }
 
-    for (const signature of signatures) {
-      const tx = await this.alchemyService.getSolanaParsedTransaction(signature.signature);
-      if (!tx || signature.err) {
-        continue;
-      }
+    const payer = payment.senderAddress ?? intent.senderAddress;
+    if (!payer) {
+      return null;
+    }
 
-      const transfer = this.findSolanaTransfer(tx, intent);
-      if (!transfer) {
-        continue;
-      }
+    const verification = await this.solanaPaymentExecutionService.verifySolanaSignatureForIntent({
+      signature: payment.txHash,
+      payer,
+      recipientAddress: payment.receiverAddress || intent.receiverAddress,
+      lamports: payment.amountBaseUnits || intent.expectedAmountBaseUnits,
+      memoOrReference: intent.solanaReference ?? intent.id,
+    });
 
+    if (verification.status === 'not_found') {
       return {
-        status: this.classifyMatchedAmount(
-          intent,
-          transfer.lamports,
-          true,
-          signature.blockTime ? new Date(signature.blockTime * 1000) : null,
-        ),
-        amountBaseUnits: transfer.lamports,
-        senderAddress: transfer.source,
-        receiverAddress: intent.receiverAddress,
-        txHash: signature.signature,
+        status: PaymentStatus.CONFIRMING,
+        amountBaseUnits: payment.amountBaseUnits,
+        senderAddress: payer,
+        receiverAddress: payment.receiverAddress,
+        txHash: payment.txHash,
         outputIndex: null,
-        blockNumber: String(signature.slot),
-        confirmations: 1,
-        confirmedAt: signature.blockTime ? new Date(signature.blockTime * 1000) : new Date(),
-        rawPayload: this.redactPayload(tx),
+        blockNumber: payment.blockNumber,
+        confirmations: 0,
+        confirmedAt: null,
+        rawPayload: { source: 'wallet_tx_result_poll', verification },
       };
     }
 
-    return null;
-  }
-
-  private findSolanaTransfer(tx: SolanaParsedTransaction, intent: PaymentIntentEntity): {
-    source: string | null;
-    lamports: string;
-  } | null {
-    const transaction = tx.transaction as Record<string, unknown> | undefined;
-    const message = transaction?.message as Record<string, unknown> | undefined;
-    const instructions = Array.isArray(message?.instructions) ? message.instructions : [];
-    const accountKeys = Array.isArray(message?.accountKeys) ? message.accountKeys : [];
-    const referenceMatched = intent.solanaReference
-      ? accountKeys.some(key => typeof key === 'string'
-        ? key === intent.solanaReference
-        : typeof key === 'object' && key && (key as { pubkey?: unknown }).pubkey === intent.solanaReference)
-      : false;
-
-    for (const instruction of instructions) {
-      if (!instruction || typeof instruction !== 'object') {
-        continue;
-      }
-
-      const parsed = (instruction as { parsed?: unknown }).parsed;
-      if (!parsed || typeof parsed !== 'object') {
-        continue;
-      }
-
-      const info = (parsed as { info?: unknown }).info as Record<string, unknown> | undefined;
-      const type = (parsed as { type?: unknown }).type;
-      if (type !== 'transfer' || !info) {
-        continue;
-      }
-
-      const destination = String(info.destination ?? '');
-      const source = typeof info.source === 'string' ? info.source : null;
-      const lamports = String(info.lamports ?? '0');
-      const senderFallbackMatches = intent.senderAddress ? source === intent.senderAddress : false;
-
-      if (destination === intent.receiverAddress && (referenceMatched || senderFallbackMatches)) {
-        return { source, lamports };
-      }
+    if (verification.status === 'invalid') {
+      return {
+        status: PaymentStatus.FAILED,
+        amountBaseUnits: payment.amountBaseUnits,
+        senderAddress: payer,
+        receiverAddress: payment.receiverAddress,
+        txHash: payment.txHash,
+        outputIndex: null,
+        blockNumber: payment.blockNumber,
+        confirmations: payment.confirmations,
+        confirmedAt: null,
+        rawPayload: { source: 'wallet_tx_result_poll', verification },
+      };
     }
 
-    return null;
+    if (verification.status === 'confirming') {
+      return {
+        status: PaymentStatus.CONFIRMING,
+        amountBaseUnits: payment.amountBaseUnits,
+        senderAddress: payer,
+        receiverAddress: payment.receiverAddress,
+        txHash: payment.txHash,
+        outputIndex: null,
+        blockNumber: payment.blockNumber,
+        confirmations: verification.confirmations,
+        confirmedAt: null,
+        rawPayload: { source: 'wallet_tx_result_poll', verification },
+      };
+    }
+
+    return {
+      status: this.classifyMatchedAmount(
+        intent,
+        payment.amountBaseUnits,
+        true,
+        verification.confirmedAt,
+      ),
+      amountBaseUnits: payment.amountBaseUnits,
+      senderAddress: payer,
+      receiverAddress: payment.receiverAddress,
+      txHash: payment.txHash,
+      outputIndex: null,
+      blockNumber: verification.blockNumber,
+      confirmations: verification.confirmations,
+      confirmedAt: verification.confirmedAt,
+      rawPayload: { source: 'wallet_tx_result_poll', verification },
+    };
   }
 
   private async findBitcoinMatch(intent: PaymentIntentEntity): Promise<MatchResult> {
@@ -732,6 +1148,129 @@ export class PaymentsService {
     return confirmed ? PaymentStatus.CONFIRMED : PaymentStatus.CONFIRMING;
   }
 
+  private async verifySolanaWalletAction(action: PaymentWalletActionEntity, signature: string) {
+    const request = action.requestJson;
+    const payer = typeof request.payer === 'string' ? request.payer : action.senderAddress;
+    const recipientAddress = typeof request.recipientAddress === 'string' ? request.recipientAddress : '';
+    const lamports = typeof request.lamports === 'string' ? request.lamports : '';
+    const memoOrReference = typeof request.memoOrReference === 'string' ? request.memoOrReference : '';
+
+    if (!payer || !recipientAddress || !lamports || !memoOrReference) {
+      return {
+        status: 'invalid' as const,
+        reason: 'Prepared Solana action metadata is incomplete',
+        rawPayload: null,
+      };
+    }
+
+    return this.solanaPaymentExecutionService.verifySolanaSignatureForIntent({
+      signature,
+      payer,
+      recipientAddress,
+      lamports,
+      memoOrReference,
+    });
+  }
+
+  private requireWalletSession(auth: AuthContext): { normalized: string; checksum: string; chain: PaymentChain } {
+    if (auth.authType !== 'wallet' || !auth.walletAddressNormalized) {
+      throw new UnauthorizedException('Wallet session required');
+    }
+
+    const chain = auth.walletChain === PaymentChain.SOLANA ? PaymentChain.SOLANA : PaymentChain.ETHEREUM;
+    if (chain === PaymentChain.SOLANA) {
+      const normalized = this.solanaPaymentExecutionService.normalizePublicKey(
+        auth.walletAddressNormalized,
+        'wallet session address',
+      );
+      return {
+        normalized,
+        checksum: normalized,
+        chain,
+      };
+    }
+
+    const normalized = normalizeAddress(auth.walletAddressNormalized);
+    return {
+      normalized,
+      checksum: auth.walletAddressChecksum ? getAddress(auth.walletAddressChecksum) : getAddress(normalized),
+      chain,
+    };
+  }
+
+  private assertWalletIntentIsUsable(intent: PaymentIntentEntity, senderAddress: string, chain: PaymentChain): void {
+    if (chain === PaymentChain.ETHEREUM && (intent.chain !== PaymentChain.ETHEREUM || intent.asset !== PaymentAsset.ETH)) {
+      throw new BadRequestException('ETH wallet checkout requires an ETH payment intent');
+    }
+    if (chain === PaymentChain.SOLANA && (intent.chain !== PaymentChain.SOLANA || intent.asset !== PaymentAsset.SOL)) {
+      throw new BadRequestException('SOL wallet checkout requires a SOL payment intent');
+    }
+    if (TERMINAL_PAYMENT_INTENT_STATUSES.has(intent.status)) {
+      throw new BadRequestException('Payment intent is already final');
+    }
+    if (intent.expiresAt.getTime() <= Date.now()) {
+      throw new BadRequestException('Payment intent expired');
+    }
+    if (!intent.senderAddress) {
+      throw new BadRequestException('Payment intent senderAddress is required for wallet checkout');
+    }
+    if (intent.senderAddress !== senderAddress) {
+      throw new BadRequestException('Payment intent senderAddress does not match wallet session');
+    }
+  }
+
+  private assertWalletActionIsUsable(action: PaymentWalletActionEntity, senderAddress: string, chain: PaymentChain): void {
+    if (
+      (chain === PaymentChain.ETHEREUM && (action.chain !== PaymentChain.ETHEREUM || action.actionKind !== PaymentWalletActionKind.EVM_TRANSACTION))
+      || (chain === PaymentChain.SOLANA && (action.chain !== PaymentChain.SOLANA || action.actionKind !== PaymentWalletActionKind.SOLANA_TRANSACTION))
+    ) {
+      throw new BadRequestException('Unsupported prepared wallet action');
+    }
+    if (action.senderAddress !== senderAddress) {
+      throw new BadRequestException('Prepared wallet action does not match wallet session');
+    }
+    if (action.status === PaymentWalletActionStatus.USED) {
+      throw new BadRequestException('Prepared wallet action already used');
+    }
+    if (action.status === PaymentWalletActionStatus.CANCELLED) {
+      throw new BadRequestException('Prepared wallet action cancelled');
+    }
+    if (action.expiresAt.getTime() <= Date.now()) {
+      action.status = PaymentWalletActionStatus.EXPIRED;
+      throw new BadRequestException('Prepared wallet action expired');
+    }
+    if (action.status !== PaymentWalletActionStatus.PREPARED) {
+      throw new BadRequestException('Prepared wallet action is not usable');
+    }
+  }
+
+  private normalizeWalletChainId(value: string | number | undefined): number | null {
+    if (value === undefined || value === null || value === '') {
+      return null;
+    }
+
+    const parsed = typeof value === 'number'
+      ? value
+      : value.startsWith('0x')
+        ? Number.parseInt(value, 16)
+        : Number.parseInt(value, 10);
+
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException('walletChainId must be a valid chain id');
+    }
+
+    return parsed;
+  }
+
+  private normalizeSolanaWalletChainId(value?: string | null): string {
+    const normalized = value?.trim() ?? '';
+    if (!normalized || SOLANA_MAINNET_WALLET_CHAIN_ALIASES.has(normalized)) {
+      return SOLANA_MAINNET_WALLET_CHAIN_ID;
+    }
+
+    throw new BadRequestException('Unsupported Solana wallet chain.');
+  }
+
   private assertChainAsset(chain: PaymentChain, asset: PaymentAsset): void {
     if (CHAIN_ASSET[chain] !== asset) {
       throw new BadRequestException(`${asset} is not supported on ${chain}`);
@@ -749,6 +1288,10 @@ export class PaymentsService {
         throw new BadRequestException('Invalid EVM senderAddress');
       }
       return normalizeAddress(getAddress(trimmed));
+    }
+
+    if (chain === PaymentChain.SOLANA) {
+      return this.solanaPaymentExecutionService.normalizePublicKey(trimmed, 'senderAddress');
     }
 
     return trimmed;
@@ -893,6 +1436,54 @@ export class PaymentsService {
       confirmedAt: payment.confirmedAt,
       createdAt: payment.createdAt,
     };
+  }
+
+  private toPortfolioTransaction(intent: PaymentIntentEntity, payment: PaymentEntity | null): PaymentPortfolioTransactionDto {
+    return {
+      intentId: intent.id,
+      chain: intent.chain,
+      asset: intent.asset,
+      tokenAmount: normalizeFixed(intent.tokenAmount),
+      usdAmount: normalizeFixed(intent.usdAmount),
+      expectedAmountBaseUnits: intent.expectedAmountBaseUnits,
+      paidAmountBaseUnits: payment?.amountBaseUnits ?? null,
+      senderAddress: intent.senderAddress,
+      receiverAddress: intent.receiverAddress,
+      txHash: payment?.txHash ?? null,
+      intentStatus: intent.status,
+      paymentStatus: payment?.status ?? null,
+      confirmations: payment?.confirmations ?? 0,
+      createdAt: intent.createdAt,
+      confirmedAt: payment?.confirmedAt ?? null,
+      expiresAt: intent.expiresAt,
+    };
+  }
+
+  private addPortfolioBreakdown(
+    breakdowns: Map<string, PortfolioBreakdownAccumulator>,
+    key: string,
+    totalUsd: bigint,
+    tokenAmount: bigint,
+  ): void {
+    const current = breakdowns.get(key) ?? {
+      totalUsd: 0n,
+      tokenAmount: 0n,
+      transactionCount: 0,
+    };
+    breakdowns.set(key, {
+      totalUsd: current.totalUsd + totalUsd,
+      tokenAmount: current.tokenAmount + tokenAmount,
+      transactionCount: current.transactionCount + 1,
+    });
+  }
+
+  private toPortfolioBreakdowns(breakdowns: Map<string, PortfolioBreakdownAccumulator>): PaymentPortfolioBreakdownDto[] {
+    return Array.from(breakdowns.entries()).map(([key, value]) => ({
+      key,
+      totalUsd: formatFixed(value.totalUsd),
+      tokenAmount: formatFixed(value.tokenAmount),
+      transactionCount: value.transactionCount,
+    }));
   }
 
   private buildPaymentUri(intent: PaymentIntentEntity): string | null {

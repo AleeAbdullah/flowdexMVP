@@ -7,6 +7,7 @@ import { DataSource } from 'typeorm';
 import { AnalyticsSnapshotEntity } from '../../modules/transactions/entities/analytics-snapshot.entity';
 import { PaymentIntentEntity } from '../../modules/payments/entities/payment-intent.entity';
 import { PaymentEntity } from '../../modules/payments/entities/payment.entity';
+import { PaymentWalletActionEntity } from '../../modules/payments/entities/payment-wallet-action.entity';
 import { LedgerTransactionEntity } from '../../modules/transactions/entities/ledger-transaction.entity';
 import { SimulationIntentEntity } from '../../modules/transactions/entities/simulation-intent.entity';
 import { SyncCheckpointEntity } from '../../modules/transactions/entities/sync-checkpoint.entity';
@@ -34,6 +35,7 @@ export default new DataSource({
     WalletEntity,
     PaymentIntentEntity,
     PaymentEntity,
+    PaymentWalletActionEntity,
     LedgerTransactionEntity,
     SimulationIntentEntity,
     WebhookDeliveryEntity,

@@ -4,7 +4,7 @@ import type { AdminTransactionFilters } from '@/dal/app/admin/admin.types';
 import { PAYMENT_STATUSES } from '@/dal/app/payments/payments.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { GlassPanel } from '@/components/flowdex/primitives';
+import { GlassPanel } from '@/components/glass-panel';
 import { FormField } from '../../../_components/form-field';
 
 type UpdateAdminTransactionFilters = (

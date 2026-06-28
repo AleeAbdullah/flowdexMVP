@@ -1,7 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, Matches } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsEnum, IsIn, IsInt, IsOptional, IsString, Matches, Max, Min } from 'class-validator';
 
-import { PaymentAsset, PaymentChain, PaymentIntentStatus, PaymentStatus } from '../payments.types';
+import {
+  PaymentAsset,
+  PaymentChain,
+  PaymentIntentStatus,
+  PaymentStatus,
+  PaymentWalletActionKind,
+  PaymentWalletTxIdKind,
+} from '../payments.types';
 
 export class CreatePaymentIntentDto {
   @ApiProperty({ enum: PaymentChain })
@@ -27,6 +35,16 @@ export class PaymentHistoryQueryDto {
   @ApiProperty()
   @IsString()
   walletAddress!: string;
+}
+
+export class PaymentLeadersQueryDto {
+  @ApiProperty({ required: false, minimum: 1, maximum: 50, default: 10 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  limit?: number;
 }
 
 export class PaymentInstructionsDto {
@@ -131,4 +149,253 @@ export class PaymentIntentStatusDto {
 
   @ApiProperty({ nullable: true })
   payment!: PaymentPublicDto | null;
+}
+
+export class PreparePaymentWalletActionDto {
+  @ApiProperty({ enum: [PaymentChain.ETHEREUM, PaymentChain.SOLANA] })
+  @IsEnum(PaymentChain)
+  chain!: PaymentChain;
+
+  @ApiProperty()
+  @IsString()
+  senderAddress!: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  walletChainId?: string | number;
+}
+
+export class PreparedEvmWalletTransactionRequestDto {
+  @ApiProperty()
+  to!: `0x${string}`;
+
+  @ApiProperty()
+  chainId!: number;
+
+  @ApiProperty()
+  value!: `0x${string}`;
+
+  @ApiProperty()
+  data!: `0x${string}`;
+
+  @ApiProperty({ required: false })
+  gas?: `0x${string}`;
+
+  @ApiProperty({ required: false })
+  gasPrice?: `0x${string}`;
+
+  @ApiProperty({ required: false })
+  maxFeePerGas?: `0x${string}`;
+
+  @ApiProperty({ required: false })
+  maxPriorityFeePerGas?: `0x${string}`;
+}
+
+export class PreparedWalletActionDto {
+  @ApiProperty({ enum: [PaymentWalletActionKind.EVM_TRANSACTION, PaymentWalletActionKind.SOLANA_TRANSACTION] })
+  kind!: PaymentWalletActionKind;
+
+  @ApiProperty()
+  paymentIntentId!: string;
+
+  @ApiProperty()
+  preparedActionId!: string;
+
+  @ApiProperty({ enum: [PaymentChain.ETHEREUM, PaymentChain.SOLANA] })
+  chain!: PaymentChain;
+
+  @ApiProperty({ required: false })
+  chainId?: number;
+
+  @ApiProperty({ type: PreparedEvmWalletTransactionRequestDto, required: false })
+  request?: PreparedEvmWalletTransactionRequestDto;
+
+  @ApiProperty({ required: false, enum: ['mainnet-beta'] })
+  cluster?: 'mainnet-beta';
+
+  @ApiProperty({ required: false })
+  walletChainId?: string;
+
+  @ApiProperty({ required: false })
+  payer?: string;
+
+  @ApiProperty({ required: false })
+  transaction?: string;
+
+  @ApiProperty({ required: false, enum: ['base64'] })
+  transactionEncoding?: 'base64';
+
+  @ApiProperty({ required: false })
+  lastValidBlockHeight?: number;
+
+  @ApiProperty()
+  expiresAt!: Date;
+}
+
+export class SubmitPaymentTxResultDto {
+  @ApiProperty({ enum: [PaymentChain.ETHEREUM, PaymentChain.SOLANA] })
+  @IsEnum(PaymentChain)
+  chain!: PaymentChain;
+
+  @ApiProperty()
+  @IsString()
+  preparedActionId!: string;
+
+  @ApiProperty({ enum: [PaymentWalletTxIdKind.EVM_TX_HASH, PaymentWalletTxIdKind.SOLANA_SIGNATURE] })
+  @IsIn([PaymentWalletTxIdKind.EVM_TX_HASH, PaymentWalletTxIdKind.SOLANA_SIGNATURE])
+  txIdKind!: PaymentWalletTxIdKind;
+
+  @ApiProperty()
+  @IsString()
+  @Matches(/^(?:0x[a-fA-F0-9]{64}|[1-9A-HJ-NP-Za-km-z]{64,88})$/)
+  txId!: string;
+}
+
+export class PaymentLeaderDto {
+  @ApiProperty()
+  rank!: number;
+
+  @ApiProperty()
+  walletAddress!: string;
+
+  @ApiProperty()
+  totalUsd!: string;
+
+  @ApiProperty()
+  paymentCount!: number;
+
+  @ApiProperty()
+  latestPaymentAt!: Date;
+}
+
+export class PaymentLeadersResponseDto {
+  @ApiProperty({ type: [PaymentLeaderDto] })
+  items!: PaymentLeaderDto[];
+}
+
+export class PaymentPortfolioSummaryDto {
+  @ApiProperty()
+  totalInvestedUsd!: string;
+
+  @ApiProperty()
+  confirmedTokenAmount!: string;
+
+  @ApiProperty()
+  pendingTokenAmount!: string;
+
+  @ApiProperty()
+  reviewTokenAmount!: string;
+
+  @ApiProperty()
+  totalTransactions!: number;
+
+  @ApiProperty()
+  confirmedTransactions!: number;
+
+  @ApiProperty()
+  pendingTransactions!: number;
+
+  @ApiProperty()
+  reviewTransactions!: number;
+
+  @ApiProperty()
+  failedTransactions!: number;
+
+  @ApiProperty()
+  averageEntryPriceUsd!: string;
+
+  @ApiProperty({ nullable: true })
+  firstPaymentAt!: Date | null;
+
+  @ApiProperty({ nullable: true })
+  latestPaymentAt!: Date | null;
+}
+
+export class PaymentPortfolioBreakdownDto {
+  @ApiProperty()
+  key!: string;
+
+  @ApiProperty()
+  totalUsd!: string;
+
+  @ApiProperty()
+  tokenAmount!: string;
+
+  @ApiProperty()
+  transactionCount!: number;
+}
+
+export class PaymentPortfolioTransactionDto {
+  @ApiProperty()
+  intentId!: string;
+
+  @ApiProperty({ enum: PaymentChain })
+  chain!: PaymentChain;
+
+  @ApiProperty({ enum: PaymentAsset })
+  asset!: PaymentAsset;
+
+  @ApiProperty()
+  tokenAmount!: string;
+
+  @ApiProperty()
+  usdAmount!: string;
+
+  @ApiProperty()
+  expectedAmountBaseUnits!: string;
+
+  @ApiProperty({ nullable: true })
+  paidAmountBaseUnits!: string | null;
+
+  @ApiProperty({ nullable: true })
+  senderAddress!: string | null;
+
+  @ApiProperty()
+  receiverAddress!: string;
+
+  @ApiProperty({ nullable: true })
+  txHash!: string | null;
+
+  @ApiProperty({ enum: PaymentIntentStatus })
+  intentStatus!: PaymentIntentStatus;
+
+  @ApiProperty({ enum: PaymentStatus, nullable: true })
+  paymentStatus!: PaymentStatus | null;
+
+  @ApiProperty()
+  confirmations!: number;
+
+  @ApiProperty()
+  createdAt!: Date;
+
+  @ApiProperty({ nullable: true })
+  confirmedAt!: Date | null;
+
+  @ApiProperty()
+  expiresAt!: Date;
+}
+
+export class PaymentPortfolioBreakdownsDto {
+  @ApiProperty({ type: [PaymentPortfolioBreakdownDto] })
+  byAsset!: PaymentPortfolioBreakdownDto[];
+
+  @ApiProperty({ type: [PaymentPortfolioBreakdownDto] })
+  byChain!: PaymentPortfolioBreakdownDto[];
+
+  @ApiProperty({ type: [PaymentPortfolioBreakdownDto] })
+  byStatus!: PaymentPortfolioBreakdownDto[];
+}
+
+export class PaymentPortfolioResponseDto {
+  @ApiProperty()
+  walletAddress!: string;
+
+  @ApiProperty({ type: PaymentPortfolioSummaryDto })
+  summary!: PaymentPortfolioSummaryDto;
+
+  @ApiProperty({ type: PaymentPortfolioBreakdownsDto })
+  breakdowns!: PaymentPortfolioBreakdownsDto;
+
+  @ApiProperty({ type: [PaymentPortfolioTransactionDto] })
+  transactions!: PaymentPortfolioTransactionDto[];
 }

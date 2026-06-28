@@ -1,5 +1,5 @@
 import type { IAdminPaymentListItem } from '@/dal/app/admin/admin.types';
-import { GlassPanel } from '@/components/flowdex/primitives';
+import { GlassPanel } from '@/components/glass-panel';
 import { AdminTransactionRow } from './admin-transaction-row';
 
 export function AdminTransactionsList(props: {

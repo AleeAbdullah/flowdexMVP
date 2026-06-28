@@ -51,8 +51,22 @@ export const STATUS_CODES = {
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
+  SERVICE_UNAVAILABLE: 503,
   INTERNAL_SERVER_ERROR: 500,
 } as const;
+
+function readErrorPayloadField(payload: unknown, field: 'code' | 'statusCode') {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  const value = (payload as Record<string, unknown>)[field];
+  if (typeof value === 'string' || typeof value === 'number') {
+    return value;
+  }
+
+  return null;
+}
 
 export function extractAxiosError(error: unknown) {
   if (isAxiosError(error)) {
@@ -61,6 +75,8 @@ export function extractAxiosError(error: unknown) {
 
     return {
       message,
+      code: readErrorPayloadField(data, 'code'),
+      statusCode: readErrorPayloadField(data, 'statusCode'),
       status: error.response?.status ?? null,
       statusText: error.response?.statusText ?? null,
       data,
@@ -71,6 +87,8 @@ export function extractAxiosError(error: unknown) {
 
   return {
     message: error instanceof Error ? error.message : 'Unknown error occurred',
+    code: null,
+    statusCode: null,
     status: null,
     statusText: null,
     data: null,
