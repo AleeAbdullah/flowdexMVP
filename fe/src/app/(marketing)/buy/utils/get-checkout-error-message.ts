@@ -151,7 +151,7 @@ function getUnknownErrorMessage(error: unknown) {
     return error;
   }
 
-  return 'Checkout step failed';
+  return 'Checkout failed';
 }
 
 function getErrorText(error: unknown) {
