@@ -11,7 +11,14 @@ import type { SupportedAssetOption } from '../types/buy-view-model';
 const enabledAssets: PaymentAsset[] = [
   PAYMENT_ASSETS.ETH,
   PAYMENT_ASSETS.SOL,
+  PAYMENT_ASSETS.BTC,
 ];
+
+const assetConfig: Record<PaymentAsset, { chain: typeof PAYMENT_CHAINS[keyof typeof PAYMENT_CHAINS]; chainId: number | null }> = {
+  ETH: { chain: PAYMENT_CHAINS.ETHEREUM, chainId: mainnet.id },
+  SOL: { chain: PAYMENT_CHAINS.SOLANA, chainId: null },
+  BTC: { chain: PAYMENT_CHAINS.BITCOIN, chainId: null },
+};
 
 const fallbackPrices: Record<PaymentAsset, number> = {
   ETH: 2850,
@@ -35,13 +42,13 @@ function getAssetPrice(snapshot: BuySnapshot, asset: PaymentAsset) {
 
 export function buildSupportedAssetOptions(snapshot: BuySnapshot): SupportedAssetOption[] {
   return enabledAssets.map((asset) => {
-    const isEth = asset === PAYMENT_ASSETS.ETH;
+    const { chain, chainId } = assetConfig[asset];
     return {
       id: asset,
       code: asset,
       label: asset,
-      chain: isEth ? PAYMENT_CHAINS.ETHEREUM : PAYMENT_CHAINS.SOLANA,
-      chainId: isEth ? mainnet.id : null,
+      chain,
+      chainId,
       decimals: decimals[asset],
       usdPrice: getAssetPrice(snapshot, asset),
     };

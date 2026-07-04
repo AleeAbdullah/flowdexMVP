@@ -20,20 +20,20 @@ export function LeadersPanel(props: {
       </div>
 
       {props.isError ? (
-        <div className="mt-7 rounded-md border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+        <div className="mt-7 rounded-md border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-100">
           Could not load leaders right now.
         </div>
       ) : null}
 
       {!props.isLoading && !props.isError && props.leaders.length === 0 ? (
-        <div className="mt-7 rounded-md border border-[var(--card-border)] bg-[#050c16] px-4 py-8 text-center text-sm text-[var(--muted)]">
+        <div className="mt-7 rounded-md border border-[var(--card-border)] bg-[var(--buy-panel-soft)] px-4 py-8 text-center text-sm text-[var(--muted)]">
           No confirmed purchases yet.
         </div>
       ) : null}
 
       {props.leaders.length > 0 ? (
         <div className="mt-7 overflow-hidden rounded-[0.8rem] border border-[var(--card-border)]">
-          <div className="grid grid-cols-[4rem_minmax(0,1fr)_auto] gap-3 bg-[#07111d] px-4 py-3 text-[10px] font-bold tracking-[0.22em] text-[var(--muted)] uppercase md:grid-cols-[4rem_minmax(0,1fr)_9rem_10rem_auto]">
+          <div className="grid grid-cols-[4rem_minmax(0,1fr)_auto] gap-3 bg-[var(--buy-stage)] px-4 py-3 text-[10px] font-bold tracking-[0.22em] text-[var(--muted)] uppercase md:grid-cols-[4rem_minmax(0,1fr)_9rem_10rem_auto]">
             <span>Rank</span>
             <span>Wallet</span>
             <span className="hidden md:block">Purchases</span>
@@ -62,7 +62,7 @@ export function LeadersPanel(props: {
                   {leader.paymentCount} purchase{leader.paymentCount === 1 ? '' : 's'}
                 </div>
                 <div className="hidden text-xs text-[var(--muted)] md:block">{formatDateTime(leader.latestPaymentAt)}</div>
-                <div className="text-right font-data font-black text-emerald-300">{formatCurrency(leader.totalUsd, 0)}</div>
+                <div className="text-right font-data font-black text-[var(--green)]">{formatCurrency(leader.totalUsd, 0)}</div>
               </div>
             ))}
           </div>

@@ -91,6 +91,16 @@ export function validateSenderAddress(chain: PaymentChain, value: string) {
     return isAddress(address) ? null : 'Enter a valid EVM wallet address.';
   }
 
+  if (chain === PAYMENT_CHAINS.BITCOIN) {
+    if (!address) {
+      return 'Enter the Bitcoin address you will pay from.';
+    }
+
+    return /^(?:[13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[ac-hj-np-z02-9]{11,71})$/u.test(address)
+      ? null
+      : 'Enter a valid Bitcoin address.';
+  }
+
   if (!address) {
     return null;
   }

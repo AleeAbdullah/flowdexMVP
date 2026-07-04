@@ -54,7 +54,7 @@ export function PortfolioPanel(props: {
             Confirmed presale allocation and payment activity for a wallet.
           </p>
           {lookupAddress ? (
-            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[#050c16] px-3 py-1.5 font-data text-xs text-[var(--text)]">
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[var(--card-border)] bg-[var(--buy-panel-soft)] px-3 py-1.5 font-data text-xs text-[var(--text)]">
               <Wallet className="h-3.5 w-3.5 text-[var(--cyan)]" />
               {truncateMiddle(lookupAddress, 12, 8)}
             </div>
@@ -66,7 +66,7 @@ export function PortfolioPanel(props: {
             value={walletAddressInput}
             onChange={event => setWalletAddressInput(event.target.value)}
             placeholder="Wallet address"
-            className="h-11 border-[var(--card-border)] bg-[#050c16] text-[var(--text)]"
+            className="h-11 border-[var(--card-border)] bg-[var(--buy-panel-soft)] text-[var(--text)]"
           />
           <Button type="button" variant="glass" className="h-11 shrink-0" onClick={submitLookup} disabled={!walletAddressInput.trim()}>
             <Search className="h-4 w-4" />
@@ -80,20 +80,20 @@ export function PortfolioPanel(props: {
       ) : null}
 
       {portfolioQuery.isLoading ? (
-        <div className="mt-8 flex items-center gap-3 rounded-md border border-[var(--card-border)] bg-[#050c16] px-4 py-8 text-sm text-[var(--muted)]">
+        <div className="mt-8 flex items-center gap-3 rounded-md border border-[var(--card-border)] bg-[var(--buy-panel-soft)] px-4 py-8 text-sm text-[var(--muted)]">
           <Loader2 className="h-4 w-4 animate-spin text-[var(--cyan)]" />
           Loading portfolio.
         </div>
       ) : null}
 
       {portfolioQuery.isError ? (
-        <div className="mt-8 rounded-md border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+        <div className="mt-8 rounded-md border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-100">
           Could not load this portfolio right now.
         </div>
       ) : null}
 
       {portfolio && portfolio.summary.totalTransactions === 0 ? (
-        <div className="mt-8 rounded-md border border-[var(--card-border)] bg-[#050c16] px-4 py-8 text-center text-sm text-[var(--muted)]">
+        <div className="mt-8 rounded-md border border-[var(--card-border)] bg-[var(--buy-panel-soft)] px-4 py-8 text-center text-sm text-[var(--muted)]">
           No presale payments found for this wallet yet.
         </div>
       ) : null}
@@ -118,7 +118,7 @@ export function PortfolioPanel(props: {
 
 function EmptyPortfolioState() {
   return (
-    <div className="mt-8 rounded-md border border-[var(--card-border)] bg-[#050c16] px-4 py-8 text-center text-sm text-[var(--muted)]">
+    <div className="mt-8 rounded-md border border-[var(--card-border)] bg-[var(--buy-panel-soft)] px-4 py-8 text-center text-sm text-[var(--muted)]">
       Connect a wallet or enter a wallet address to view its presale portfolio.
     </div>
   );
@@ -131,8 +131,8 @@ function PortfolioMetric(props: {
   accent?: boolean;
 }) {
   return (
-    <div className="rounded-[0.85rem] border border-[var(--card-border)] bg-[#050c16] px-4 py-5">
-      <DataKicker label={props.label} value={props.value} className={cn(props.accent && '[&>div:last-child]:text-emerald-300')} />
+    <div className="rounded-[0.85rem] border border-[var(--card-border)] bg-[var(--buy-panel-soft)] px-4 py-5">
+      <DataKicker label={props.label} value={props.value} className={cn(props.accent && '[&>div:last-child]:text-[var(--green)]')} />
       {props.note ? <div className="mt-2 text-xs text-[var(--muted)]">{props.note}</div> : null}
     </div>
   );
@@ -143,7 +143,7 @@ function PortfolioTransactions(props: {
 }) {
   return (
     <div className="mt-8 overflow-hidden rounded-[0.85rem] border border-[var(--card-border)]">
-      <div className="flex items-center gap-2 bg-[#07111d] px-4 py-3 text-[10px] font-bold tracking-[0.28em] text-[var(--muted)] uppercase">
+      <div className="flex items-center gap-2 bg-[var(--buy-stage)] px-4 py-3 text-[10px] font-bold tracking-[0.28em] text-[var(--muted)] uppercase">
         <ReceiptText className="h-4 w-4 text-[var(--cyan)]" />
         Payment History
       </div>

@@ -14,6 +14,7 @@ function toAssetLabel(code: string) {
     USDC: 'USD Coin',
     BNB: 'BNB',
     SOL: 'Solana',
+    BTC: 'Bitcoin',
   };
 
   return labels[code] ?? code;

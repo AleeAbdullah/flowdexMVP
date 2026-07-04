@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useQueryState } from 'nuqs';
 import { GlassPanel } from '@/components/glass-panel';
 import { usePaymentLeaders } from '@/dal/app/payments/payments.services';
+import { UserRound } from '@/icons';
 import { cn } from '@/lib/utils';
 import { BuyMetric } from './_components/buy-metric';
 import { BuySidebar } from './_components/buy-sidebar';
@@ -12,14 +14,31 @@ import { PaymentCard } from './_components/payment-card';
 import { PaymentDialogs } from './_components/payment-dialogs';
 import { PortfolioPanel } from './_components/portfolio-panel';
 import { WalletConnectionStatus } from './_components/wallet-connection-status';
+import {
+  BUY_PAGE_TABS,
+  buyTabParser,
+  resolveBuyPageTabFromQuery,
+  type BuyPageTab,
+} from './constants/buy-tab-parsers';
 import { useBuyCheckoutController } from './hooks/use-buy-checkout-controller';
-
-const tabs = ['Buy $FDN', 'Portfolio'] as const;
-type BuyTab = (typeof tabs)[number];
 
 export default function BuyRoute() {
   const { market, order, payment, wallet, actions } = useBuyCheckoutController();
-  const [activeTab, setActiveTab] = useState<BuyTab>('Buy $FDN');
+  const [activeTab, setActiveTab] = useState<BuyPageTab>('Buy $FDN');
+  const [tabParam, setTabParam] = useQueryState('tab', buyTabParser);
+
+  useEffect(() => {
+    if (!tabParam) {
+      return;
+    }
+
+    const nextTab = resolveBuyPageTabFromQuery(tabParam);
+    if (nextTab) {
+      setActiveTab(nextTab);
+    }
+
+    void setTabParam(null);
+  }, [tabParam, setTabParam]);
   const leadersQuery = usePaymentLeaders(10);
   const progressPercent = Math.max(0, Math.min(100, market.raisedProgressPercent));
 
@@ -40,7 +59,7 @@ export default function BuyRoute() {
         </div>
 
         <div className="mt-7">
-          <div className="h-8 overflow-hidden rounded-full bg-[#121a2b]">
+          <div className="h-8 overflow-hidden rounded-full bg-[var(--track)]">
             <div
               className="h-full rounded-r-none bg-[linear-gradient(90deg,#19d7e8,#118cf2)]"
               style={{ width: `${progressPercent}%` }}
@@ -55,13 +74,13 @@ export default function BuyRoute() {
           <div>
             <span className="text-[var(--muted)]">Price: </span>
             <span className="font-bold text-[var(--text)]">{market.tokenPriceDisplay}</span>
-            <div className="mt-2 h-1.5 w-32 rounded-full bg-[#101827]">
+            <div className="mt-2 h-1.5 w-32 rounded-full bg-[var(--track)]">
               <div className="h-full w-2/3 rounded-full bg-[var(--cyan)]" />
             </div>
           </div>
           <div className="text-center">
             <span className="text-[var(--muted)]">Discount: </span>
-            <span className="font-bold text-emerald-300">{market.discountPercentDisplay}</span>
+            <span className="font-bold text-[var(--green)]">{market.discountPercentDisplay}</span>
           </div>
           <div className="text-right">
             <span className="text-[var(--muted)]">Next Tier Price: </span>
@@ -73,10 +92,10 @@ export default function BuyRoute() {
           <div className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_44%,transparent)] uppercase">
             Tier {market.currentTier} Vesting
           </div>
-          <div className="mt-4 grid h-10 overflow-hidden rounded-sm md:grid-cols-[0.05fr_0.35fr_0.6fr]">
-            <div className="flex items-center justify-center bg-[var(--cyan)] text-[10px] font-black text-[#02111c]">5% TGE</div>
-            <div className="flex items-center justify-center bg-[#112337] text-[10px] font-bold text-[var(--muted)]">12mo Cliff</div>
-            <div className="flex items-center justify-center bg-[#0d9cb4] text-[10px] font-bold text-[var(--text)]">24mo Vest</div>
+          <div className="mt-4 grid h-10 overflow-hidden rounded-sm md:grid-cols-[0.07fr_0.35fr_0.6fr]">
+            <div className="flex items-center justify-center bg-[var(--cyan)] text-[13px] font-black text-[var(--primary-foreground-solid)]">5% TGE</div>
+            <div className="flex items-center justify-center bg-[var(--buy-stage-muted)] text-[13px] font-bold text-[var(--muted)]">12mo Cliff</div>
+            <div className="flex items-center justify-center bg-[var(--accent-deep)] text-[13px] font-bold text-[var(--primary-foreground-solid)]">24mo Vest</div>
           </div>
           <div className="mt-2 flex justify-between text-[10px] text-[color-mix(in_srgb,var(--text)_42%,transparent)]">
             <span>TGE</span>
@@ -93,8 +112,8 @@ export default function BuyRoute() {
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_31rem] xl:items-start">
         <div className="space-y-6">
-          <GlassPanel as="nav" className="grid max-w-[35rem] grid-cols-2 rounded-[0.7rem] bg-[var(--buy-panel)] p-1">
-            {tabs.map(tab => (
+          <GlassPanel as="nav" className="grid grid-cols-3 rounded-[0.7rem] bg-[var(--buy-panel)] p-1">
+            {BUY_PAGE_TABS.map(tab => (
               <button
                 key={tab}
                 type="button"
@@ -102,7 +121,7 @@ export default function BuyRoute() {
                 className={cn(
                   'px-3 py-3 text-sm font-bold transition',
                   activeTab === tab
-                    ? 'rounded-md bg-[#102238] text-[var(--cyan)]'
+                    ? 'rounded-md border border-[var(--accent-border)] bg-[var(--accent-bg)] text-[var(--cyan)]'
                     : 'text-[var(--muted)] hover:text-[var(--text)]',
                 )}
               >
@@ -123,11 +142,38 @@ export default function BuyRoute() {
             {activeTab === 'Portfolio' ? (
               <PortfolioPanel market={market} />
             ) : null}
+
+            {activeTab === 'Referral' ? (
+              <div className="text-center">
+                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-md border border-cyan-200/25 bg-cyan-300/10 text-cyan-200">
+                  <UserRound className="h-6 w-6" />
+                </div>
+                <h2 className="mt-6 text-2xl font-black text-(--text)">Referral Coming Soon</h2>
+                <p className="mx-auto mt-4 max-w-md text-sm font-semibold leading-7 text-(--muted)">
+                  Invite new FlowDex buyers and earn rewards when the referral program launches. Referral links,
+                  tracking, and rewards will be available in an upcoming release.
+                </p>
+                <div className="mt-8 grid grid-cols-3 gap-4">
+                  <div>
+                    <div className="font-data text-2xl font-black text-(--cyan)">Links</div>
+                    <div className="mt-2 text-xs font-bold text-(--muted)">Referral Tracking</div>
+                  </div>
+                  <div>
+                    <div className="font-data text-2xl font-black text-(--cyan)">Rewards</div>
+                    <div className="mt-2 text-xs font-bold text-(--muted)">Buyer Bonuses</div>
+                  </div>
+                  <div>
+                    <div className="font-data text-2xl font-black text-(--cyan)">Soon</div>
+                    <div className="mt-2 text-xs font-bold text-(--muted)">Feature Launch</div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </GlassPanel>
         </div>
 
         <aside className="space-y-6">
-          <WalletConnectionStatus wallet={wallet} actions={actions} />
+          {/* <WalletConnectionStatus wallet={wallet} actions={actions} /> */}
           <BuySidebar />
           <GlassPanel as="section" className="rounded-[1.15rem] bg-[var(--buy-panel)] p-7">
             <LeadersPanel

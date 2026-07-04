@@ -58,7 +58,7 @@ export function WalletConnectionStatus(props: {
       </div>
 
       {status.connectionErrorMessage ? (
-        <p className="mt-4 rounded-md border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs leading-5 text-rose-100">
+        <p className="mt-4 rounded-md border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs leading-5 text-rose-700 dark:text-rose-100">
           {status.connectionErrorMessage}
         </p>
       ) : null}

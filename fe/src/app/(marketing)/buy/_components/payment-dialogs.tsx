@@ -2,15 +2,64 @@
 
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { QRCodeSVG } from 'qrcode.react';
+import { useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { GlassPanel } from '@/components/glass-panel';
+import { WalletConnectorIcon } from '@/components/flowdex/wallet-connector-icon';
 import { StatusPill } from '@/components/flowdex/primitives';
 import { truncateMiddle } from '@/components/flowdex/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { AlertTriangle, Copy, Loader2, ShieldCheck, Wallet, X } from '@/icons';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AlertTriangle, CircleAlert, Copy, Loader2, ShieldCheck, Wallet, X } from '@/icons';
 import { cn } from '@/lib/utils';
 import { describeUnsupportedWalletReason } from '../utils/get-buy-execution-readiness';
 import type { BuyActions, BuyOrderView, BuyPaymentView, BuyWalletView, PaymentInstructionSummary } from '../types/buy-view-model';
+import type { MarketingWalletUnsupportedReason } from '@/hooks/marketing-wallet.types';
+
+type WalletCheckoutIssue = {
+  summary: string;
+  message: string;
+  toastTitle: string;
+};
+
+function resolveWalletCheckoutIssue(walletStatus: BuyWalletView['walletStatus']): WalletCheckoutIssue | null {
+  if (walletStatus.connectionErrorMessage) {
+    return {
+      summary: 'Wallet connection needs attention',
+      message: walletStatus.connectionErrorMessage,
+      toastTitle: 'Wallet connection failed',
+    };
+  }
+
+  if (walletStatus.unsupportedReason) {
+    return {
+      summary: getWalletIssueSummary(walletStatus.unsupportedReason),
+      message: describeUnsupportedWalletReason(walletStatus.unsupportedReason),
+      toastTitle: getWalletIssueToastTitle(walletStatus.unsupportedReason),
+    };
+  }
+
+  return null;
+}
+
+function getWalletIssueSummary(reason: MarketingWalletUnsupportedReason) {
+  switch (reason) {
+    case 'wrong_chain':
+      return 'Switch to the correct network';
+    default:
+      return 'Wallet checkout needs attention';
+  }
+}
+
+function getWalletIssueToastTitle(reason: MarketingWalletUnsupportedReason) {
+  switch (reason) {
+    case 'wrong_chain':
+      return 'Wrong network';
+    default:
+      return 'Wallet checkout blocked';
+  }
+}
 
 function copyText(value: string) {
   if (navigator.clipboard) {
@@ -30,6 +79,23 @@ function getConnectorLabel(connectorName: string) {
       return 'MetaMask Solana';
     default:
       return connectorName;
+  }
+}
+
+function getDescription(stage: BuyWalletView['checkoutStage'], canUseWalletCheckout: boolean) {
+  switch (stage) {
+    case 'direct_instructions':
+      return 'Send the exact amount shown below. We will detect your payment automatically.';
+    case 'tracking':
+      return 'Your transaction has been submitted and is being tracked on chain.';
+    case 'direct_address':
+      return 'Enter the wallet address you will pay from to receive manual send instructions.';
+    case 'failed':
+      return 'Review the issue below and choose how you would like to continue.';
+    default:
+      return canUseWalletCheckout
+        ? 'Connect a wallet for direct checkout, or use manual instructions if you want to send funds yourself.'
+        : 'This asset uses direct-send instructions. Enter the wallet address you will pay from to continue.';
   }
 }
 
@@ -93,13 +159,17 @@ export function PaymentDialogs(props: {
     || stage === 'waiting_for_wallet_approval'
     || stage === 'submitting_tx_result';
 
+  const walletIssue = resolveWalletCheckoutIssue(walletStatus);
+  useWalletIssueToast(walletIssue);
+  usePaymentAttentionToast(stage === 'failed' ? props.wallet.paymentWalletError : null);
+
   return (
     <DialogPrimitive.Root open={isOpen} onOpenChange={open => !open && props.actions.closeCheckout()}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/65 data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=open]:duration-200" />
         <DialogPrimitive.Content
           className={cn(
-            'fixed left-1/2 top-1/2 z-50 max-h-[calc(100vh-2rem)] w-[min(calc(100vw-2rem),32rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-[var(--card-border)] bg-[var(--surface-elevated)] p-6 text-[var(--text)] shadow-[0_24px_90px_rgba(0,0,0,0.36)] outline-none',
+            'fixed left-1/2 top-1/2 z-50 max-h-[calc(100vh-2rem)] w-[min(calc(100vw-2rem),32rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-[var(--card-border)] bg-[var(--surface-elevated)] p-6 text-[var(--text)] shadow-[0_24px_90px_rgba(0,0,0,0.36)] outline-none data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=open]:duration-200',
             isWide && 'w-[min(calc(100vw-2rem),46rem)]',
           )}
         >
@@ -107,9 +177,7 @@ export function PaymentDialogs(props: {
             <div>
               <DialogPrimitive.Title className="text-lg font-bold">{getTitle(stage)}</DialogPrimitive.Title>
               <DialogPrimitive.Description className="mt-3 text-sm leading-7 text-[var(--muted)]">
-                {props.wallet.canUseWalletCheckout
-                  ? 'Connect a wallet for direct checkout, or use manual instructions if you want to send funds yourself.'
-                  : 'This asset uses direct-send instructions. Enter the wallet address you will pay from to continue.'}
+                {getDescription(stage, props.wallet.canUseWalletCheckout)}
               </DialogPrimitive.Description>
             </div>
             <DialogPrimitive.Close className="rounded-full border border-[var(--card-border)] p-2 text-[var(--muted)] transition-colors hover:border-[var(--cyan)] hover:text-[var(--text)]">
@@ -123,54 +191,42 @@ export function PaymentDialogs(props: {
             <div className="mt-5 space-y-4">
               {!walletStatus.address ? (
                 <>
-                  <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
-                    Connect wallet
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {walletStatus.availableConnectorNames.map(connectorName => (
-                      <Button
-                        key={connectorName}
-                        type="button"
-                        variant="glass"
-                        className="h-12 justify-start"
-                        onClick={() => props.actions.connectWallet(connectorName)}
-                        disabled={isBusy}
-                      >
-                        <Wallet className="h-4 w-4" />
-                        {getConnectorLabel(connectorName)}
-                      </Button>
-                    ))}
-                  </div>
-                  {walletStatus.availableConnectorNames.length === 0 ? (
-                    <div className="rounded-md border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
-                      No supported wallet connectors are available in this browser.
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
+                      Connect wallet
                     </div>
-                  ) : null}
+                    {walletIssue ? <WalletIssueIcon issue={walletIssue} /> : null}
+                  </div>
+                  <WalletConnectorPicker
+                    connectorNames={walletStatus.availableConnectorNames}
+                    pendingConnectorName={walletStatus.pendingConnectorName}
+                    isConnecting={stage === 'connecting_wallet'}
+                    disabled={isBusy}
+                    onConnect={props.actions.connectWallet}
+                  />
                 </>
               ) : (
-                <ConnectedWalletPanel wallet={props.wallet} />
+                <ConnectedWalletPanel wallet={props.wallet} walletIssue={walletIssue} />
               )}
-
-              {walletStatus.connectionErrorMessage ? (
-                <InlineIssue message={walletStatus.connectionErrorMessage} />
-              ) : null}
 
               <WalletCheckoutStageMessage stage={stage} />
 
-              {walletStatus.unsupportedReason ? (
-                <InlineIssue message={describeUnsupportedWalletReason(walletStatus.unsupportedReason)} />
-              ) : null}
-
-              <div className="flex flex-wrap justify-between gap-3">
-                <Button type="button" variant="glass" onClick={props.actions.useDirectSend} disabled={isBusy}>
-                  Send directly
-                </Button>
+              <div className="flex flex-wrap items-center justify-end gap-3">
                 {walletStatus.address ? (
                   <Button type="button" variant="brand" onClick={props.actions.startWalletPayment} disabled={isBusy}>
                     {isBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
                     Continue with wallet
                   </Button>
                 ) : null}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-9 px-2 text-(--muted) hover:text-(--text)"
+                  onClick={props.actions.useDirectSend}
+                  disabled={isBusy}
+                >
+                  Send directly
+                </Button>
               </div>
             </div>
           ) : null}
@@ -186,7 +242,7 @@ export function PaymentDialogs(props: {
                   value={props.wallet.paymentWalletAddress}
                   onChange={event => props.actions.setPaymentWalletAddress(event.target.value)}
                   placeholder="Wallet address"
-                  className="h-12 border-[var(--card-border)] bg-[var(--surface)] text-[var(--text)]"
+                  className="h-12 border-[var(--card-border)] bg-[var(--buy-panel-soft)] text-[var(--text)]"
                 />
               </label>
               {props.wallet.paymentWalletError ? <InlineIssue message={props.wallet.paymentWalletError} /> : null}
@@ -224,7 +280,7 @@ export function PaymentDialogs(props: {
 
           {stage === 'failed' ? (
             <div className="mt-5 space-y-4">
-              {props.wallet.paymentWalletError ? <InlineIssue message={props.wallet.paymentWalletError} /> : null}
+              {props.wallet.paymentWalletError ? <PaymentAttentionIssue message={props.wallet.paymentWalletError} /> : null}
               <div className="flex flex-wrap justify-end gap-3">
                 <Button type="button" variant="glass" onClick={props.actions.useDirectSend}>
                   Send directly
@@ -240,6 +296,79 @@ export function PaymentDialogs(props: {
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
+  );
+}
+
+function useWalletIssueToast(issue: WalletCheckoutIssue | null) {
+  const lastIssueRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!issue) {
+      lastIssueRef.current = null;
+      return;
+    }
+
+    const issueKey = `${issue.toastTitle}:${issue.message}`;
+    if (lastIssueRef.current === issueKey) {
+      return;
+    }
+
+    lastIssueRef.current = issueKey;
+    toast.error(issue.toastTitle, {
+      description: issue.message,
+      id: 'buy-wallet-checkout-issue',
+    });
+  }, [issue]);
+}
+
+function usePaymentAttentionToast(message: string | null) {
+  const lastMessageRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!message) {
+      lastMessageRef.current = null;
+      return;
+    }
+
+    if (lastMessageRef.current === message) {
+      return;
+    }
+
+    lastMessageRef.current = message;
+    toast.error('Payment needs attention', {
+      description: message,
+      id: 'buy-payment-attention-error',
+    });
+  }, [message]);
+}
+
+function PaymentAttentionIssue(props: { message: string }) {
+  return (
+    <TooltipProvider delayDuration={100}>
+      <div className="space-y-2 rounded-xl border border-rose-400/20 bg-rose-500/8 px-4 py-3 shadow-[0_10px_30px_rgba(244,63,94,0.08)]">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-rose-700 dark:text-rose-100">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400 shadow-[0_0_16px_rgba(251,113,133,0.85)]" />
+            <span>Payment needs attention</span>
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="rounded-full border border-rose-300/30 bg-rose-500/10 p-1 text-rose-600 transition-colors hover:bg-rose-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 dark:text-rose-100"
+                aria-label={`Payment needs attention: ${props.message}`}
+              >
+                <CircleAlert className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-72 border-rose-400/20 bg-(--surface-elevated) text-sm leading-5 text-(--text) shadow-[0_18px_60px_rgba(0,0,0,0.28)]">
+              {props.message}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        <p className="text-sm leading-6 text-rose-700/90 dark:text-rose-100/90">{props.message}</p>
+      </div>
+    </TooltipProvider>
   );
 }
 
@@ -260,14 +389,14 @@ function WalletCheckoutStageMessage(props: { stage: BuyWalletView['checkoutStage
 
 function OrderSummary(props: { pay: string; receive: string; assetLabel: string }) {
   return (
-    <div className="mt-5 grid gap-3 rounded-lg border border-[var(--card-border)] bg-[#050c16] p-4 text-sm sm:grid-cols-3">
+    <div className="mt-5 grid gap-3 rounded-lg border border-[var(--card-border)] bg-[var(--buy-panel-soft)] p-4 text-sm sm:grid-cols-3">
       <div>
         <div className="text-[10px] font-bold tracking-[0.24em] text-[var(--muted)] uppercase">You Pay</div>
         <div className="mt-1 font-bold text-[var(--text)]">{props.pay}</div>
       </div>
       <div>
         <div className="text-[10px] font-bold tracking-[0.24em] text-[var(--muted)] uppercase">You Receive</div>
-        <div className="mt-1 font-bold text-emerald-300">{props.receive}</div>
+        <div className="mt-1 font-bold text-[var(--green)]">{props.receive}</div>
       </div>
       <div>
         <div className="text-[10px] font-bold tracking-[0.24em] text-[var(--muted)] uppercase">Asset</div>
@@ -277,10 +406,85 @@ function OrderSummary(props: { pay: string; receive: string; assetLabel: string 
   );
 }
 
-function ConnectedWalletPanel(props: { wallet: BuyWalletView }) {
+function WalletConnectorPicker(props: {
+  connectorNames: string[];
+  pendingConnectorName: string | null;
+  isConnecting: boolean;
+  disabled: boolean;
+  onConnect: (connectorName: string) => void;
+}) {
+  if (props.connectorNames.length === 0) {
+    return (
+      <div className="rounded-md bg-amber-300/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-100">
+        No supported wallet connectors are available in this browser.
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-start justify-center gap-7">
+      {props.connectorNames.map(connectorName => {
+        const isPending = props.isConnecting && props.pendingConnectorName === connectorName;
+        return (
+          <button
+            key={connectorName}
+            type="button"
+            disabled={props.disabled}
+            onClick={() => props.onConnect(connectorName)}
+            className={cn(
+              'group flex h-24 w-28 shrink-0 flex-col items-center justify-center gap-2 rounded-xl border px-2 text-center transition-colors',
+              'border-(--card-border) bg-(--buy-panel-soft) text-(--muted)',
+              'hover:border-(--cyan) hover:bg-(--surface-elevated) hover:text-(--text)',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--cyan)/35',
+              'disabled:pointer-events-none disabled:opacity-60',
+              isPending && 'border-(--cyan)/40 bg-(--surface-elevated) text-(--text)',
+            )}
+            aria-label={`Connect ${getConnectorLabel(connectorName)}`}
+          >
+            <span className="relative flex h-10 w-10 items-center justify-center">
+              <WalletConnectorIcon connectorName={connectorName} className="h-8 w-8" size={32} />
+              {isPending ? (
+                <span className="absolute -right-1 -top-1 rounded-full bg-(--surface-elevated) p-0.5">
+                  <Loader2 className="h-4 w-4 animate-spin text-(--cyan)" />
+                </span>
+              ) : null}
+            </span>
+            <span className="line-clamp-2 text-xs font-semibold leading-4">{getConnectorLabel(connectorName)}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function WalletIssueIcon(props: { issue: WalletCheckoutIssue }) {
+  return (
+    <TooltipProvider delayDuration={100}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="rounded-full p-0.5 text-rose-500/55 transition-colors hover:text-rose-500/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-400/40 dark:text-rose-300/55 dark:hover:text-rose-200/80"
+            aria-label={`${props.issue.summary}: ${props.issue.message}`}
+          >
+            <CircleAlert className="h-3.5 w-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent
+          align="end"
+          className="max-w-72 border-(--card-border) bg-(--surface-elevated) text-sm leading-5 text-(--text) shadow-md"
+        >
+          {props.issue.message}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function ConnectedWalletPanel(props: { wallet: BuyWalletView; walletIssue: WalletCheckoutIssue | null }) {
   const walletStatus = props.wallet.walletStatus;
   return (
-    <GlassPanel className="rounded-lg bg-[#050c16] p-4">
+    <GlassPanel className="rounded-lg bg-[var(--buy-panel-soft)] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-[10px] font-bold tracking-[0.24em] text-[var(--muted)] uppercase">Connected Wallet</div>
@@ -288,8 +492,11 @@ function ConnectedWalletPanel(props: { wallet: BuyWalletView }) {
             {walletStatus.address ? truncateMiddle(walletStatus.address, 12, 8) : 'Not connected'}
           </div>
         </div>
-        <div className="rounded-full border border-[var(--card-border)] px-3 py-1 text-xs font-bold text-[var(--cyan)]">
-          {walletStatus.connectorName ? getConnectorLabel(walletStatus.connectorName) : walletStatus.providerStatus}
+        <div className="flex items-center gap-2">
+          <div className="rounded-full border border-[var(--card-border)] px-3 py-1 text-xs font-bold text-[var(--cyan)]">
+            {walletStatus.connectorName ? getConnectorLabel(walletStatus.connectorName) : walletStatus.providerStatus}
+          </div>
+          {props.walletIssue ? <WalletIssueIcon issue={props.walletIssue} /> : null}
         </div>
       </div>
       <div className="mt-4 grid gap-3 text-xs sm:grid-cols-3">
@@ -297,7 +504,7 @@ function ConnectedWalletPanel(props: { wallet: BuyWalletView }) {
         <StatusCell label="Verified" value={walletStatus.verificationStatus} />
         <StatusCell label="Readiness" value={walletStatus.executionReadiness} />
       </div>
-      {walletStatus.verificationError ? <p className="mt-3 text-sm text-rose-200">{walletStatus.verificationError}</p> : null}
+      {walletStatus.verificationError ? <p className="mt-3 text-sm text-rose-700 dark:text-rose-200">{walletStatus.verificationError}</p> : null}
     </GlassPanel>
   );
 }
@@ -319,26 +526,23 @@ function DirectInstructions(props: {
 }) {
   const instruction = props.instruction;
   return (
-    <div className="mt-5">
+    <div className="mt-5 space-y-5">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p className="max-w-2xl text-sm leading-6 text-[var(--muted)]">
-            Send the exact amount shown below. This page updates automatically.
-          </p>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-3">
             <StatusPill status={instruction.status} />
             {props.isCheckingStatus ? <Loader2 className="h-4 w-4 animate-spin text-[var(--cyan)]" /> : null}
           </div>
           <div className="mt-4 text-sm font-semibold text-[var(--text)]">{instruction.statusTitle}</div>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--muted)]">{instruction.statusDescription}</p>
-          {props.statusError ? <p className="mt-3 text-sm text-amber-200">{props.statusError}</p> : null}
+          {props.statusError ? <p className="mt-3 text-sm text-amber-700 dark:text-amber-200">{props.statusError}</p> : null}
         </div>
-        <div className="rounded-[0.9rem] border border-[var(--card-border)] bg-white p-3">
+        <div className="mx-auto shrink-0 rounded-xl border border-[var(--card-border)] bg-white p-3 shadow-[0_12px_40px_rgba(0,0,0,0.12)] lg:mx-0">
           <QRCodeSVG value={instruction.qrValue} size={190} level="M" aria-label="Payment QR code" />
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         <CopyBox
           label="Exact Amount"
           value={instruction.exactAmountDisplay}
@@ -349,21 +553,55 @@ function DirectInstructions(props: {
         <InfoBox label="Expires" value={instruction.expiresAtDisplay} />
       </div>
 
-      {instruction.paymentUri ? (
-        <div className="mt-4 flex flex-wrap gap-3">
-          <Button type="button" variant="glass" onClick={() => copyText(instruction.paymentUri!)}>
-            <Copy className="h-4 w-4" />
-            Copy
+      <DirectPaymentFooter paymentUri={instruction.paymentUri} onStartNewPayment={props.onStartNewPayment} />
+    </div>
+  );
+}
+
+function DirectPaymentFooter(props: {
+  paymentUri: string | null;
+  onStartNewPayment: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-[var(--card-border)] bg-[var(--buy-panel-soft)] p-4">
+      {props.paymentUri ? (
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button type="button" variant="brand" className="h-11 flex-1" asChild>
+            <a href={props.paymentUri}>
+              <Wallet className="h-4 w-4" />
+              Open in wallet
+            </a>
           </Button>
-          <Button type="button" variant="brand" asChild>
-            <a href={instruction.paymentUri}>Open wallet</a>
+          <Button
+            type="button"
+            variant="glass"
+            className="h-11 flex-1"
+            onClick={() => copyText(props.paymentUri!)}
+          >
+            <Copy className="h-4 w-4" />
+            Copy payment link
           </Button>
         </div>
       ) : null}
 
-      <Button type="button" variant="glass" className="mt-4" onClick={props.onStartNewPayment}>
-        Buy again
-      </Button>
+      <div
+        className={cn(
+          'flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between',
+          props.paymentUri && 'mt-4 border-t border-[var(--card-border)] pt-4',
+        )}
+      >
+        <p className="text-xs leading-5 text-[var(--muted)]">
+          Keep this window open while your transfer confirms.
+        </p>
+        <Button
+          type="button"
+          variant="ghost"
+          className="h-9 shrink-0 self-start px-3 text-[var(--muted)] hover:text-[var(--text)] sm:self-auto"
+          onClick={props.onStartNewPayment}
+        >
+          Start new purchase
+        </Button>
+      </div>
     </div>
   );
 }
@@ -376,9 +614,9 @@ function WalletTracking(props: {
 }) {
   return (
     <div className="mt-5 space-y-4">
-      <GlassPanel className="rounded-lg bg-[#050c16] p-4">
+      <GlassPanel className="rounded-lg bg-[var(--buy-panel-soft)] p-4">
         <div className="flex items-start gap-3">
-          <ShieldCheck className="mt-1 h-4 w-4 text-emerald-300" />
+          <ShieldCheck className="mt-1 h-4 w-4 text-[var(--green)]" />
           <div>
             <div className="text-sm font-bold text-[var(--text)]">Transaction submitted</div>
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
@@ -403,7 +641,7 @@ function WalletTracking(props: {
 
 function InfoBox(props: { label: string; value: string }) {
   return (
-    <GlassPanel className="rounded-[0.75rem] bg-[#050c16] px-4 py-3">
+    <GlassPanel className="rounded-[0.75rem] bg-[var(--buy-panel-soft)] px-4 py-3">
       <div className="text-[10px] font-bold tracking-[0.24em] text-[var(--muted)] uppercase">{props.label}</div>
       <div className="mt-1 break-words font-data text-sm font-bold text-[var(--text)]">{props.value}</div>
     </GlassPanel>
@@ -412,7 +650,7 @@ function InfoBox(props: { label: string; value: string }) {
 
 function CopyBox(props: { label: string; value: string; clipboardValue: string }) {
   return (
-    <GlassPanel className="rounded-[0.75rem] bg-[#050c16] px-4 py-3">
+    <GlassPanel className="rounded-[0.75rem] bg-[var(--buy-panel-soft)] px-4 py-3">
       <div className="text-[10px] font-bold tracking-[0.24em] text-[var(--muted)] uppercase">{props.label}</div>
       <div className="mt-1 break-words font-data text-sm font-bold text-[var(--text)]">{props.value}</div>
       <Button type="button" variant="link" className="mt-2 h-auto p-0 text-[var(--cyan)]" onClick={() => copyText(props.clipboardValue)}>
@@ -425,7 +663,7 @@ function CopyBox(props: { label: string; value: string; clipboardValue: string }
 
 function InlineIssue(props: { message: string }) {
   return (
-    <div className="flex items-start gap-2 rounded-md border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+    <div className="flex items-start gap-2 rounded-md border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-100">
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
       <span>{props.message}</span>
     </div>
@@ -434,7 +672,7 @@ function InlineIssue(props: { message: string }) {
 
 function InlineProgress(props: { message: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-md border border-[var(--card-border)] bg-[#050c16] px-4 py-3 text-sm text-[var(--muted)]">
+    <div className="flex items-center gap-2 rounded-md border border-[var(--card-border)] bg-[var(--buy-panel-soft)] px-4 py-3 text-sm text-[var(--muted)]">
       <Loader2 className="h-4 w-4 animate-spin text-[var(--cyan)]" />
       <span>{props.message}</span>
     </div>

@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Menu, X } from '@/icons';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ROUTES } from '@/routes';
+import { MarketingWalletNavControl } from './marketing-wallet-nav-control';
 import { FlowdexWordmark } from './primitives';
 import { ThemeToggle } from './theme-toggle';
 import { getActiveMarketingNavHref, MARKETING_NAV_ITEMS } from './marketing-nav.utils';
@@ -23,6 +24,7 @@ export function MarketingNavClient(props: {
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
   const activeHref = getActiveMarketingNavHref(pathname);
+  const isBuyPage = pathname === ROUTES.MARKETING.BUY;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -106,9 +108,15 @@ export function MarketingNavClient(props: {
 
           <div className="hidden items-center gap-3 lg:flex">
             <ThemeToggle />
-            <Button variant="brand" size="sm" asChild>
-              <Link href={props.primaryAction.href}>{props.primaryAction.label}</Link>
-            </Button>
+            {isBuyPage ? (
+              <Suspense fallback={null}>
+                <MarketingWalletNavControl />
+              </Suspense>
+            ) : (
+              <Button variant="brand" size="sm" asChild>
+                <Link href={props.primaryAction.href}>{props.primaryAction.label}</Link>
+              </Button>
+            )}
           </div>
 
           <div className="mb-5 hidden w-full flex-wrap items-center justify-end space-y-6 rounded-[1.75rem] border border-[var(--card-border)] bg-[var(--card-bg-strong)] p-6 shadow-2xl shadow-slate-950/20 backdrop-blur-xl group-data-[state=active]:block md:flex-nowrap lg:m-0 lg:hidden lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none">
@@ -137,11 +145,17 @@ export function MarketingNavClient(props: {
 
             <div className="mt-6 flex w-full flex-col gap-3 sm:flex-row">
               <ThemeToggle />
-              <Button variant="brand" size="sm" asChild className="sm:flex-1">
-                <Link href={props.primaryAction.href} onClick={() => setMenuState(false)}>
-                  {props.primaryAction.label}
-                </Link>
-              </Button>
+              {isBuyPage ? (
+                <Suspense fallback={null}>
+                  <MarketingWalletNavControl onMobileNavigate={() => setMenuState(false)} />
+                </Suspense>
+              ) : (
+                <Button variant="brand" size="sm" asChild className="sm:flex-1">
+                  <Link href={props.primaryAction.href} onClick={() => setMenuState(false)}>
+                    {props.primaryAction.label}
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
         </div>

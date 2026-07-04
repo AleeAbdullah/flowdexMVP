@@ -74,4 +74,5 @@ export const FALLBACK_ASSET_PRICES: Record<string, number> = {
   USDC: 1,
   BNB: 610,
   SOL: 190,
+  BTC: 65000,
 };
