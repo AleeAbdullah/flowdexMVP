@@ -35,7 +35,7 @@ export function PaymentCard(props: {
       <div className="mt-8 text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_46%,transparent)] uppercase">
         Select Currency
       </div>
-      <div className="mt-4 grid gap-3 grid-cols-3">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {props.order.supportedAssets.map(asset => {
           const iconSrc = getCryptoAssetIconSrc(asset.code);
           return (
@@ -44,7 +44,7 @@ export function PaymentCard(props: {
               type="button"
               onClick={() => props.actions.selectAsset(asset.id)}
               className={cn(
-                'flex h-10 items-center justify-center gap-2 rounded-md border px-4 text-sm font-bold transition',
+                'flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-xs font-bold transition sm:text-sm',
                 props.order.selectedAsset?.id === asset.id
                   ? 'border-[var(--cyan)] bg-[var(--accent-bg)] text-[var(--text)]'
                   : 'border-[var(--card-border)] bg-[var(--buy-panel-soft)] text-[var(--muted)] hover:border-[var(--cyan)]',

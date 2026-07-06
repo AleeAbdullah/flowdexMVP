@@ -2,12 +2,14 @@ export enum PaymentChain {
   ETHEREUM = 'ETHEREUM',
   SOLANA = 'SOLANA',
   BITCOIN = 'BITCOIN',
+  TRON = 'TRON',
 }
 
 export enum PaymentAsset {
   ETH = 'ETH',
   SOL = 'SOL',
   BTC = 'BTC',
+  USDT_TRC20 = 'USDT_TRC20',
 }
 
 export enum PaymentIntentStatus {
@@ -53,12 +55,14 @@ export const PAYMENT_ASSET_DECIMALS: Record<PaymentAsset, number> = {
   [PaymentAsset.ETH]: 18,
   [PaymentAsset.SOL]: 9,
   [PaymentAsset.BTC]: 8,
+  [PaymentAsset.USDT_TRC20]: 6,
 };
 
 export const CHAIN_ASSET: Record<PaymentChain, PaymentAsset> = {
   [PaymentChain.ETHEREUM]: PaymentAsset.ETH,
   [PaymentChain.SOLANA]: PaymentAsset.SOL,
   [PaymentChain.BITCOIN]: PaymentAsset.BTC,
+  [PaymentChain.TRON]: PaymentAsset.USDT_TRC20,
 };
 
 export const TERMINAL_PAYMENT_INTENT_STATUSES = new Set<PaymentIntentStatus>([

@@ -5,6 +5,7 @@ import {
 import { PaymentEntity } from './entities/payment.entity';
 import { PaymentIntentEntity } from './entities/payment-intent.entity';
 import { PaymentWalletActionEntity } from './entities/payment-wallet-action.entity';
+import { env } from '../../infrastructure/config/env';
 import {
   PaymentAsset,
   PaymentChain,
@@ -187,6 +188,7 @@ function buildServiceForWalletActions(input: {
 function buildServiceForStatusPolling(input: {
   intent: PaymentIntentEntity;
   payment?: PaymentEntity | null;
+  alchemyService?: Record<string, unknown>;
 }) {
   const paymentIntentsRepository = {
     findOne: jest.fn().mockResolvedValue(input.intent),
@@ -195,7 +197,15 @@ function buildServiceForStatusPolling(input: {
   const paymentsRepository = {
     findOne: jest.fn().mockResolvedValue(input.payment ?? null),
   };
-  const alchemyService = {};
+  const alchemyService = input.alchemyService ?? {};
+  const manager = {
+    findOne: jest.fn().mockResolvedValue(input.payment ?? null),
+    create: jest.fn((_entity: unknown, value: unknown) => value),
+    save: jest.fn(async (value: unknown) => value),
+  };
+  const dataSource = {
+    transaction: jest.fn(async (callback: (managerArg: unknown) => unknown) => callback(manager)),
+  };
   const solanaPaymentExecutionService = {
     verifySolanaSignatureForIntent: jest.fn(async () => ({ status: 'not_found' })),
     normalizePublicKey: jest.fn((value: string) => value),
@@ -217,7 +227,7 @@ function buildServiceForStatusPolling(input: {
     paymentIntentsRepository as never,
     paymentsRepository as never,
     {} as never,
-    {} as never,
+    dataSource as never,
     alchemyService as never,
     {} as never,
     {} as never,
@@ -230,6 +240,8 @@ function buildServiceForStatusPolling(input: {
     service,
     paymentIntentsRepository,
     paymentsRepository,
+    dataSource,
+    manager,
     alchemyService,
     solanaPaymentExecutionService,
     stateService,
@@ -273,6 +285,7 @@ function buildEthIntent(overrides: Partial<PaymentIntentEntity> = {}): PaymentIn
     receiverAddress: '0x2222222222222222222222222222222222222222',
     solanaReference: null,
     ethCreatedBlockNumber: '0x1',
+    tronCreatedBlockNumber: null,
     btcDerivationIndex: null,
     btcDerivationPath: null,
     status: PaymentIntentStatus.WAITING,
@@ -296,6 +309,23 @@ function buildSolanaIntent(overrides: Partial<PaymentIntentEntity> = {}): Paymen
     receiverAddress: 'FEFZwPZy6r7Ni95AktZ8jd6m9TLUUEVPGnheUXx49GpL',
     solanaReference: '11111111111111111111111111111111',
     ethCreatedBlockNumber: null,
+    ...overrides,
+  };
+}
+
+function buildTronIntent(overrides: Partial<PaymentIntentEntity> = {}): PaymentIntentEntity {
+  return {
+    ...buildEthIntent(),
+    id: 'tron-intent-id',
+    chain: PaymentChain.TRON,
+    asset: PaymentAsset.USDT_TRC20,
+    quotePriceUsd: '1.000000000000000000',
+    expectedAmountBaseUnits: '50000000',
+    senderAddress: 'TZ4UXDV5ZhNW7fb2AMSbgfAEZ7hWsnYS2g',
+    receiverAddress: 'TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf',
+    solanaReference: null,
+    ethCreatedBlockNumber: null,
+    tronCreatedBlockNumber: '100',
     ...overrides,
   };
 }
@@ -796,6 +826,73 @@ describe('PaymentsService', () => {
         },
         payment: null,
       });
+    });
+
+    it('detects a matching USDT TRC20 transfer from Alchemy TRON logs', async () => {
+      const originalTreasury = env.tronTreasuryAddress;
+      const originalContract = env.tronUsdtContractAddress;
+      const originalConfirmations = env.tronConfirmations;
+      env.tronTreasuryAddress = 'TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf';
+      env.tronUsdtContractAddress = 'TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj';
+      env.tronConfirmations = 20;
+
+      try {
+        const intent = buildTronIntent({
+          status: PaymentIntentStatus.WAITING,
+          lastCheckedAt: null,
+          expiresAt: new Date(Date.now() + 60_000),
+        });
+        const tronTx = {
+          id: 'a'.repeat(64),
+          blockNumber: 100,
+          blockTimeStamp: Date.now(),
+          receiptResult: 'SUCCESS',
+          contractAddress: '41ea51342dabbb928ae1e576bd39eff8aaf070a8c6',
+          logs: [
+            {
+              address: 'ea51342dabbb928ae1e576bd39eff8aaf070a8c6',
+              topics: [
+                'ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
+                '000000000000000000000000fd49eda0f23ff7ec1d03b52c3a45991c24cd440e',
+                '000000000000000000000000eca9bc828a3005b9a3b909f2cc5c2a54794de05f',
+              ],
+              data: '0000000000000000000000000000000000000000000000000000000002faf080',
+            },
+          ],
+          raw: { id: 'a'.repeat(64) },
+        };
+        const alchemyService = {
+          getTronSolidBlockNumber: jest.fn().mockResolvedValue(120),
+          getTronTransactionInfoByBlockNumber: jest.fn(async (blockNumber: number) => (
+            blockNumber === 100 ? [tronTx] : []
+          )),
+        };
+        const { service, manager, stateService } = buildServiceForStatusPolling({ intent, alchemyService });
+
+        await service.getIntentStatus(intent.id);
+
+        expect(alchemyService.getTronTransactionInfoByBlockNumber).toHaveBeenCalledWith(100);
+        expect(stateService.assertIntentTransition).toHaveBeenCalledWith(
+          PaymentIntentStatus.WAITING,
+          PaymentIntentStatus.CONFIRMED,
+        );
+        expect(manager.create).toHaveBeenCalledWith(PaymentEntity, expect.objectContaining({
+          intentId: intent.id,
+          chain: PaymentChain.TRON,
+          asset: PaymentAsset.USDT_TRC20,
+          amountBaseUnits: '50000000',
+          senderAddress: intent.senderAddress,
+          receiverAddress: intent.receiverAddress,
+          txHash: tronTx.id,
+          status: PaymentStatus.CONFIRMED,
+          blockNumber: '100',
+          confirmations: 21,
+        }));
+      } finally {
+        env.tronTreasuryAddress = originalTreasury;
+        env.tronUsdtContractAddress = originalContract;
+        env.tronConfirmations = originalConfirmations;
+      }
     });
   });
 });

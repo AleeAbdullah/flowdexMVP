@@ -2,13 +2,15 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { InjectRepository } from '@nestjs/typeorm';
 import bs58 from 'bs58';
 import { formatUnits, getAddress, isAddress } from 'ethers';
-import { DataSource, EntityManager, In, Repository } from 'typeorm';
+import { TronWeb } from 'tronweb';
+import { DataSource, EntityManager, In, ObjectLiteral, Repository, SelectQueryBuilder } from 'typeorm';
 
 import { normalizeAddress } from '../../common/utils/address';
 import { AuthContext } from '../../common/decorators/current-auth.decorator';
@@ -18,6 +20,7 @@ import {
   AlchemyService,
   BitcoinAddressTransaction,
   EvmTransfer,
+  TronTransactionInfo,
 } from '../alchemy/alchemy.service';
 import {
   AdminPaymentFiltersDto,
@@ -86,6 +89,8 @@ const SOLANA_MAINNET_WALLET_CHAIN_ALIASES = new Set([
 const PAYMENT_WALLET_ACTION_TTL_MS = 5 * 60 * 1000;
 const TX_HASH_PATTERN = /^0x[a-fA-F0-9]{64}$/;
 const SOLANA_SIGNATURE_PATTERN = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
+const TRON_TRANSFER_TOPIC = 'ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+const MAX_TRON_SCAN_BLOCKS_PER_INTENT = 1_000;
 const PORTFOLIO_PENDING_STATUSES = new Set<PaymentIntentStatus>([
   PaymentIntentStatus.WAITING,
   PaymentIntentStatus.DETECTED,
@@ -136,6 +141,10 @@ export class PaymentsService {
 
     if (input.chain === PaymentChain.ETHEREUM && !senderAddress) {
       throw new BadRequestException('ETH senderAddress is required');
+    }
+
+    if (input.chain === PaymentChain.TRON && !senderAddress) {
+      throw new BadRequestException('TRON senderAddress is required');
     }
 
     const quote = await this.pricingService.quotePurchase({
@@ -592,40 +601,42 @@ export class PaymentsService {
     tokenAmount: string;
     usdAmount: string;
   }> }> {
-    const qb = this.paymentsRepository
-      .createQueryBuilder('payment')
-      .leftJoinAndSelect('payment.intent', 'intent');
+    const qb = this.paymentIntentsRepository.createQueryBuilder('intent');
 
     if (filters.chain) {
-      qb.andWhere('payment.chain = :chain', { chain: filters.chain });
+      qb.andWhere('intent.chain = :chain', { chain: filters.chain });
     }
     if (filters.asset) {
-      qb.andWhere('payment.asset = :asset', { asset: filters.asset });
+      qb.andWhere('intent.asset = :asset', { asset: filters.asset });
     }
     if (filters.status) {
-      qb.andWhere('payment.status = :status', { status: filters.status });
+      qb.andWhere('intent.status = :status', { status: filters.status });
     }
     if (filters.senderAddress) {
-      this.applyAddressFilter(qb, 'payment.sender_address', filters.senderAddress, filters.chain);
+      this.applyAddressFilter(qb, 'intent.sender_address', filters.senderAddress, filters.chain);
     }
     if (filters.receiverAddress) {
-      this.applyAddressFilter(qb, 'payment.receiver_address', filters.receiverAddress, filters.chain);
+      this.applyAddressFilter(qb, 'intent.receiver_address', filters.receiverAddress, filters.chain);
     }
     if (filters.from) {
-      qb.andWhere('payment.created_at >= :from', { from: filters.from });
+      qb.andWhere('intent.created_at >= :from', { from: filters.from });
     }
     if (filters.to) {
-      qb.andWhere('payment.created_at <= :to', { to: filters.to });
+      qb.andWhere('intent.created_at <= :to', { to: filters.to });
     }
 
-    const payments = await qb.orderBy('payment.created_at', 'DESC').getMany();
+    const intents = await qb.orderBy('intent.created_at', 'DESC').getMany();
+    if (!intents.length) {
+      return { items: [] };
+    }
+
+    const payments = await this.paymentsRepository.find({
+      where: { intentId: In(intents.map(intent => intent.id)) },
+    });
+    const paymentsByIntentId = new Map(payments.map(payment => [payment.intentId, payment]));
+
     return {
-      items: payments.map(payment => ({
-        ...this.toPublicPayment(payment),
-        rawPayload: payment.rawPayload,
-        tokenAmount: payment.intent?.tokenAmount ?? '0',
-        usdAmount: payment.intent?.usdAmount ?? '0',
-      })),
+      items: intents.map(intent => this.toAdminListItem(intent, paymentsByIntentId.get(intent.id) ?? null)),
     };
   }
 
@@ -721,6 +732,17 @@ export class PaymentsService {
           solanaReference: reference,
         };
       }
+      case PaymentChain.TRON: {
+        const blockNumber = await this.alchemyService.getTronSolidBlockNumber();
+        if (blockNumber === null) {
+          throw new ServiceUnavailableException('TRON_BLOCK_HEIGHT_UNAVAILABLE');
+        }
+
+        return {
+          receiverAddress: this.normalizeTronAddress(env.tronTreasuryAddress, 'TRON treasury address'),
+          tronCreatedBlockNumber: String(blockNumber),
+        };
+      }
       case PaymentChain.BITCOIN: {
         await manager.query('SELECT pg_advisory_xact_lock($1)', [BTC_DERIVATION_ADVISORY_LOCK]);
         const rows = await manager.query(`
@@ -811,6 +833,8 @@ export class PaymentsService {
         return this.findSubmittedSolanaPaymentMatch(intent);
       case PaymentChain.BITCOIN:
         return this.findBitcoinMatch(intent);
+      case PaymentChain.TRON:
+        return this.findTronUsdtMatch(intent);
     }
   }
 
@@ -1085,6 +1109,111 @@ export class PaymentsService {
     };
   }
 
+  private async findTronUsdtMatch(intent: PaymentIntentEntity): Promise<MatchResult> {
+    if (!intent.senderAddress || !intent.tronCreatedBlockNumber) {
+      return null;
+    }
+
+    const latestBlock = await this.alchemyService.getTronSolidBlockNumber();
+    if (latestBlock === null) {
+      return null;
+    }
+
+    const createdBlock = Number(intent.tronCreatedBlockNumber);
+    if (!Number.isInteger(createdBlock) || createdBlock <= 0) {
+      return null;
+    }
+
+    const endBlock = Math.min(latestBlock, createdBlock + MAX_TRON_SCAN_BLOCKS_PER_INTENT);
+    const expected = {
+      contractHex: this.toTronLogAddressHex(env.tronUsdtContractAddress, 'TRON USDT contract address'),
+      senderHex: this.toTronLogAddressHex(intent.senderAddress, 'TRON senderAddress'),
+      receiverHex: this.toTronLogAddressHex(intent.receiverAddress, 'TRON receiverAddress'),
+      amountBaseUnits: intent.expectedAmountBaseUnits,
+    };
+
+    for (let blockNumber = createdBlock; blockNumber <= endBlock; blockNumber += 1) {
+      const transactions = await this.alchemyService.getTronTransactionInfoByBlockNumber(blockNumber);
+      for (const transaction of transactions) {
+        const match = this.extractTronUsdtTransferMatch(transaction, expected);
+        if (match) {
+          return this.toTronMatch(intent, transaction, match.amountBaseUnits, latestBlock);
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private extractTronUsdtTransferMatch(
+    transaction: TronTransactionInfo,
+    expected: {
+      contractHex: string;
+      senderHex: string;
+      receiverHex: string;
+      amountBaseUnits: string;
+    },
+  ): { amountBaseUnits: string } | null {
+    for (const log of transaction.logs) {
+      const contractHex = this.normalizeTronLogAddressHex(log.address);
+      if (contractHex !== expected.contractHex) {
+        continue;
+      }
+
+      const transferTopic = this.normalizeHex(log.topics[0]);
+      const senderHex = this.topicToTronLogAddressHex(log.topics[1]);
+      const receiverHex = this.topicToTronLogAddressHex(log.topics[2]);
+      const amountBaseUnits = this.parseTronLogUint256(log.data);
+
+      if (
+        transferTopic === TRON_TRANSFER_TOPIC
+        && senderHex === expected.senderHex
+        && receiverHex === expected.receiverHex
+        && amountBaseUnits === expected.amountBaseUnits
+      ) {
+        return { amountBaseUnits };
+      }
+    }
+
+    return null;
+  }
+
+  private toTronMatch(
+    intent: PaymentIntentEntity,
+    transaction: TronTransactionInfo,
+    amountBaseUnits: string,
+    latestBlock: number,
+  ): NonNullable<MatchResult> {
+    const blockNumber = transaction.blockNumber ?? 0;
+    const confirmations = blockNumber > 0 ? Math.max(0, latestBlock - blockNumber + 1) : 0;
+    const matchedAt = transaction.blockTimeStamp ? new Date(transaction.blockTimeStamp) : null;
+    const receiptResult = transaction.receiptResult?.toUpperCase() ?? null;
+    const baseStatus = receiptResult && receiptResult !== 'SUCCESS'
+      ? PaymentStatus.FAILED
+      : this.classifyMatchedAmount(
+          intent,
+          amountBaseUnits,
+          confirmations >= env.tronConfirmations,
+          matchedAt,
+        );
+
+    return {
+      status: baseStatus,
+      amountBaseUnits,
+      senderAddress: intent.senderAddress,
+      receiverAddress: intent.receiverAddress,
+      txHash: transaction.id,
+      outputIndex: null,
+      blockNumber: blockNumber > 0 ? String(blockNumber) : null,
+      confirmations,
+      confirmedAt: confirmations >= env.tronConfirmations ? matchedAt ?? new Date() : null,
+      rawPayload: {
+        source: 'ALCHEMY_TRON',
+        ...transaction.raw,
+      },
+    };
+  }
+
   private async findBitcoinMatch(intent: PaymentIntentEntity): Promise<MatchResult> {
     const transactions = await this.alchemyService.getBitcoinAddressTransactions(intent.receiverAddress);
 
@@ -1294,7 +1423,52 @@ export class PaymentsService {
       return this.solanaPaymentExecutionService.normalizePublicKey(trimmed, 'senderAddress');
     }
 
+    if (chain === PaymentChain.TRON) {
+      return this.normalizeTronAddress(trimmed, 'senderAddress');
+    }
+
     return trimmed;
+  }
+
+  private normalizeTronAddress(address: string, label: string): string {
+    const trimmed = address.trim();
+    if (!trimmed || !TronWeb.isAddress(trimmed)) {
+      throw new BadRequestException(`Invalid ${label}`);
+    }
+
+    return TronWeb.address.fromHex(TronWeb.address.toHex(trimmed));
+  }
+
+  private toTronLogAddressHex(address: string, label: string): string {
+    const normalized = this.normalizeTronAddress(address, label);
+    return this.normalizeTronLogAddressHex(TronWeb.address.toHex(normalized));
+  }
+
+  private normalizeTronLogAddressHex(value: string | null | undefined): string {
+    const normalized = this.normalizeHex(value);
+    if (normalized.length === 42 && normalized.startsWith('41')) {
+      return normalized.slice(2);
+    }
+
+    return normalized.length === 40 ? normalized : '';
+  }
+
+  private topicToTronLogAddressHex(value: string | null | undefined): string {
+    const normalized = this.normalizeHex(value);
+    return normalized.length >= 40 ? normalized.slice(-40) : '';
+  }
+
+  private normalizeHex(value: string | null | undefined): string {
+    return (value ?? '').trim().replace(/^0x/iu, '').toLowerCase();
+  }
+
+  private parseTronLogUint256(value: string | null | undefined): string {
+    const normalized = this.normalizeHex(value);
+    if (!/^[0-9a-f]+$/u.test(normalized)) {
+      return '0';
+    }
+
+    return BigInt(`0x${normalized}`).toString();
   }
 
   private buildAddressLookupValues(address: string): string[] {
@@ -1311,7 +1485,7 @@ export class PaymentsService {
   }
 
   private applyAddressFilter(
-    qb: ReturnType<Repository<PaymentEntity>['createQueryBuilder']>,
+    qb: SelectQueryBuilder<ObjectLiteral>,
     column: string,
     address: string,
     chain?: PaymentChain,
@@ -1421,6 +1595,33 @@ export class PaymentsService {
     };
   }
 
+  private toAdminListItem(
+    intent: PaymentIntentEntity,
+    payment: PaymentEntity | null,
+  ): PaymentPublicDto & {
+    rawPayload: Record<string, unknown> | null;
+    tokenAmount: string;
+    usdAmount: string;
+  } {
+    return {
+      intentId: intent.id,
+      chain: intent.chain,
+      asset: intent.asset,
+      amountBaseUnits: payment?.amountBaseUnits ?? intent.expectedAmountBaseUnits,
+      senderAddress: payment?.senderAddress ?? intent.senderAddress,
+      receiverAddress: payment?.receiverAddress ?? intent.receiverAddress,
+      txHash: payment?.txHash ?? null,
+      status: intent.status as unknown as PaymentStatus,
+      blockNumber: payment?.blockNumber ?? null,
+      confirmations: payment?.confirmations ?? 0,
+      confirmedAt: payment?.confirmedAt ?? null,
+      createdAt: intent.createdAt,
+      rawPayload: payment?.rawPayload ?? intent.lastCheckResult,
+      tokenAmount: normalizeFixed(intent.tokenAmount),
+      usdAmount: normalizeFixed(intent.usdAmount),
+    };
+  }
+
   private toPublicPayment(payment: PaymentEntity): PaymentPublicDto {
     return {
       intentId: payment.intentId,
@@ -1503,6 +1704,13 @@ export class PaymentsService {
       }
       case PaymentChain.BITCOIN:
         return `bitcoin:${intent.receiverAddress}?amount=${formatUnits(intent.expectedAmountBaseUnits, PAYMENT_ASSET_DECIMALS[PaymentAsset.BTC])}`;
+      case PaymentChain.TRON: {
+        const params = new URLSearchParams({
+          amount: formatUnits(intent.expectedAmountBaseUnits, PAYMENT_ASSET_DECIMALS[PaymentAsset.USDT_TRC20]),
+          asset: PaymentAsset.USDT_TRC20,
+        });
+        return `tron:${intent.receiverAddress}?${params.toString()}`;
+      }
     }
   }
 

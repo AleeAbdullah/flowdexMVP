@@ -71,6 +71,7 @@ export const STAKING_APY_TEXT = '12-18%';
 export const FALLBACK_ASSET_PRICES: Record<string, number> = {
   ETH: 2850,
   USDT: 1,
+  USDT_TRC20: 1,
   USDC: 1,
   BNB: 610,
   SOL: 190,

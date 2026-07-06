@@ -12,24 +12,35 @@ const enabledAssets: PaymentAsset[] = [
   PAYMENT_ASSETS.ETH,
   PAYMENT_ASSETS.SOL,
   PAYMENT_ASSETS.BTC,
+  PAYMENT_ASSETS.USDT_TRC20,
 ];
 
 const assetConfig: Record<PaymentAsset, { chain: typeof PAYMENT_CHAINS[keyof typeof PAYMENT_CHAINS]; chainId: number | null }> = {
   ETH: { chain: PAYMENT_CHAINS.ETHEREUM, chainId: mainnet.id },
   SOL: { chain: PAYMENT_CHAINS.SOLANA, chainId: null },
   BTC: { chain: PAYMENT_CHAINS.BITCOIN, chainId: null },
+  USDT_TRC20: { chain: PAYMENT_CHAINS.TRON, chainId: null },
 };
 
 const fallbackPrices: Record<PaymentAsset, number> = {
   ETH: 2850,
   SOL: 190,
   BTC: 65000,
+  USDT_TRC20: 1,
 };
 
 const decimals: Record<PaymentAsset, number> = {
   ETH: 18,
   SOL: 9,
   BTC: 8,
+  USDT_TRC20: 6,
+};
+
+const labels: Record<PaymentAsset, string> = {
+  ETH: 'ETH',
+  SOL: 'SOL',
+  BTC: 'BTC',
+  USDT_TRC20: 'USDT TRC20',
 };
 
 function getAssetPrice(snapshot: BuySnapshot, asset: PaymentAsset) {
@@ -46,7 +57,7 @@ export function buildSupportedAssetOptions(snapshot: BuySnapshot): SupportedAsse
     return {
       id: asset,
       code: asset,
-      label: asset,
+      label: labels[asset],
       chain,
       chainId,
       decimals: decimals[asset],

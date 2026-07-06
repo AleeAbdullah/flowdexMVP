@@ -71,6 +71,10 @@ function resolveBootstrapErrorMessage(error: AuthBootstrapError) {
   return error.message || 'We could not finish signing you in.';
 }
 
+function resolveSignInErrorMessage(message?: string) {
+  return message || 'Authentication failed';
+}
+
 export function useAuthFormController(props: {
   mode: AuthMode;
   nextPath: string;
@@ -143,8 +147,21 @@ export function useAuthFormController(props: {
       }
 
       if (result.error) {
-        setFormError(result.error.message || 'Authentication failed');
-        return;
+        const signInErrorMessage = resolveSignInErrorMessage(result.error.message);
+        const signupResult = await authClient.signUp.email({
+          name: values.displayName.trim() || 'FlowDex Admin',
+          email: values.email.trim().toLowerCase(),
+          password: values.password,
+        });
+
+        if (signupResult.error) {
+          setFormError(
+            signupResult.error.code === 'ADMIN_EMAIL_NOT_ALLOWED'
+              ? 'This email is not on the admin allowlist.'
+              : signInErrorMessage,
+          );
+          return;
+        }
       }
 
       try {

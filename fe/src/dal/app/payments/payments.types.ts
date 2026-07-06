@@ -2,12 +2,14 @@ export const PAYMENT_CHAINS = {
   ETHEREUM: 'ETHEREUM',
   SOLANA: 'SOLANA',
   BITCOIN: 'BITCOIN',
+  TRON: 'TRON',
 } as const;
 
 export const PAYMENT_ASSETS = {
   ETH: 'ETH',
   SOL: 'SOL',
   BTC: 'BTC',
+  USDT_TRC20: 'USDT_TRC20',
 } as const;
 
 export const PAYMENT_INTENT_STATUSES = {
@@ -45,7 +47,7 @@ export type PaymentChain = (typeof PAYMENT_CHAINS)[keyof typeof PAYMENT_CHAINS];
 export type PaymentAsset = (typeof PAYMENT_ASSETS)[keyof typeof PAYMENT_ASSETS];
 export type PaymentIntentStatus = (typeof PAYMENT_INTENT_STATUSES)[keyof typeof PAYMENT_INTENT_STATUSES];
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[keyof typeof PAYMENT_STATUSES];
-export type PaymentTransactionIdKind = 'evm_tx_hash' | 'solana_signature' | 'btc_tx_hash';
+export type PaymentTransactionIdKind = 'evm_tx_hash' | 'solana_signature' | 'btc_tx_hash' | 'tron_tx_hash';
 
 export type CreatePaymentIntentInput = {
   chain: PaymentChain;

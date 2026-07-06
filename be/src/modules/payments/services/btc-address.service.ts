@@ -77,12 +77,27 @@ export class BtcAddressService implements OnModuleInit {
   }
 
   private parseExtendedPublicKey(key: string): ReturnType<typeof bip32.fromBase58> {
-    const node = bip32.fromBase58(this.normalizeToXpub(key), bitcoin.networks.bitcoin);
+    const node = this.decodeExtendedPublicKey(key);
     if (!node.publicKey || node.privateKey) {
       throw new Error('BTC_TREASURY_EXTENDED_PUBLIC_KEY must be a public account key');
     }
 
     return node;
+  }
+
+  private decodeExtendedPublicKey(key: string): ReturnType<typeof bip32.fromBase58> {
+    try {
+      return bip32.fromBase58(this.normalizeToXpub(key), bitcoin.networks.bitcoin);
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith('BTC_TREASURY_EXTENDED_PUBLIC_KEY')) {
+        throw error;
+      }
+
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `BTC_TREASURY_EXTENDED_PUBLIC_KEY is not a valid Base58Check extended public key: ${reason}`,
+      );
+    }
   }
 
   private normalizeToXpub(key: string): string {

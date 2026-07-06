@@ -11,6 +11,7 @@ function toAssetLabel(code: string) {
   const labels: Record<string, string> = {
     ETH: 'Ethereum',
     USDT: 'Tether',
+    USDT_TRC20: 'Tether TRC20',
     USDC: 'USD Coin',
     BNB: 'BNB',
     SOL: 'Solana',
@@ -43,7 +44,7 @@ function buildAssetOptions(snapshot: NonNullable<BuySnapshot>): BuyAssetOption[]
       code,
       label: toAssetLabel(code),
       symbol: code,
-      chain: asset.chain,
+      chain: code === 'USDT_TRC20' ? 'TRON' : asset.chain,
       usdPrice: pricingByAsset.get(code) ?? FALLBACK_ASSET_PRICES[code] ?? 0,
       minAmount: parseDecimal(asset.minAmount),
       minConfirmations: asset.minConfirmations,

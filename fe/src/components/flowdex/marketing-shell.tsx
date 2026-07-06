@@ -94,12 +94,6 @@ export async function MarketingShell({
           <span>{marketingShellFooter.legalLine}</span>
           <div className="flex items-center gap-4">
             <span>{marketingShellFooter.utilityLine}</span>
-            <Link
-              href="/login"
-              className="text-[10px] uppercase tracking-[0.22em] text-[color-mix(in_srgb,var(--text)_38%,transparent)] hover:text-[var(--accent-strong)]"
-            >
-              Admin
-            </Link>
           </div>
         </div>
       </footer>

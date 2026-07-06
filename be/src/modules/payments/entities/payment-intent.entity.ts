@@ -73,6 +73,9 @@ export class PaymentIntentEntity {
   @Column({ name: 'eth_created_block_number', type: 'varchar', length: 64, nullable: true })
   ethCreatedBlockNumber!: string | null;
 
+  @Column({ name: 'tron_created_block_number', type: 'varchar', length: 64, nullable: true })
+  tronCreatedBlockNumber!: string | null;
+
   @Column({ name: 'btc_derivation_index', type: 'int', nullable: true })
   btcDerivationIndex!: number | null;
 

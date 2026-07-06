@@ -44,6 +44,8 @@ function getTransactionIdKind(chain: PaymentChain, txHash: string | null): Payme
       return 'solana_signature';
     case 'BITCOIN':
       return 'btc_tx_hash';
+    case 'TRON':
+      return 'tron_tx_hash';
   }
 }
 

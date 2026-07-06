@@ -1,15 +1,29 @@
 'use client';
 
 import type { AdminTransactionFilters } from '@/dal/app/admin/admin.types';
-import { PAYMENT_STATUSES } from '@/dal/app/payments/payments.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { GlassPanel } from '@/components/glass-panel';
 import { FormField } from '../../../_components/form-field';
+import {
+  ADMIN_FILTER_ALL_VALUE,
+  adminAssetFilterOptions,
+  adminChainFilterOptions,
+  adminStatusFilterOptions,
+} from '../constants';
 
 type UpdateAdminTransactionFilters = (
   updates: Partial<AdminTransactionFilters>,
 ) => Promise<URLSearchParams>;
+
+const selectTriggerClassName = 'h-12 border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text)]';
 
 export function AdminTransactionsFilters(props: {
   filters: AdminTransactionFilters;
@@ -18,26 +32,33 @@ export function AdminTransactionsFilters(props: {
 }) {
   return (
     <GlassPanel className="p-6">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <TextFilterField
+      <div className="space-y-2">
+        <div className="text-sm font-semibold text-[var(--text)]">Filter payments</div>
+        <p className="text-sm leading-6 text-[var(--muted)]">
+          Narrow the operational ledger by lifecycle status, network, asset, wallet, or date window.
+        </p>
+      </div>
+
+      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <EnumFilterField
           id="admin-filter-status"
           label="Status"
           value={props.filters.status ?? ''}
-          placeholder={`e.g. ${PAYMENT_STATUSES.CONFIRMED}...`}
+          options={adminStatusFilterOptions}
           onChange={value => props.onUpdateFilters({ status: value })}
         />
-        <TextFilterField
+        <EnumFilterField
           id="admin-filter-chain"
           label="Chain"
           value={props.filters.chain ?? ''}
-          placeholder="e.g. ETHEREUM..."
+          options={adminChainFilterOptions}
           onChange={value => props.onUpdateFilters({ chain: value })}
         />
-        <TextFilterField
+        <EnumFilterField
           id="admin-filter-asset"
           label="Asset"
           value={props.filters.asset ?? ''}
-          placeholder="e.g. ETH..."
+          options={adminAssetFilterOptions}
           onChange={value => props.onUpdateFilters({ asset: value })}
         />
         <TextFilterField
@@ -74,6 +95,37 @@ export function AdminTransactionsFilters(props: {
         </Button>
       </div>
     </GlassPanel>
+  );
+}
+
+function EnumFilterField(props: {
+  id: string;
+  label: string;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => Promise<URLSearchParams>;
+}) {
+  return (
+    <FormField id={props.id} label={props.label}>
+      <Select
+        value={props.value || ADMIN_FILTER_ALL_VALUE}
+        onValueChange={value => {
+          void props.onChange(value === ADMIN_FILTER_ALL_VALUE ? '' : value);
+        }}
+      >
+        <SelectTrigger id={props.id} className={selectTriggerClassName}>
+          <SelectValue placeholder="All" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ADMIN_FILTER_ALL_VALUE}>All</SelectItem>
+          {props.options.map(option => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </FormField>
   );
 }
 

@@ -56,6 +56,20 @@ export type BitcoinAddressTransaction = {
   raw: Record<string, unknown>;
 };
 
+export type TronTransactionInfo = {
+  id: string;
+  blockNumber: number | null;
+  blockTimeStamp: number | null;
+  receiptResult: string | null;
+  contractAddress: string | null;
+  logs: Array<{
+    address: string | null;
+    topics: string[];
+    data: string | null;
+  }>;
+  raw: Record<string, unknown>;
+};
+
 type TransactionByHashResult = {
   hash: string;
   from: string;
@@ -82,6 +96,10 @@ function resolveEvmRpcUrl(network: EvmNetwork): string {
 
 function resolveBitcoinUtxoUrl(pathname: string): string {
   return `https://bitcoin-mainnet.g.alchemy.com/v2/${env.alchemyApiKey}${pathname}`;
+}
+
+function resolveTronUrl(pathname: string): string {
+  return `https://tron-mainnet.g.alchemy.com/v2/${env.alchemyApiKey}${pathname}`;
 }
 
 @Injectable()
@@ -175,6 +193,38 @@ export class AlchemyService {
       unconfirmedBalance: String((payload as { unconfirmedBalance?: unknown }).unconfirmedBalance ?? '0'),
       txs: Number((payload as { txs?: unknown }).txs ?? 0),
     };
+  }
+
+  async getTronSolidBlockNumber(): Promise<number | null> {
+    if (!this.hasApiKey()) {
+      return null;
+    }
+
+    const payload = await this.callTronRest('/walletsolidity/getnowblock', {});
+    const blockNumber = (payload as { block_header?: { raw_data?: { number?: unknown } } } | null)
+      ?.block_header
+      ?.raw_data
+      ?.number;
+
+    return typeof blockNumber === 'number' && Number.isInteger(blockNumber) ? blockNumber : null;
+  }
+
+  async getTronTransactionInfoByBlockNumber(blockNumber: number): Promise<TronTransactionInfo[]> {
+    if (!this.hasApiKey()) {
+      return [];
+    }
+
+    const payload = await this.callTronRest('/walletsolidity/gettransactioninfobyblocknum', {
+      num: blockNumber,
+    });
+
+    if (!Array.isArray(payload)) {
+      return [];
+    }
+
+    return payload
+      .map(item => this.toTronTransactionInfo(item))
+      .filter((item): item is TronTransactionInfo => Boolean(item));
   }
 
   private toBitcoinAddressTransaction(tx: Record<string, unknown>): BitcoinAddressTransaction {
@@ -456,6 +506,61 @@ export class AlchemyService {
       this.logger.warn(`Alchemy Bitcoin UTXO network failure: ${error instanceof Error ? error.message : 'unknown'}`);
       return null;
     }
+  }
+
+  private async callTronRest(pathname: string, body: Record<string, unknown>): Promise<unknown> {
+    try {
+      const response = await fetch(resolveTronUrl(pathname), {
+        method: 'POST',
+        headers: JSON_RPC_HEADERS,
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        this.logger.warn(`Alchemy TRON request ${pathname} failed with status ${response.status}`);
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      this.logger.warn(`Alchemy TRON request ${pathname} network failure: ${error instanceof Error ? error.message : 'unknown'}`);
+      return null;
+    }
+  }
+
+  private toTronTransactionInfo(input: unknown): TronTransactionInfo | null {
+    if (!input || typeof input !== 'object') {
+      return null;
+    }
+
+    const tx = input as Record<string, unknown>;
+    const id = typeof tx.id === 'string' ? tx.id : '';
+    if (!id) {
+      return null;
+    }
+
+    const receipt = tx.receipt && typeof tx.receipt === 'object'
+      ? tx.receipt as Record<string, unknown>
+      : null;
+    const logs = Array.isArray(tx.log) ? tx.log : [];
+
+    return {
+      id,
+      blockNumber: typeof tx.blockNumber === 'number' ? tx.blockNumber : null,
+      blockTimeStamp: typeof tx.blockTimeStamp === 'number' ? tx.blockTimeStamp : null,
+      receiptResult: typeof receipt?.result === 'string' ? receipt.result : null,
+      contractAddress: typeof tx.contract_address === 'string' ? tx.contract_address : null,
+      logs: logs
+        .filter((log): log is Record<string, unknown> => Boolean(log) && typeof log === 'object')
+        .map(log => ({
+          address: typeof log.address === 'string' ? log.address : null,
+          topics: Array.isArray(log.topics)
+            ? log.topics.filter((topic): topic is string => typeof topic === 'string')
+            : [],
+          data: typeof log.data === 'string' ? log.data : null,
+        })),
+      raw: this.redactPayload(tx),
+    };
   }
 
   private redactPayload(payload: unknown): Record<string, unknown> {

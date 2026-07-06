@@ -10,6 +10,7 @@ const assetDecimals: Record<PaymentAsset, number> = {
   ETH: 18,
   SOL: 9,
   BTC: 8,
+  USDT_TRC20: 6,
 };
 
 export function formatTokenAmount(input: number) {
@@ -54,6 +55,8 @@ export function getChainLabel(chain: PaymentChain) {
       return 'Solana';
     case PAYMENT_CHAINS.BITCOIN:
       return 'Bitcoin';
+    case PAYMENT_CHAINS.TRON:
+      return 'TRON';
   }
 }
 
@@ -109,6 +112,12 @@ export function validateSenderAddress(chain: PaymentChain, value: string) {
     return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/u.test(address)
       ? null
       : 'Enter a valid Solana public key or leave this blank.';
+  }
+
+  if (chain === PAYMENT_CHAINS.TRON) {
+    return /^T[1-9A-HJ-NP-Za-km-z]{33}$/u.test(address)
+      ? null
+      : 'Enter a valid TRON wallet address.';
   }
 
   return null;

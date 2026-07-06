@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useQueryStates } from 'nuqs';
 import { useAdminPayments } from '@/dal/app/admin/admin.services';
 import type { IAdminPaymentsResponse } from '@/dal/app/admin/admin.types';
@@ -15,11 +16,16 @@ export function AdminTransactionsPageClient(props: {
   initialData: IAdminPaymentsResponse;
 }) {
   const [filters, setFilters] = useQueryStates(adminTransactionFilterParsers);
+  const [expandedIntentId, setExpandedIntentId] = useState<string | null>(null);
   const query = useAdminPayments(filters, props.initialData);
   const items = query.data?.items ?? [];
 
+  const handleToggleExpanded = (intentId: string) => {
+    setExpandedIntentId(current => current === intentId ? null : intentId);
+  };
+
   return (
-    <div className="space-y-8">
+    <>
       <GlassPanel className="grid gap-8 p-6 lg:grid-cols-[1.05fr_0.95fr] lg:p-8">
         <SectionHeading
           as="h1"
@@ -44,7 +50,9 @@ export function AdminTransactionsPageClient(props: {
             ? query.error.message
             : 'Could not load admin payments.'
           : null}
+        expandedIntentId={expandedIntentId}
+        onToggleExpanded={handleToggleExpanded}
       />
-    </div>
+    </>
   );
 }

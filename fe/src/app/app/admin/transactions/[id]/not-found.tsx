@@ -6,12 +6,12 @@ import { ROUTES } from '@/routes';
 export default function AdminTransactionNotFound() {
   return (
     <GlassPanel className="space-y-4 border border-[var(--card-border)] p-6">
-      <div className="text-lg font-bold text-[var(--text)]">Admin transaction not found</div>
+      <div className="text-lg font-bold text-[var(--text)]">Admin payment not found</div>
       <p className="text-sm leading-7 text-[var(--muted)]">
-        The requested admin transaction does not exist or is no longer available.
+        This legacy detail route no longer serves individual payments. Open the payments list and expand a row to inspect full payment details.
       </p>
-      <Button variant="glass" asChild>
-        <Link href={ROUTES.ADMIN.TRANSACTIONS}>Back to admin transactions</Link>
+      <Button variant="brand" asChild>
+        <Link href={ROUTES.ADMIN.TRANSACTIONS}>Back to admin payments</Link>
       </Button>
     </GlassPanel>
   );

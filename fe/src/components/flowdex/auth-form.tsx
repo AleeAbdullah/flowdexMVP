@@ -23,7 +23,7 @@ export function AuthForm(props: {
   const shellCopy = {
     badge: 'Admin Login',
     title: 'Sign in to admin operations.',
-    description: 'This route is reserved for FlowDex admins. Contributor activity now uses wallet verification on the public buy and transaction pages.',
+    description: 'Use an allowlisted admin email and password for operational access.',
     submitLabel: 'Continue to admin',
   };
 

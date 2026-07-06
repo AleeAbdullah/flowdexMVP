@@ -92,6 +92,14 @@ export class PaymentPricingService {
   }
 
   private async getFreshAssetQuote(asset: PaymentAsset): Promise<CachedQuote> {
+    if (asset === PaymentAsset.USDT_TRC20) {
+      return {
+        priceUsd: '1',
+        quotedAt: new Date(),
+        expiresAt: new Date(Date.now() + QUOTE_TTL_MS),
+      };
+    }
+
     const cached = this.quoteCache.get(asset);
     if (cached && cached.expiresAt > new Date()) {
       return cached;
