@@ -83,9 +83,18 @@ export function PaymentCard(props: {
       </div>
 
       {props.order.error ? <p className="mt-5 rounded-md border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-100">{props.order.error}</p> : null}
-      <Button variant="brand" className="mt-8 h-14 w-full text-lg font-black" onClick={props.actions.buy} disabled={!props.order.canSubmit}>
-        {props.payment.isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-        {props.payment.isCreating ? 'Starting payment' : props.order.buyButtonLabel}
+      <Button
+        variant="brand"
+        className="mt-8 h-14 w-full text-lg font-black"
+        onClick={props.order.isWrongNetwork ? props.actions.switchNetwork : props.actions.buy}
+        disabled={props.order.isWrongNetwork ? props.order.isSwitchingNetwork : !props.order.canSubmit}
+      >
+        {props.payment.isCreating || props.order.isSwitchingNetwork ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+        {props.payment.isCreating
+          ? 'Starting payment'
+          : props.order.isSwitchingNetwork
+            ? 'Switching network'
+            : props.order.buyButtonLabel}
       </Button>
     </section>
   );

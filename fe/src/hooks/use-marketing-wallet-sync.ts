@@ -1,7 +1,7 @@
 'use client';
 
 import { useAlchemyAccountContext, useConnect, useLogout } from '@account-kit/react';
-import { getAccount, signMessage as wagmiSignMessage, watchAccount } from '@wagmi/core';
+import { getAccount, signMessage as wagmiSignMessage, switchChain as wagmiSwitchChain, watchAccount } from '@wagmi/core';
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { extractAxiosError } from '@/lib/axios';
@@ -142,6 +142,41 @@ function isWalletConnectionRejected(error: unknown) {
     || lowered.includes('closed modal')
     || lowered.includes('denied')
     || lowered.includes('declined');
+}
+
+export type MarketingWalletSwitchNetworkResult =
+  | { ok: true }
+  | {
+      ok: false;
+      code: 'user_rejected' | 'provider_disconnected' | 'unsupported_chain' | 'switch_failed';
+      message: string;
+    };
+
+function mapWalletSwitchNetworkError(error: unknown): MarketingWalletSwitchNetworkResult {
+  const message = error instanceof Error ? error.message : String(error ?? 'Could not switch network.');
+  const lowered = message.toLowerCase();
+
+  if (isWalletConnectionRejected(error)) {
+    return {
+      ok: false,
+      code: 'user_rejected',
+      message: 'Network switch was rejected.',
+    };
+  }
+
+  if (lowered.includes('unsupported chain') || lowered.includes('unrecognized chain')) {
+    return {
+      ok: false,
+      code: 'unsupported_chain',
+      message: 'This wallet does not support the required network.',
+    };
+  }
+
+  return {
+    ok: false,
+    code: 'switch_failed',
+    message,
+  };
 }
 
 function mapWalletConnectionError(input: {
@@ -448,6 +483,29 @@ export function useMarketingWalletSync() {
     logout(undefined);
   }
 
+  async function switchToChain(chainId: number): Promise<MarketingWalletSwitchNetworkResult> {
+    const currentAccount = getCachedProviderAccountSnapshot(wagmiConfig);
+    if (!currentAccount.isConnected) {
+      return {
+        ok: false,
+        code: 'provider_disconnected',
+        message: 'Connect a wallet before switching networks.',
+      };
+    }
+
+    if (currentAccount.chainId === chainId) {
+      return { ok: true };
+    }
+
+    try {
+      await wagmiSwitchChain(wagmiConfig, { chainId });
+      clearCheckoutLifecycle();
+      return { ok: true };
+    } catch (error) {
+      return mapWalletSwitchNetworkError(error);
+    }
+  }
+
   async function verifyWallet(input: { chainId: number }) {
     const currentAccount = getCachedProviderAccountSnapshot(wagmiConfig);
     const walletAddress = currentAccount.address;
@@ -510,6 +568,7 @@ export function useMarketingWalletSync() {
     isVerifying: createChallenge.isPending || verifyChallenge.isPending,
     connectByName,
     disconnectWallet,
+    switchToChain,
     verifyWallet,
     clearConnectionIssue: clearProviderConnectionIssue,
   };

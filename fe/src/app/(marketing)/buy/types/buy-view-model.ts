@@ -19,6 +19,9 @@ export type SupportedAssetOption = {
   label: string;
   chain: PaymentChain;
   chainId: number | null;
+  walletChainId: string | null;
+  walletNetworkId: string | null;
+  walletCheckoutEnabled: boolean;
   decimals: number;
   usdPrice: number;
 };
@@ -72,6 +75,8 @@ export type BuyOrderView = {
   listingValueDisplay: string;
   roiDisplay: string;
   buyButtonLabel: string;
+  isWrongNetwork: boolean;
+  isSwitchingNetwork: boolean;
   error: string | null;
   canSubmit: boolean;
   scenarios: MarketScenario[];
@@ -122,6 +127,8 @@ export type BuyWalletView = {
   paymentWalletAddress: string;
   paymentWalletError: string | null;
   canUseWalletCheckout: boolean;
+  isWrongNetwork: boolean;
+  isSwitchingNetwork: boolean;
   walletStatus: BuyWalletStatusView;
 };
 
@@ -134,6 +141,7 @@ export type BuyActions = {
   disconnectWallet: () => void;
   verifyWallet: () => void;
   startWalletPayment: () => void;
+  switchNetwork: () => void;
   useDirectSend: () => void;
   createDirectPayment: () => void;
   startNewPayment: () => void;

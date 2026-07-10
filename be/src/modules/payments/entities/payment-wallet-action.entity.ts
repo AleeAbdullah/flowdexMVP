@@ -28,6 +28,10 @@ import { PaymentIntentEntity } from './payment-intent.entity';
   unique: true,
   where: '"tx_id_kind" = \'solana_signature\' AND "tx_id" IS NOT NULL',
 })
+@Index('IDX_payment_wallet_actions_tron_tx_unique', ['txIdKind', 'txId'], {
+  unique: true,
+  where: '"tx_id_kind" = \'tron_tx_hash\' AND "tx_id" IS NOT NULL',
+})
 export class PaymentWalletActionEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

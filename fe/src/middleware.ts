@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionCookie } from 'better-auth/cookies';
+import { ADMIN_SESSION_COOKIE } from '@/lib/admin-auth.cookie';
 import { sanitizeAppRedirectPath } from '@/lib/auth-redirect';
 
 function isAdminPath(pathname: string) {
@@ -13,7 +13,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const sessionCookie = getSessionCookie(request);
+  const sessionCookie = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
 
   if (!sessionCookie) {
     const redirectUrl = new URL('/login', request.url);

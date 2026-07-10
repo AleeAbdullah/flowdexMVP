@@ -227,6 +227,18 @@ export class AlchemyService {
       .filter((item): item is TronTransactionInfo => Boolean(item));
   }
 
+  async getTronTransactionInfoById(txId: string): Promise<TronTransactionInfo | null> {
+    if (!this.hasApiKey()) {
+      return null;
+    }
+
+    const payload = await this.callTronRest('/walletsolidity/gettransactioninfobyid', {
+      value: txId,
+    });
+
+    return this.toTronTransactionInfo(payload);
+  }
+
   private toBitcoinAddressTransaction(tx: Record<string, unknown>): BitcoinAddressTransaction {
     const txid = String(tx.txid ?? tx.txId ?? tx.hash ?? '');
     const confirmations = Number(tx.confirmations ?? 0);

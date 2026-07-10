@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { authClient } from '@/lib/auth-client';
+import { API_ROUTES } from '@/api-routes';
 import { AuthBootstrapError, bootstrapAppSession } from '@/lib/auth-bootstrap';
 import { loginSchema } from '@/schemas/auth';
 import type { AuthFieldErrors, AuthFieldName, AuthMode } from './auth-form.types';
@@ -71,8 +71,47 @@ function resolveBootstrapErrorMessage(error: AuthBootstrapError) {
   return error.message || 'We could not finish signing you in.';
 }
 
-function resolveSignInErrorMessage(message?: string) {
-  return message || 'Authentication failed';
+type AdminLoginResponse = {
+  code?: string;
+  message?: string;
+  user?: {
+    userId: string;
+    email: string;
+    role: string;
+    status: string;
+  };
+};
+
+async function postAdminLogin(email: string, password: string): Promise<{
+  ok: boolean;
+  message?: string;
+}> {
+  let response: Response;
+
+  try {
+    response = await fetch(API_ROUTES.adminAuth.login, {
+      method: 'POST',
+      cache: 'no-store',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+  } catch {
+    return { ok: false, message: 'We could not reach the server. Try again in a moment.' };
+  }
+
+  const payload = (await response.json().catch(() => null)) as AdminLoginResponse | null;
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      message: payload?.message || 'Invalid email or password',
+    };
+  }
+
+  return { ok: true };
 }
 
 export function useAuthFormController(props: {
@@ -96,7 +135,11 @@ export function useAuthFormController(props: {
       return;
     }
 
-    void authClient.signOut();
+    void fetch(API_ROUTES.adminAuth.logout, {
+      method: 'POST',
+      cache: 'no-store',
+      credentials: 'same-origin',
+    });
   }, [props.initialError]);
 
   useEffect(() => {
@@ -128,46 +171,28 @@ export function useAuthFormController(props: {
     setFieldErrors({});
 
     startTransition(async () => {
-      const result = await (async () => {
-        const parsed = loginSchema.safeParse(values);
+      const parsed = loginSchema.safeParse(values);
 
-        if (!parsed.success) {
-          setFieldErrors(toFieldErrors(parsed.error));
-          return null;
-        }
-
-        return authClient.signIn.email({
-          email: parsed.data.email,
-          password: parsed.data.password,
-        });
-      })();
-
-      if (!result) {
+      if (!parsed.success) {
+        setFieldErrors(toFieldErrors(parsed.error));
         return;
       }
 
-      if (result.error) {
-        const signInErrorMessage = resolveSignInErrorMessage(result.error.message);
-        const signupResult = await authClient.signUp.email({
-          name: values.displayName.trim() || 'FlowDex Admin',
-          email: values.email.trim().toLowerCase(),
-          password: values.password,
-        });
+      const loginResult = await postAdminLogin(parsed.data.email, parsed.data.password);
 
-        if (signupResult.error) {
-          setFormError(
-            signupResult.error.code === 'ADMIN_EMAIL_NOT_ALLOWED'
-              ? 'This email is not on the admin allowlist.'
-              : signInErrorMessage,
-          );
-          return;
-        }
+      if (!loginResult.ok) {
+        setFormError(loginResult.message ?? 'Invalid email or password');
+        return;
       }
 
       try {
         await bootstrapAppSession();
       } catch (error) {
-        await authClient.signOut();
+        await fetch(API_ROUTES.adminAuth.logout, {
+          method: 'POST',
+          cache: 'no-store',
+          credentials: 'same-origin',
+        });
 
         if (error instanceof AuthBootstrapError) {
           setFormError(resolveBootstrapErrorMessage(error));

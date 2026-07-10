@@ -6,7 +6,7 @@ const schema = z.object({
   challengeId: z.string().uuid(),
   walletAddress: z.string().min(1),
   chainId: z.number().int().positive().optional(),
-  walletChain: z.enum(['ETHEREUM', 'SOLANA']).optional(),
+  walletChain: z.enum(['ETHEREUM', 'SOLANA', 'TRON']).optional(),
   signature: z.string().min(1),
 });
 

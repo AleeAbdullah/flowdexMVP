@@ -6,7 +6,6 @@ const isStaticExportBuild = process.env.STATIC_EXPORT === 'true'
 
 const STATIC_DEFAULTS = {
   DATABASE_URL: 'https://example.com/static-build-db',
-  BETTER_AUTH_SECRET: 'static-build-better-auth-secret',
   INTERNAL_AUTH_JWT_SECRET: 'static-jwt-secret',
   INTERNAL_AUTH_ISSUER: 'static-fe-bff',
   INTERNAL_AUTH_AUDIENCE: 'static-be-api',
@@ -18,15 +17,11 @@ export const Env = createEnv({
     DATABASE_URL: isStaticExportBuild
       ? z.string().url().default(STATIC_DEFAULTS.DATABASE_URL)
       : z.string().url(),
-    BETTER_AUTH_SECRET: isStaticExportBuild
-      ? z.string().min(16).default(STATIC_DEFAULTS.BETTER_AUTH_SECRET)
-      : z.string().min(16),
     INTERNAL_AUTH_JWT_SECRET: isStaticExportBuild
       ? z.string().min(8).default(STATIC_DEFAULTS.INTERNAL_AUTH_JWT_SECRET)
       : z.string().min(8),
     INTERNAL_AUTH_ISSUER: z.string().default('fe-bff'),
     INTERNAL_AUTH_AUDIENCE: z.string().default('be-api'),
-    ADMIN_EMAILS: z.string().optional(),
   },
   client: {
     NEXT_PUBLIC_API_URL: z.string().url().optional(),
@@ -42,6 +37,8 @@ export const Env = createEnv({
     NEXT_PUBLIC_BETTER_STACK_INGESTING_HOST: z.string().optional(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
     NEXT_PUBLIC_POSTHOG_HOST: z.string().optional(),
+    NEXT_PUBLIC_USDT_WALLET_CHECKOUT_ENABLED: z.coerce.boolean().default(true),
+    NEXT_PUBLIC_USDT_MANUAL_CHECKOUT_ENABLED: z.coerce.boolean().default(true),
   },
   shared: {
     NODE_ENV: z.enum(['test', 'development', 'production']).optional(),
@@ -51,15 +48,12 @@ export const Env = createEnv({
     ARCJET_KEY: process.env.ARCJET_KEY,
     DATABASE_URL: process.env.DATABASE_URL
       ?? (isStaticExportBuild ? STATIC_DEFAULTS.DATABASE_URL : undefined),
-    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET
-      ?? (isStaticExportBuild ? STATIC_DEFAULTS.BETTER_AUTH_SECRET : undefined),
     INTERNAL_AUTH_JWT_SECRET: process.env.INTERNAL_AUTH_JWT_SECRET
       ?? (isStaticExportBuild ? STATIC_DEFAULTS.INTERNAL_AUTH_JWT_SECRET : undefined),
     INTERNAL_AUTH_ISSUER: process.env.INTERNAL_AUTH_ISSUER
       ?? (isStaticExportBuild ? STATIC_DEFAULTS.INTERNAL_AUTH_ISSUER : undefined),
     INTERNAL_AUTH_AUDIENCE: process.env.INTERNAL_AUTH_AUDIENCE
       ?? (isStaticExportBuild ? STATIC_DEFAULTS.INTERNAL_AUTH_AUDIENCE : undefined),
-    ADMIN_EMAILS: process.env.ADMIN_EMAILS,
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_AUTH_TRUSTED_ORIGINS: process.env.NEXT_PUBLIC_AUTH_TRUSTED_ORIGINS,
@@ -73,6 +67,8 @@ export const Env = createEnv({
     NEXT_PUBLIC_BETTER_STACK_INGESTING_HOST: process.env.NEXT_PUBLIC_BETTER_STACK_INGESTING_HOST,
     NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
     NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+    NEXT_PUBLIC_USDT_WALLET_CHECKOUT_ENABLED: process.env.NEXT_PUBLIC_USDT_WALLET_CHECKOUT_ENABLED,
+    NEXT_PUBLIC_USDT_MANUAL_CHECKOUT_ENABLED: process.env.NEXT_PUBLIC_USDT_MANUAL_CHECKOUT_ENABLED,
     NODE_ENV: process.env.NODE_ENV,
   },
 });

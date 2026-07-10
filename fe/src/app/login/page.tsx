@@ -8,7 +8,7 @@ import {
   resolveAuthPageInitialError,
   resolveAuthPageNextPath,
 } from '@/lib/auth-page';
-import { getOptionalSession } from '@/lib/auth-server';
+import { getOptionalAdminToken } from '@/lib/auth-server';
 
 export const metadata: Metadata = {
   title: 'Admin Login | FlowDex',
@@ -19,11 +19,11 @@ export default async function LoginPage(props: {
   searchParams: Promise<AuthPageSearchParams>;
 }) {
   const searchParams = await props.searchParams;
-  const session = await getOptionalSession();
+  const adminToken = await getOptionalAdminToken();
   const initialError = resolveAuthPageInitialError(searchParams);
   const nextPath = resolveAuthPageNextPath(searchParams);
 
-  if (session && !initialError) {
+  if (adminToken && !initialError) {
     redirect(resolveAuthenticatedAuthPageRedirect(searchParams));
   }
 

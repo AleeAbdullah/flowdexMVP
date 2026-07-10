@@ -8,6 +8,10 @@ export const API_ROUTES = {
     logout: '/api/wallet-auth/logout',
     session: '/api/wallet-auth/session',
   },
+  adminAuth: {
+    login: '/api/admin-auth/login',
+    logout: '/api/admin-auth/logout',
+  },
   bff: {
     auth: {
       me: '/api/bff/auth/me',
@@ -66,6 +70,7 @@ export const API_ROUTES = {
   backend: {
     auth: {
       me: '/auth/me',
+      login: '/auth/login',
     },
     transactions: {
       root: '/transactions',

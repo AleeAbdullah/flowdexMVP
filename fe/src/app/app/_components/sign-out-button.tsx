@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { API_ROUTES } from '@/api-routes';
 import { Button } from '@/components/ui/button';
 import { LogOut } from '@/icons';
-import { authClient } from '@/lib/auth-client';
 import { ROUTES } from '@/routes';
 
 export function SignOutButton() {
@@ -21,7 +21,11 @@ export function SignOutButton() {
         setIsPending(true);
 
         try {
-          await authClient.signOut();
+          await fetch(API_ROUTES.adminAuth.logout, {
+            method: 'POST',
+            cache: 'no-store',
+            credentials: 'same-origin',
+          });
           router.replace(ROUTES.AUTH.LOGIN);
           router.refresh();
         } catch (error) {

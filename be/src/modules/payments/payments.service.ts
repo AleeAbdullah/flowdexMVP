@@ -54,6 +54,7 @@ import {
   PaymentWalletTxIdKind,
   TERMINAL_PAYMENT_INTENT_STATUSES,
 } from './payments.types';
+import { WalletActionExecutorRegistry } from './wallet-action-executors/wallet-action-executor.registry';
 import { BtcAddressService } from './services/btc-address.service';
 import { EvmPaymentExecutionService } from './services/evm-payment-execution.service';
 import { PaymentPricingService } from './services/payment-pricing.service';
@@ -128,6 +129,7 @@ export class PaymentsService {
     private readonly evmPaymentExecutionService: EvmPaymentExecutionService,
     private readonly solanaPaymentExecutionService: SolanaPaymentExecutionService,
     private readonly stateService: PaymentStateService,
+    private readonly walletActionExecutorRegistry: WalletActionExecutorRegistry,
   ) {}
 
   async createIntent(input: CreatePaymentIntentDto, requestIp?: string): Promise<PaymentIntentPublicDto> {
@@ -220,105 +222,13 @@ export class PaymentsService {
       throw new NotFoundException('Payment intent not found');
     }
 
-    if (input.chain === PaymentChain.ETHEREUM) {
-      const walletChainId = this.normalizeWalletChainId(input.walletChainId);
-      if (walletChainId !== null && walletChainId !== ETHEREUM_MAINNET_CHAIN_ID) {
-        throw new BadRequestException('Wallet is connected to the wrong chain');
-      }
-
-      this.assertWalletIntentIsUsable(intent, senderAddress, PaymentChain.ETHEREUM);
-
-      const request = this.evmPaymentExecutionService.buildNativeEthPaymentRequest({
-        receiverAddress: intent.receiverAddress,
-        amountBaseUnits: intent.expectedAmountBaseUnits,
-        chainId: ETHEREUM_MAINNET_CHAIN_ID,
-      });
-      const expiresAt = new Date(Date.now() + PAYMENT_WALLET_ACTION_TTL_MS);
-      const action = await this.paymentWalletActionsRepository.save(
-        this.paymentWalletActionsRepository.create({
-          paymentIntentId: intent.id,
-          chain: PaymentChain.ETHEREUM,
-          actionKind: PaymentWalletActionKind.EVM_TRANSACTION,
-          senderAddress,
-          walletChainId: walletChainId === null ? null : String(walletChainId),
-          status: PaymentWalletActionStatus.PREPARED,
-          requestJson: request,
-          expiresAt,
-          usedAt: null,
-          txId: null,
-          txIdKind: null,
-        }),
-      );
-
-      return {
-        kind: PaymentWalletActionKind.EVM_TRANSACTION,
-        paymentIntentId: intent.id,
-        preparedActionId: action.id,
-        chain: PaymentChain.ETHEREUM,
-        chainId: request.chainId,
-        request,
-        expiresAt: action.expiresAt,
-      };
-    }
-
-    if (input.chain !== PaymentChain.SOLANA) {
-      throw new BadRequestException('Unsupported wallet action chain');
-    }
-    const requestedWalletChainId = typeof input.walletChainId === 'string' ? input.walletChainId : null;
-    const walletChainId = this.normalizeSolanaWalletChainId(requestedWalletChainId);
-
-    this.assertWalletIntentIsUsable(intent, senderAddress, PaymentChain.SOLANA);
-
-    const config = this.solanaPaymentExecutionService.buildConfig();
-    const prepared = await this.solanaPaymentExecutionService.buildSolanaTransferAction({
-      payer: senderAddress,
-      recipientAddress: config.recipientAddress,
-      lamports: intent.expectedAmountBaseUnits,
-      memoOrReference: intent.solanaReference ?? intent.id,
+    const executor = this.walletActionExecutorRegistry.get(input.chain);
+    return executor.prepare({
+      intent,
+      senderAddress,
+      wallet,
+      dto: input,
     });
-    const expiresAt = new Date(Date.now() + config.preparedActionTtlSeconds * 1000);
-    const requestJson = {
-      cluster: prepared.cluster,
-      payer: prepared.payer,
-      recipientAddress: prepared.recipientAddress,
-      lamports: prepared.lamports,
-      transactionEncoding: prepared.transactionEncoding,
-      transactionBase64: prepared.transactionBase64,
-      blockhash: prepared.blockhash,
-      lastValidBlockHeight: prepared.lastValidBlockHeight,
-      memoOrReference: prepared.memoOrReference,
-      walletChainId,
-      requestedWalletChainId,
-    };
-    const action = await this.paymentWalletActionsRepository.save(
-      this.paymentWalletActionsRepository.create({
-        paymentIntentId: intent.id,
-        chain: PaymentChain.SOLANA,
-        actionKind: PaymentWalletActionKind.SOLANA_TRANSACTION,
-        senderAddress,
-        walletChainId,
-        status: PaymentWalletActionStatus.PREPARED,
-        requestJson,
-        expiresAt,
-        usedAt: null,
-        txId: null,
-        txIdKind: null,
-      }),
-    );
-
-    return {
-      kind: PaymentWalletActionKind.SOLANA_TRANSACTION,
-      paymentIntentId: intent.id,
-      preparedActionId: action.id,
-      chain: PaymentChain.SOLANA,
-      cluster: prepared.cluster,
-      walletChainId,
-      payer: prepared.payer,
-      transaction: prepared.transactionBase64,
-      transactionEncoding: prepared.transactionEncoding,
-      expiresAt: action.expiresAt,
-      lastValidBlockHeight: prepared.lastValidBlockHeight,
-    };
   }
 
   async submitWalletTxResult(
@@ -329,22 +239,6 @@ export class PaymentsService {
     const wallet = this.requireWalletSession(auth);
     if (wallet.chain !== input.chain) {
       throw new UnauthorizedException('Wallet session chain does not match tx-result chain');
-    }
-
-    if (input.chain === PaymentChain.ETHEREUM && input.txIdKind !== PaymentWalletTxIdKind.EVM_TX_HASH) {
-      throw new BadRequestException('ETH wallet checkout requires an EVM transaction hash');
-    }
-    if (input.chain === PaymentChain.SOLANA && input.txIdKind !== PaymentWalletTxIdKind.SOLANA_SIGNATURE) {
-      throw new BadRequestException('SOL wallet checkout requires a Solana signature');
-    }
-    if (input.chain !== PaymentChain.ETHEREUM && input.chain !== PaymentChain.SOLANA) {
-      throw new BadRequestException('Unsupported tx-result chain');
-    }
-    if (input.chain === PaymentChain.ETHEREUM && !TX_HASH_PATTERN.test(input.txId)) {
-      throw new BadRequestException('txId must be a 32-byte EVM transaction hash');
-    }
-    if (input.chain === PaymentChain.SOLANA && !SOLANA_SIGNATURE_PATTERN.test(input.txId)) {
-      throw new BadRequestException('txId must be a base58 Solana signature');
     }
 
     const result = await this.dataSource.transaction(async manager => {
@@ -363,7 +257,6 @@ export class PaymentsService {
       if (!action) {
         throw new NotFoundException('Prepared wallet action not found');
       }
-      this.assertWalletActionIsUsable(action, wallet.normalized, input.chain);
 
       const duplicate = await manager.findOne(PaymentWalletActionEntity, {
         where: {
@@ -385,64 +278,18 @@ export class PaymentsService {
         throw new BadRequestException('Transaction hash is already attached to another payment intent');
       }
 
-      action.status = PaymentWalletActionStatus.USED;
-      action.usedAt = new Date();
-      action.txId = input.txId;
-      action.txIdKind = input.txIdKind;
-      await manager.save(action);
-
-      const solanaVerification = input.chain === PaymentChain.SOLANA
-        ? await this.verifySolanaWalletAction(action, input.txId)
-        : null;
-      const nextPaymentStatus = solanaVerification?.status === 'confirmed'
-        ? PaymentStatus.CONFIRMED
-        : solanaVerification?.status === 'invalid'
-          ? PaymentStatus.FAILED
-          : PaymentStatus.CONFIRMING;
-      const nextIntentStatus = this.stateService.toIntentStatus(nextPaymentStatus);
-
-      const existing = await manager.findOne(PaymentEntity, { where: { intentId: intent.id } });
-      const payment = manager.create(PaymentEntity, {
-        ...(existing ?? {}),
-        intentId: intent.id,
-        chain: intent.chain,
-        asset: intent.asset,
-        amountBaseUnits: intent.expectedAmountBaseUnits,
-        senderAddress: intent.senderAddress,
-        receiverAddress: intent.receiverAddress,
-        txHash: input.txId,
-        outputIndex: null,
-        status: nextPaymentStatus,
-        blockNumber: solanaVerification?.status === 'confirmed' ? solanaVerification.blockNumber : null,
-        confirmations: solanaVerification?.status === 'confirmed' || solanaVerification?.status === 'confirming'
-          ? solanaVerification.confirmations
-          : 0,
-        confirmedAt: solanaVerification?.status === 'confirmed' ? solanaVerification.confirmedAt : null,
-        rawPayload: {
-          source: 'wallet_tx_result',
-          preparedActionId: action.id,
-          txIdKind: input.txIdKind,
-          verification: solanaVerification,
-        },
+      const executor = this.walletActionExecutorRegistry.get(input.chain);
+      const submitResult = await executor.submitTxResult({
+        intent,
+        action,
+        wallet,
+        dto: input,
+        manager,
       });
-      await manager.save(payment);
-
-      this.stateService.assertIntentTransition(intent.status, nextIntentStatus);
-      intent.status = nextIntentStatus;
-      intent.lastCheckedAt = solanaVerification?.status === 'confirmed' || solanaVerification?.status === 'invalid'
-        ? new Date()
-        : null;
-      intent.lastCheckResult = {
-        source: 'WALLET_TX_RESULT',
-        status: nextPaymentStatus,
-        txHash: input.txId,
-        verification: solanaVerification,
-      };
-      const savedIntent = await manager.save(intent);
 
       return {
-        intent: savedIntent,
-        payment,
+        intent: submitResult.intent,
+        payment: submitResult.payment,
       };
     });
 
@@ -1306,12 +1153,26 @@ export class PaymentsService {
       throw new UnauthorizedException('Wallet session required');
     }
 
-    const chain = auth.walletChain === PaymentChain.SOLANA ? PaymentChain.SOLANA : PaymentChain.ETHEREUM;
+    const chain = auth.walletChain === PaymentChain.SOLANA
+      ? PaymentChain.SOLANA
+      : auth.walletChain === PaymentChain.TRON
+        ? PaymentChain.TRON
+        : PaymentChain.ETHEREUM;
+
     if (chain === PaymentChain.SOLANA) {
       const normalized = this.solanaPaymentExecutionService.normalizePublicKey(
         auth.walletAddressNormalized,
         'wallet session address',
       );
+      return {
+        normalized,
+        checksum: normalized,
+        chain,
+      };
+    }
+
+    if (chain === PaymentChain.TRON) {
+      const normalized = this.normalizeTronAddress(auth.walletAddressNormalized, 'wallet session address');
       return {
         normalized,
         checksum: normalized,
@@ -1334,6 +1195,9 @@ export class PaymentsService {
     if (chain === PaymentChain.SOLANA && (intent.chain !== PaymentChain.SOLANA || intent.asset !== PaymentAsset.SOL)) {
       throw new BadRequestException('SOL wallet checkout requires a SOL payment intent');
     }
+    if (chain === PaymentChain.TRON && (intent.chain !== PaymentChain.TRON || intent.asset !== PaymentAsset.USDT_TRC20)) {
+      throw new BadRequestException('TRON wallet checkout requires a USDT TRC20 payment intent');
+    }
     if (TERMINAL_PAYMENT_INTENT_STATUSES.has(intent.status)) {
       throw new BadRequestException('Payment intent is already final');
     }
@@ -1352,6 +1216,7 @@ export class PaymentsService {
     if (
       (chain === PaymentChain.ETHEREUM && (action.chain !== PaymentChain.ETHEREUM || action.actionKind !== PaymentWalletActionKind.EVM_TRANSACTION))
       || (chain === PaymentChain.SOLANA && (action.chain !== PaymentChain.SOLANA || action.actionKind !== PaymentWalletActionKind.SOLANA_TRANSACTION))
+      || (chain === PaymentChain.TRON && (action.chain !== PaymentChain.TRON || action.actionKind !== PaymentWalletActionKind.TRON_TRANSACTION))
     ) {
       throw new BadRequestException('Unsupported prepared wallet action');
     }

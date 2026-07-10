@@ -20,6 +20,16 @@ export type CheckoutWalletStatus =
       isConnected: boolean;
       isVerified: boolean;
       isReady: boolean;
+    }
+  | {
+      chain: 'TRON';
+      address: string;
+      walletChainId: string;
+      walletNetworkId: string;
+      connectorName: string;
+      isConnected: boolean;
+      isVerified: boolean;
+      isReady: boolean;
     };
 
 export type CheckoutWalletAdapter = {
@@ -28,6 +38,7 @@ export type CheckoutWalletAdapter = {
   connect(): Promise<void>;
   disconnect?(): Promise<void>;
   verify?(): Promise<void>;
+  switchNetwork?(): Promise<void>;
   sendPreparedAction(action: PreparedWalletAction): Promise<WalletTxResult>;
 };
 

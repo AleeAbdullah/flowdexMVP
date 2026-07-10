@@ -152,7 +152,7 @@ export class PaymentIntentStatusDto {
 }
 
 export class PreparePaymentWalletActionDto {
-  @ApiProperty({ enum: [PaymentChain.ETHEREUM, PaymentChain.SOLANA] })
+  @ApiProperty({ enum: [PaymentChain.ETHEREUM, PaymentChain.SOLANA, PaymentChain.TRON] })
   @IsEnum(PaymentChain)
   chain!: PaymentChain;
 
@@ -191,8 +191,43 @@ export class PreparedEvmWalletTransactionRequestDto {
   maxPriorityFeePerGas?: `0x${string}`;
 }
 
+export class PreparedTronWalletTransferDto {
+  @ApiProperty({ enum: ['tron_transaction'] })
+  kind!: 'tron_transaction';
+
+  @ApiProperty({ enum: ['mainnet'] })
+  network!: 'mainnet';
+
+  @ApiProperty()
+  chainId!: string;
+
+  @ApiProperty()
+  walletActionId!: string;
+
+  @ApiProperty()
+  contractAddress!: string;
+
+  @ApiProperty({ enum: ['transfer(address,uint256)'] })
+  functionSelector!: 'transfer(address,uint256)';
+
+  @ApiProperty()
+  recipientAddress!: string;
+
+  @ApiProperty()
+  amountBaseUnits!: string;
+
+  @ApiProperty()
+  feeLimitSun!: string;
+
+  @ApiProperty()
+  payerAddress!: string;
+
+  @ApiProperty()
+  payerAddressHex!: string;
+}
+
 export class PreparedWalletActionDto {
-  @ApiProperty({ enum: [PaymentWalletActionKind.EVM_TRANSACTION, PaymentWalletActionKind.SOLANA_TRANSACTION] })
+  @ApiProperty({ enum: [PaymentWalletActionKind.EVM_TRANSACTION, PaymentWalletActionKind.SOLANA_TRANSACTION, PaymentWalletActionKind.TRON_TRANSACTION] })
   kind!: PaymentWalletActionKind;
 
   @ApiProperty()
@@ -201,7 +236,7 @@ export class PreparedWalletActionDto {
   @ApiProperty()
   preparedActionId!: string;
 
-  @ApiProperty({ enum: [PaymentChain.ETHEREUM, PaymentChain.SOLANA] })
+  @ApiProperty({ enum: [PaymentChain.ETHEREUM, PaymentChain.SOLANA, PaymentChain.TRON] })
   chain!: PaymentChain;
 
   @ApiProperty({ required: false })
@@ -228,12 +263,15 @@ export class PreparedWalletActionDto {
   @ApiProperty({ required: false })
   lastValidBlockHeight?: number;
 
+  @ApiProperty({ type: PreparedTronWalletTransferDto, required: false })
+  tron?: PreparedTronWalletTransferDto;
+
   @ApiProperty()
   expiresAt!: Date;
 }
 
 export class SubmitPaymentTxResultDto {
-  @ApiProperty({ enum: [PaymentChain.ETHEREUM, PaymentChain.SOLANA] })
+  @ApiProperty({ enum: [PaymentChain.ETHEREUM, PaymentChain.SOLANA, PaymentChain.TRON] })
   @IsEnum(PaymentChain)
   chain!: PaymentChain;
 
@@ -241,8 +279,8 @@ export class SubmitPaymentTxResultDto {
   @IsString()
   preparedActionId!: string;
 
-  @ApiProperty({ enum: [PaymentWalletTxIdKind.EVM_TX_HASH, PaymentWalletTxIdKind.SOLANA_SIGNATURE] })
-  @IsIn([PaymentWalletTxIdKind.EVM_TX_HASH, PaymentWalletTxIdKind.SOLANA_SIGNATURE])
+  @ApiProperty({ enum: [PaymentWalletTxIdKind.EVM_TX_HASH, PaymentWalletTxIdKind.SOLANA_SIGNATURE, PaymentWalletTxIdKind.TRON_TX_HASH] })
+  @IsIn([PaymentWalletTxIdKind.EVM_TX_HASH, PaymentWalletTxIdKind.SOLANA_SIGNATURE, PaymentWalletTxIdKind.TRON_TX_HASH])
   txIdKind!: PaymentWalletTxIdKind;
 
   @ApiProperty()

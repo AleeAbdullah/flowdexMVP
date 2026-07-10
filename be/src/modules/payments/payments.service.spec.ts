@@ -2,6 +2,11 @@ import {
   PaymentsService,
   SOLANA_MAINNET_WALLET_CHAIN_ID,
 } from './payments.service';
+import { EthereumWalletActionExecutor } from './wallet-action-executors/ethereum-wallet-action.executor';
+import { SolanaWalletActionExecutor } from './wallet-action-executors/solana-wallet-action.executor';
+import { TronWalletActionExecutor } from './wallet-action-executors/tron-wallet-action.executor';
+import { WalletActionExecutorRegistry } from './wallet-action-executors/wallet-action-executor.registry';
+import { TRON_MAINNET_WALLET_CHAIN_ID } from './services/tron-payment-execution.service';
 import { PaymentEntity } from './entities/payment.entity';
 import { PaymentIntentEntity } from './entities/payment-intent.entity';
 import { PaymentWalletActionEntity } from './entities/payment-wallet-action.entity';
@@ -15,6 +20,70 @@ import {
   PaymentWalletActionStatus,
   PaymentWalletTxIdKind,
 } from './payments.types';
+
+function buildWalletActionExecutorRegistry(input: {
+  paymentWalletActionsRepository: unknown;
+  evmPaymentExecutionService: unknown;
+  solanaPaymentExecutionService: unknown;
+  stateService: unknown;
+  tronPaymentExecutionService?: Record<string, jest.Mock>;
+  alchemyService?: Record<string, jest.Mock>;
+}) {
+  const tronPaymentExecutionService = input.tronPaymentExecutionService ?? {
+    normalizeWalletChainId: jest.fn((value?: string | null) => {
+      const normalized = value?.trim().toLowerCase() ?? '';
+      if (!normalized || normalized === TRON_MAINNET_WALLET_CHAIN_ID) {
+        return TRON_MAINNET_WALLET_CHAIN_ID;
+      }
+
+      throw new Error('Wallet is connected to the wrong chain');
+    }),
+    buildPreparedTransfer: jest.fn(() => ({
+      kind: 'tron_transaction',
+      network: 'mainnet',
+      chainId: TRON_MAINNET_WALLET_CHAIN_ID,
+      walletActionId: 'wallet-action-id',
+      contractAddress: 'TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj',
+      functionSelector: 'transfer(address,uint256)',
+      recipientAddress: 'TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf',
+      amountBaseUnits: '50000000',
+      feeLimitSun: '100000000',
+      payerAddress: 'TZ4UXDV5ZhNW7fb2AMSbgfAEZ7hWsnYS2g',
+      payerAddressHex: '41a614f803b6df890519a3658e3887a9b8f0e5fc',
+    })),
+    assertTxIdFormat: jest.fn(),
+    reconcileSubmittedTx: jest.fn(() => ({ status: 'matched' })),
+  };
+  const alchemyService = input.alchemyService ?? {
+    getTronTransactionInfoById: jest.fn(async () => ({
+      blockNumber: 101,
+      logs: [],
+    })),
+  };
+
+  const ethereumExecutor = new EthereumWalletActionExecutor(
+    input.paymentWalletActionsRepository as never,
+    input.evmPaymentExecutionService as never,
+    input.stateService as never,
+  );
+  const solanaExecutor = new SolanaWalletActionExecutor(
+    input.paymentWalletActionsRepository as never,
+    input.solanaPaymentExecutionService as never,
+    input.stateService as never,
+  );
+  const tronExecutor = new TronWalletActionExecutor(
+    input.paymentWalletActionsRepository as never,
+    tronPaymentExecutionService as never,
+    alchemyService as never,
+    input.stateService as never,
+  );
+
+  return {
+    registry: new WalletActionExecutorRegistry(ethereumExecutor, solanaExecutor, tronExecutor),
+    tronPaymentExecutionService,
+    alchemyService,
+  };
+}
 
 function buildServiceWithQueryRows(rows: unknown[]) {
   const queryBuilder = {
@@ -43,6 +112,7 @@ function buildServiceWithQueryRows(rows: unknown[]) {
     {} as never,
     {} as never,
     {} as never,
+    {} as never,
   );
 
   return { service, paymentsRepository, queryBuilder };
@@ -61,6 +131,7 @@ function buildServiceWithPortfolioRows(input: {
   const service = new PaymentsService(
     paymentIntentsRepository as never,
     paymentsRepository as never,
+    {} as never,
     {} as never,
     {} as never,
     {} as never,
@@ -160,17 +231,24 @@ function buildServiceForWalletActions(input: {
     })),
     verifySolanaSignatureForIntent: jest.fn(async () => ({ status: 'not_found' })),
   };
+  const { registry, tronPaymentExecutionService, alchemyService } = buildWalletActionExecutorRegistry({
+    paymentWalletActionsRepository,
+    evmPaymentExecutionService,
+    solanaPaymentExecutionService,
+    stateService,
+  });
   const service = new PaymentsService(
     paymentIntentsRepository as never,
     paymentsRepository as never,
     paymentWalletActionsRepository as never,
     dataSource as never,
-    {} as never,
+    alchemyService as never,
     {} as never,
     {} as never,
     evmPaymentExecutionService as never,
     solanaPaymentExecutionService as never,
     stateService as never,
+    registry,
   );
 
   return {
@@ -181,6 +259,8 @@ function buildServiceForWalletActions(input: {
     manager,
     evmPaymentExecutionService,
     solanaPaymentExecutionService,
+    tronPaymentExecutionService,
+    alchemyService,
     stateService,
   };
 }
@@ -234,6 +314,7 @@ function buildServiceForStatusPolling(input: {
     {} as never,
     solanaPaymentExecutionService as never,
     stateService as never,
+    {} as never,
   );
 
   return {
@@ -265,6 +346,16 @@ const solanaWalletAuth = {
   walletAddressNormalized: '4Nd1mVtA6Htd7qgrJQYzT8YhP76jYwgyhdjgq2scLqEL',
   walletAddressChecksum: '4Nd1mVtA6Htd7qgrJQYzT8YhP76jYwgyhdjgq2scLqEL',
   lastVerifiedChainId: null,
+};
+
+const tronWalletAuth = {
+  sub: 'tron-wallet-session',
+  authType: 'wallet' as const,
+  sessionId: 'tron-session-id',
+  walletChain: 'TRON' as const,
+  walletAddressNormalized: 'TZ4UXDV5ZhNW7fb2AMSbgfAEZ7hWsnYS2g',
+  walletAddressChecksum: 'TZ4UXDV5ZhNW7fb2AMSbgfAEZ7hWsnYS2g',
+  lastVerifiedChainId: Number.parseInt(TRON_MAINNET_WALLET_CHAIN_ID, 16),
 };
 
 function buildEthIntent(overrides: Partial<PaymentIntentEntity> = {}): PaymentIntentEntity {
@@ -789,6 +880,204 @@ describe('PaymentsService', () => {
       expect(manager.create).toHaveBeenCalledWith(PaymentEntity, expect.objectContaining({
         chain: PaymentChain.SOLANA,
         asset: PaymentAsset.SOL,
+        txHash: txId,
+        status: PaymentStatus.CONFIRMING,
+      }));
+      expect(result.intent.status).toBe(PaymentIntentStatus.CONFIRMING);
+    });
+
+    it('creates a TRON prepared wallet action with server-owned transfer metadata', async () => {
+      const intent = buildTronIntent();
+      const { service, paymentWalletActionsRepository, tronPaymentExecutionService } = buildServiceForWalletActions({ intent });
+
+      const result = await service.prepareWalletAction(tronWalletAuth, intent.id, {
+        chain: PaymentChain.TRON,
+        senderAddress: tronWalletAuth.walletAddressNormalized,
+        walletChainId: TRON_MAINNET_WALLET_CHAIN_ID,
+      });
+
+      expect(tronPaymentExecutionService.buildPreparedTransfer).toHaveBeenCalledWith({
+        payerAddress: tronWalletAuth.walletAddressNormalized,
+        recipientAddress: intent.receiverAddress,
+        amountBaseUnits: intent.expectedAmountBaseUnits,
+      });
+      expect(paymentWalletActionsRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+        chain: PaymentChain.TRON,
+        actionKind: PaymentWalletActionKind.TRON_TRANSACTION,
+        senderAddress: tronWalletAuth.walletAddressNormalized,
+        walletChainId: TRON_MAINNET_WALLET_CHAIN_ID,
+        status: PaymentWalletActionStatus.PREPARED,
+      }));
+      expect(result).toMatchObject({
+        kind: PaymentWalletActionKind.TRON_TRANSACTION,
+        paymentIntentId: intent.id,
+        chain: PaymentChain.TRON,
+        walletChainId: TRON_MAINNET_WALLET_CHAIN_ID,
+        tron: expect.objectContaining({
+          kind: 'tron_transaction',
+          recipientAddress: intent.receiverAddress,
+          amountBaseUnits: intent.expectedAmountBaseUnits,
+        }),
+      });
+    });
+
+    it('rejects TRON tx-result when reconciliation does not match the prepared transfer', async () => {
+      const intent = buildTronIntent();
+      const prepared = {
+        kind: 'tron_transaction',
+        network: 'mainnet',
+        chainId: TRON_MAINNET_WALLET_CHAIN_ID,
+        walletActionId: 'wallet-action-id',
+        contractAddress: 'TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj',
+        functionSelector: 'transfer(address,uint256)',
+        recipientAddress: intent.receiverAddress,
+        amountBaseUnits: intent.expectedAmountBaseUnits,
+        feeLimitSun: '100000000',
+        payerAddress: tronWalletAuth.walletAddressNormalized,
+        payerAddressHex: '41a614f803b6df890519a3658e3887a9b8f0e5fc',
+      };
+      const action = {
+        id: 'prepared-tron-action-id',
+        paymentIntentId: intent.id,
+        chain: PaymentChain.TRON,
+        actionKind: PaymentWalletActionKind.TRON_TRANSACTION,
+        senderAddress: tronWalletAuth.walletAddressNormalized,
+        walletChainId: TRON_MAINNET_WALLET_CHAIN_ID,
+        status: PaymentWalletActionStatus.PREPARED,
+        requestJson: prepared,
+        expiresAt: new Date(Date.now() + 60_000),
+        usedAt: null,
+        txId: null,
+        txIdKind: null,
+      };
+      const tronPaymentExecutionService = {
+        normalizeWalletChainId: jest.fn(() => TRON_MAINNET_WALLET_CHAIN_ID),
+        buildPreparedTransfer: jest.fn(() => prepared),
+        assertTxIdFormat: jest.fn(),
+        reconcileSubmittedTx: jest.fn(() => ({
+          status: 'invalid',
+          reason: 'Submitted TRON transaction does not match the prepared USDT transfer',
+        })),
+      };
+      const alchemyService = {
+        getTronTransactionInfoById: jest.fn(async () => ({
+          blockNumber: 101,
+          logs: [],
+        })),
+      };
+      const paymentIntentsRepository = {
+        findOne: jest.fn().mockResolvedValue(intent),
+      };
+      const paymentWalletActionsRepository = {
+        create: jest.fn((value: unknown) => value),
+        save: jest.fn(async (value: unknown) => ({ id: 'prepared-action-id', ...(value as object) })),
+      };
+      const manager = {
+        findOne: jest.fn(async (entity: unknown) => {
+          if (entity === PaymentIntentEntity) {
+            return intent;
+          }
+          if (entity === PaymentWalletActionEntity) {
+            return action;
+          }
+          return null;
+        }),
+        create: jest.fn((_entity: unknown, value: unknown) => value),
+        save: jest.fn(async (value: unknown) => value),
+      };
+      const dataSource = {
+        transaction: jest.fn(async (callback: (managerArg: unknown) => unknown) => callback(manager)),
+      };
+      const stateService = {
+        assertIntentTransition: jest.fn(),
+        toIntentStatus: jest.fn(() => PaymentIntentStatus.CONFIRMING),
+      };
+      const { registry } = buildWalletActionExecutorRegistry({
+        paymentWalletActionsRepository,
+        evmPaymentExecutionService: {},
+        solanaPaymentExecutionService: {},
+        stateService,
+        tronPaymentExecutionService,
+        alchemyService,
+      });
+      const service = new PaymentsService(
+        paymentIntentsRepository as never,
+        {} as never,
+        paymentWalletActionsRepository as never,
+        dataSource as never,
+        alchemyService as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        stateService as never,
+        registry,
+      );
+      const txId = 'a'.repeat(64);
+
+      await expect(service.submitWalletTxResult(tronWalletAuth, intent.id, {
+        chain: PaymentChain.TRON,
+        preparedActionId: action.id,
+        txIdKind: PaymentWalletTxIdKind.TRON_TX_HASH,
+        txId,
+      })).rejects.toThrow('Submitted TRON transaction does not match the prepared USDT transfer');
+
+      expect(manager.save).toHaveBeenCalledWith(expect.objectContaining({
+        status: PaymentWalletActionStatus.CANCELLED,
+      }));
+    });
+
+    it('attaches a TRON tx hash as confirming after reconciliation succeeds', async () => {
+      const intent = buildTronIntent();
+      const prepared = {
+        kind: 'tron_transaction',
+        network: 'mainnet',
+        chainId: TRON_MAINNET_WALLET_CHAIN_ID,
+        walletActionId: 'wallet-action-id',
+        contractAddress: 'TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj',
+        functionSelector: 'transfer(address,uint256)',
+        recipientAddress: intent.receiverAddress,
+        amountBaseUnits: intent.expectedAmountBaseUnits,
+        feeLimitSun: '100000000',
+        payerAddress: tronWalletAuth.walletAddressNormalized,
+        payerAddressHex: '41a614f803b6df890519a3658e3887a9b8f0e5fc',
+      };
+      const action = {
+        id: 'prepared-tron-action-id',
+        paymentIntentId: intent.id,
+        chain: PaymentChain.TRON,
+        actionKind: PaymentWalletActionKind.TRON_TRANSACTION,
+        senderAddress: tronWalletAuth.walletAddressNormalized,
+        walletChainId: TRON_MAINNET_WALLET_CHAIN_ID,
+        status: PaymentWalletActionStatus.PREPARED,
+        requestJson: prepared,
+        expiresAt: new Date(Date.now() + 60_000),
+        usedAt: null,
+        txId: null,
+        txIdKind: null,
+      };
+      const { service, manager, stateService, tronPaymentExecutionService, alchemyService } = buildServiceForWalletActions({ intent, action });
+      const txId = 'b'.repeat(64);
+
+      const result = await service.submitWalletTxResult(tronWalletAuth, intent.id, {
+        chain: PaymentChain.TRON,
+        preparedActionId: action.id,
+        txIdKind: PaymentWalletTxIdKind.TRON_TX_HASH,
+        txId,
+      });
+
+      expect(tronPaymentExecutionService.assertTxIdFormat).toHaveBeenCalledWith(txId);
+      expect(alchemyService.getTronTransactionInfoById).toHaveBeenCalledWith(txId);
+      expect(tronPaymentExecutionService.reconcileSubmittedTx).toHaveBeenCalled();
+      expect(stateService.assertIntentTransition).toHaveBeenCalledWith(PaymentIntentStatus.WAITING, PaymentIntentStatus.CONFIRMING);
+      expect(manager.save).toHaveBeenCalledWith(expect.objectContaining({
+        status: PaymentWalletActionStatus.USED,
+        txId,
+        txIdKind: PaymentWalletTxIdKind.TRON_TX_HASH,
+      }));
+      expect(manager.create).toHaveBeenCalledWith(PaymentEntity, expect.objectContaining({
+        chain: PaymentChain.TRON,
+        asset: PaymentAsset.USDT_TRC20,
         txHash: txId,
         status: PaymentStatus.CONFIRMING,
       }));

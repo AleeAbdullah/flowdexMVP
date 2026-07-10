@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, type ReactNode } from 'react';
-import { alchemy, baseSepolia, sepolia } from '@account-kit/infra';
+import { alchemy, baseSepolia, mainnet, sepolia } from '@account-kit/infra';
 import { AlchemyAccountProvider, configForExternalWallets, createConfig } from '@account-kit/react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { CreateConnectorFn } from 'wagmi';
@@ -64,8 +64,9 @@ export function AlchemyProvider(props: {
     return createConfig(
       {
         transport: alchemy({ apiKey }),
-        chain: baseSepolia,
+        chain: mainnet,
         chains: [
+          { chain: mainnet },
           { chain: baseSepolia },
           { chain: sepolia },
         ],

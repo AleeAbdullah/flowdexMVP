@@ -63,7 +63,9 @@ export type WalletChallengePayload = {
   message: string;
 };
 
-export type WalletChain = 'ETHEREUM' | 'SOLANA';
+export type WalletChain = 'ETHEREUM' | 'SOLANA' | 'TRON';
+
+const TRON_MAINNET_CHAIN_ID_DECIMAL = Number.parseInt('0x2b6653dc', 16);
 
 const globalForWalletAuth = globalThis as typeof globalThis & {
   flowdexWalletAuthPool?: Pool;
@@ -166,8 +168,51 @@ function normalizeSolanaAddress(address: string) {
   }
 }
 
+async function getTronWeb() {
+  const { TronWeb } = await import('tronweb');
+  return new TronWeb({ fullHost: 'https://api.trongrid.io' });
+}
+
+async function normalizeTronAddress(address: string) {
+  const TronWeb = (await import('tronweb')).TronWeb;
+  const trimmed = address.trim();
+  if (!trimmed || !TronWeb.isAddress(trimmed)) {
+    throw new Error('Invalid TRON wallet address');
+  }
+
+  const normalized = TronWeb.address.fromHex(TronWeb.address.toHex(trimmed));
+  return {
+    normalized,
+    checksum: normalized,
+  };
+}
+
 function normalizeWalletForChain(chain: WalletChain, address: string) {
-  return chain === 'SOLANA' ? normalizeSolanaAddress(address) : normalizeWalletAddress(address);
+  if (chain === 'SOLANA') {
+    return normalizeSolanaAddress(address);
+  }
+
+  if (chain === 'TRON') {
+    return normalizeTronAddress(address);
+  }
+
+  return normalizeWalletAddress(address);
+}
+
+function resolveChallengeChainId(walletChain: WalletChain, chainId?: number) {
+  if (walletChain === 'SOLANA') {
+    return 0;
+  }
+
+  if (walletChain === 'TRON') {
+    return chainId ?? TRON_MAINNET_CHAIN_ID_DECIMAL;
+  }
+
+  if (typeof chainId !== 'number') {
+    throw new Error('chainId is required for EVM wallet verification');
+  }
+
+  return chainId;
 }
 
 function resolveAllowedOrigins(baseUrl?: string) {
@@ -249,11 +294,8 @@ export async function createWalletChallenge(input: {
   await ensureWalletAuthTables();
   const origin = assertTrustedOrigin(input.request);
   const walletChain = input.walletChain ?? 'ETHEREUM';
-  const chainId = walletChain === 'SOLANA' ? 0 : input.chainId;
-  if (typeof chainId !== 'number') {
-    throw new Error('chainId is required for EVM wallet verification');
-  }
-  const wallet = normalizeWalletForChain(walletChain, input.walletAddress);
+  const chainId = resolveChallengeChainId(walletChain, input.chainId);
+  const wallet = await normalizeWalletForChain(walletChain, input.walletAddress);
   const issuedAt = new Date();
   const expiresAt = new Date(issuedAt.getTime() + CHALLENGE_TTL_MS);
   const domain = new URL(origin).host;
@@ -333,11 +375,8 @@ export async function verifyWalletChallenge(input: {
   await ensureWalletAuthTables();
   assertTrustedOrigin(input.request);
   const walletChain = input.walletChain ?? 'ETHEREUM';
-  const chainId = walletChain === 'SOLANA' ? 0 : input.chainId;
-  if (typeof chainId !== 'number') {
-    throw new Error('chainId is required for EVM wallet verification');
-  }
-  const wallet = normalizeWalletForChain(walletChain, input.walletAddress);
+  const chainId = resolveChallengeChainId(walletChain, input.chainId);
+  const wallet = await normalizeWalletForChain(walletChain, input.walletAddress);
   const challengeResult = await pool.query<WalletAuthChallengeRecord>(
     `
       SELECT *
@@ -367,6 +406,13 @@ export async function verifyWalletChallenge(input: {
     const publicKey = bs58.decode(wallet.normalized);
     const message = new TextEncoder().encode(challenge.message);
     if (!nacl.sign.detached.verify(message, signature, publicKey)) {
+      throw new Error('Wallet signature does not match the requested address');
+    }
+  } else if (walletChain === 'TRON') {
+    const tronWeb = await getTronWeb();
+    const hexMessage = Buffer.from(challenge.message, 'utf8').toString('hex');
+    const verified = await tronWeb.trx.verifyMessageV2(hexMessage, input.signature, wallet.checksum);
+    if (!verified) {
       throw new Error('Wallet signature does not match the requested address');
     }
   } else {

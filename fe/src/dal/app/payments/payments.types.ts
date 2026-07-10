@@ -57,7 +57,7 @@ export type CreatePaymentIntentInput = {
 };
 
 export type PreparePaymentWalletActionInput = {
-  chain: typeof PAYMENT_CHAINS.ETHEREUM | typeof PAYMENT_CHAINS.SOLANA;
+  chain: typeof PAYMENT_CHAINS.ETHEREUM | typeof PAYMENT_CHAINS.SOLANA | typeof PAYMENT_CHAINS.TRON;
   senderAddress: string;
   walletChainId?: string | number;
 };
@@ -97,14 +97,37 @@ export type IPreparedSolanaWalletAction = {
   lastValidBlockHeight: number;
 };
 
+export type IPreparedTronWalletAction = {
+  kind: 'tron_transaction';
+  paymentIntentId: string;
+  preparedActionId: string;
+  chain: typeof PAYMENT_CHAINS.TRON;
+  walletChainId: string;
+  tron: {
+    kind: 'tron_transaction';
+    network: 'mainnet';
+    chainId: string;
+    walletActionId: string;
+    contractAddress: string;
+    functionSelector: 'transfer(address,uint256)';
+    recipientAddress: string;
+    amountBaseUnits: string;
+    feeLimitSun: string;
+    payerAddress: string;
+    payerAddressHex: string;
+  };
+  expiresAt: string;
+};
+
 export type IPreparedWalletAction =
   | IPreparedEvmWalletAction
-  | IPreparedSolanaWalletAction;
+  | IPreparedSolanaWalletAction
+  | IPreparedTronWalletAction;
 
 export type SubmitPaymentTxResultInput = {
-  chain: typeof PAYMENT_CHAINS.ETHEREUM | typeof PAYMENT_CHAINS.SOLANA;
+  chain: typeof PAYMENT_CHAINS.ETHEREUM | typeof PAYMENT_CHAINS.SOLANA | typeof PAYMENT_CHAINS.TRON;
   preparedActionId: string;
-  txIdKind: 'evm_tx_hash' | 'solana_signature';
+  txIdKind: 'evm_tx_hash' | 'solana_signature' | 'tron_tx_hash';
   txId: string;
 };
 

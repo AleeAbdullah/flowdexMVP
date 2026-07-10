@@ -76,11 +76,7 @@ const baseConfig: NextConfig = {
     turbopackFileSystemCacheForDev: true,
   },
   serverExternalPackages: [
-    '@better-auth/core',
-    '@better-auth/kysely-adapter',
-    'better-auth',
     'import-in-the-middle',
-    'kysely',
     'pg',
     'require-in-the-middle',
   ],

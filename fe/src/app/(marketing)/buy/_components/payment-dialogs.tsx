@@ -11,7 +11,7 @@ import { truncateMiddle } from '@/components/flowdex/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { AlertTriangle, CircleAlert, Copy, Loader2, ShieldCheck, Wallet, X } from '@/icons';
+import { CircleAlert, Copy, Loader2, ShieldCheck, Wallet, X } from '@/icons';
 import { cn } from '@/lib/utils';
 import { describeUnsupportedWalletReason } from '../utils/get-buy-execution-readiness';
 import type { BuyActions, BuyOrderView, BuyPaymentView, BuyWalletView, PaymentInstructionSummary } from '../types/buy-view-model';
@@ -77,6 +77,8 @@ function getConnectorLabel(connectorName: string) {
       return 'WalletConnect';
     case 'metamask-solana':
       return 'MetaMask Solana';
+    case 'tronlink':
+      return 'TronLink';
     default:
       return connectorName;
   }
@@ -94,7 +96,7 @@ function getDescription(stage: BuyWalletView['checkoutStage'], canUseWalletCheck
       return 'Review the issue below and choose how you would like to continue.';
     default:
       return canUseWalletCheckout
-        ? 'Connect a wallet for direct checkout, or use manual instructions if you want to send funds yourself.'
+        ? 'Connect a wallet to continue with checkout.'
         : 'This asset uses direct-send instructions. Enter the wallet address you will pay from to continue.';
   }
 }
@@ -195,7 +197,9 @@ export function PaymentDialogs(props: {
                     <div className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
                       Connect wallet
                     </div>
-                    {walletIssue ? <WalletIssueIcon issue={walletIssue} /> : null}
+                    {walletIssue ? (
+                      <IssueTooltipIcon summary={walletIssue.summary} message={walletIssue.message} />
+                    ) : null}
                   </div>
                   <WalletConnectorPicker
                     connectorNames={walletStatus.availableConnectorNames}
@@ -213,20 +217,20 @@ export function PaymentDialogs(props: {
 
               <div className="flex flex-wrap items-center justify-end gap-3">
                 {walletStatus.address ? (
-                  <Button type="button" variant="brand" onClick={props.actions.startWalletPayment} disabled={isBusy}>
-                    {isBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
-                    Continue with wallet
+                  <Button
+                    type="button"
+                    variant="brand"
+                    onClick={props.wallet.isWrongNetwork ? props.actions.switchNetwork : props.actions.startWalletPayment}
+                    disabled={isBusy || props.wallet.isSwitchingNetwork}
+                  >
+                    {isBusy || props.wallet.isSwitchingNetwork ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+                    {props.wallet.isWrongNetwork
+                      ? props.wallet.isSwitchingNetwork
+                        ? 'Switching network'
+                        : 'Switch Network'
+                      : 'Continue with wallet'}
                   </Button>
                 ) : null}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-9 px-2 text-(--muted) hover:text-(--text)"
-                  onClick={props.actions.useDirectSend}
-                  disabled={isBusy}
-                >
-                  Send directly
-                </Button>
               </div>
             </div>
           ) : null}
@@ -234,9 +238,17 @@ export function PaymentDialogs(props: {
           {showDirectAddress ? (
             <div className="mt-5 space-y-4">
               <label className="block space-y-2" htmlFor="payment-wallet-address">
-                <span className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
-                  Payment wallet address
-                </span>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_52%,transparent)] uppercase">
+                    Payment wallet address
+                  </span>
+                  {props.wallet.paymentWalletError ? (
+                    <IssueTooltipIcon
+                      summary="Payment wallet address needs attention"
+                      message={props.wallet.paymentWalletError}
+                    />
+                  ) : null}
+                </div>
                 <Input
                   id="payment-wallet-address"
                   value={props.wallet.paymentWalletAddress}
@@ -245,7 +257,6 @@ export function PaymentDialogs(props: {
                   className="h-12 border-[var(--card-border)] bg-[var(--buy-panel-soft)] text-[var(--text)]"
                 />
               </label>
-              {props.wallet.paymentWalletError ? <InlineIssue message={props.wallet.paymentWalletError} /> : null}
               <div className="flex flex-wrap justify-end gap-3">
                 {props.wallet.canUseWalletCheckout ? (
                   <Button type="button" variant="glass" onClick={props.actions.buy} disabled={isBusy}>
@@ -280,11 +291,18 @@ export function PaymentDialogs(props: {
 
           {stage === 'failed' ? (
             <div className="mt-5 space-y-4">
-              {props.wallet.paymentWalletError ? <PaymentAttentionIssue message={props.wallet.paymentWalletError} /> : null}
+              {props.wallet.paymentWalletError ? (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-rose-700 dark:text-rose-100">
+                    Payment needs attention
+                  </div>
+                  <IssueTooltipIcon
+                    summary="Payment needs attention"
+                    message={props.wallet.paymentWalletError}
+                  />
+                </div>
+              ) : null}
               <div className="flex flex-wrap justify-end gap-3">
-                <Button type="button" variant="glass" onClick={props.actions.useDirectSend}>
-                  Send directly
-                </Button>
                 {props.wallet.canUseWalletCheckout ? (
                   <Button type="button" variant="brand" onClick={props.actions.buy}>
                     Try wallet again
@@ -340,36 +358,6 @@ function usePaymentAttentionToast(message: string | null) {
       id: 'buy-payment-attention-error',
     });
   }, [message]);
-}
-
-function PaymentAttentionIssue(props: { message: string }) {
-  return (
-    <TooltipProvider delayDuration={100}>
-      <div className="space-y-2 rounded-xl border border-rose-400/20 bg-rose-500/8 px-4 py-3 shadow-[0_10px_30px_rgba(244,63,94,0.08)]">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-rose-700 dark:text-rose-100">
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400 shadow-[0_0_16px_rgba(251,113,133,0.85)]" />
-            <span>Payment needs attention</span>
-          </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                className="rounded-full border border-rose-300/30 bg-rose-500/10 p-1 text-rose-600 transition-colors hover:bg-rose-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 dark:text-rose-100"
-                aria-label={`Payment needs attention: ${props.message}`}
-              >
-                <CircleAlert className="h-4 w-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-72 border-rose-400/20 bg-(--surface-elevated) text-sm leading-5 text-(--text) shadow-[0_18px_60px_rgba(0,0,0,0.28)]">
-              {props.message}
-            </TooltipContent>
-          </Tooltip>
-        </div>
-        <p className="text-sm leading-6 text-rose-700/90 dark:text-rose-100/90">{props.message}</p>
-      </div>
-    </TooltipProvider>
-  );
 }
 
 function WalletCheckoutStageMessage(props: { stage: BuyWalletView['checkoutStage'] }) {
@@ -457,24 +445,36 @@ function WalletConnectorPicker(props: {
   );
 }
 
-function WalletIssueIcon(props: { issue: WalletCheckoutIssue }) {
+type IssueTooltipTone = 'error' | 'warning';
+
+function IssueTooltipIcon(props: {
+  summary: string;
+  message: string;
+  tone?: IssueTooltipTone;
+  align?: 'start' | 'center' | 'end';
+}) {
+  const tone = props.tone ?? 'error';
+  const triggerClassName = tone === 'warning'
+    ? 'rounded-full p-0.5 text-amber-500/65 transition-colors hover:text-amber-500/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400/40 dark:text-amber-300/65 dark:hover:text-amber-200/90'
+    : 'rounded-full p-0.5 text-rose-500/55 transition-colors hover:text-rose-500/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-400/40 dark:text-rose-300/55 dark:hover:text-rose-200/80';
+
   return (
     <TooltipProvider delayDuration={100}>
       <Tooltip>
         <TooltipTrigger asChild>
           <button
             type="button"
-            className="rounded-full p-0.5 text-rose-500/55 transition-colors hover:text-rose-500/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-400/40 dark:text-rose-300/55 dark:hover:text-rose-200/80"
-            aria-label={`${props.issue.summary}: ${props.issue.message}`}
+            className={triggerClassName}
+            aria-label={`${props.summary}: ${props.message}`}
           >
             <CircleAlert className="h-3.5 w-3.5" />
           </button>
         </TooltipTrigger>
         <TooltipContent
-          align="end"
+          align={props.align ?? 'end'}
           className="max-w-72 border-(--card-border) bg-(--surface-elevated) text-sm leading-5 text-(--text) shadow-md"
         >
-          {props.issue.message}
+          {props.message}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -496,23 +496,42 @@ function ConnectedWalletPanel(props: { wallet: BuyWalletView; walletIssue: Walle
           <div className="rounded-full border border-[var(--card-border)] px-3 py-1 text-xs font-bold text-[var(--cyan)]">
             {walletStatus.connectorName ? getConnectorLabel(walletStatus.connectorName) : walletStatus.providerStatus}
           </div>
-          {props.walletIssue ? <WalletIssueIcon issue={props.walletIssue} /> : null}
+          {props.walletIssue ? (
+            <IssueTooltipIcon summary={props.walletIssue.summary} message={props.walletIssue.message} />
+          ) : null}
         </div>
       </div>
       <div className="mt-4 grid gap-3 text-xs sm:grid-cols-3">
         <StatusCell label="Chain" value={walletStatus.walletChainId ?? (walletStatus.chainId ? String(walletStatus.chainId) : 'Unknown')} />
-        <StatusCell label="Verified" value={walletStatus.verificationStatus} />
+        <StatusCell
+          label="Verified"
+          value={walletStatus.verificationStatus}
+          issue={walletStatus.verificationError
+            ? {
+                summary: 'Wallet verification failed',
+                message: walletStatus.verificationError,
+              }
+            : null}
+        />
         <StatusCell label="Readiness" value={walletStatus.executionReadiness} />
       </div>
-      {walletStatus.verificationError ? <p className="mt-3 text-sm text-rose-700 dark:text-rose-200">{walletStatus.verificationError}</p> : null}
     </GlassPanel>
   );
 }
 
-function StatusCell(props: { label: string; value: string }) {
+function StatusCell(props: {
+  label: string;
+  value: string;
+  issue?: { summary: string; message: string } | null;
+}) {
   return (
     <div>
-      <div className="text-[10px] font-bold tracking-[0.2em] text-[var(--muted)] uppercase">{props.label}</div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[10px] font-bold tracking-[0.2em] text-[var(--muted)] uppercase">{props.label}</div>
+        {props.issue ? (
+          <IssueTooltipIcon summary={props.issue.summary} message={props.issue.message} align="end" />
+        ) : null}
+      </div>
       <div className="mt-1 font-bold text-[var(--text)]">{props.value}</div>
     </div>
   );
@@ -532,10 +551,16 @@ function DirectInstructions(props: {
           <div className="flex flex-wrap items-center gap-3">
             <StatusPill status={instruction.status} />
             {props.isCheckingStatus ? <Loader2 className="h-4 w-4 animate-spin text-[var(--cyan)]" /> : null}
+            {props.statusError ? (
+              <IssueTooltipIcon
+                summary="Payment status update delayed"
+                message={props.statusError}
+                tone="warning"
+              />
+            ) : null}
           </div>
           <div className="mt-4 text-sm font-semibold text-[var(--text)]">{instruction.statusTitle}</div>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--muted)]">{instruction.statusDescription}</p>
-          {props.statusError ? <p className="mt-3 text-sm text-amber-700 dark:text-amber-200">{props.statusError}</p> : null}
         </div>
         <div className="mx-auto shrink-0 rounded-xl border border-[var(--card-border)] bg-white p-3 shadow-[0_12px_40px_rgba(0,0,0,0.12)] lg:mx-0">
           <QRCodeSVG value={instruction.qrValue} size={190} level="M" aria-label="Payment QR code" />
@@ -658,15 +683,6 @@ function CopyBox(props: { label: string; value: string; clipboardValue: string }
         Copy
       </Button>
     </GlassPanel>
-  );
-}
-
-function InlineIssue(props: { message: string }) {
-  return (
-    <div className="flex items-start gap-2 rounded-md border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-100">
-      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-      <span>{props.message}</span>
-    </div>
   );
 }
 

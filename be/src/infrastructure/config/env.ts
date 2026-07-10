@@ -6,6 +6,13 @@ export const env = {
   internalAuthJwtSecret: process.env.INTERNAL_AUTH_JWT_SECRET ?? "",
   internalAuthIssuer: process.env.INTERNAL_AUTH_ISSUER ?? "fe-bff",
   internalAuthAudience: process.env.INTERNAL_AUTH_AUDIENCE ?? "be-api",
+  adminEmail: process.env.ADMIN_EMAIL ?? "",
+  adminEmails: (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map(email => email.trim().toLowerCase())
+    .filter(Boolean),
+  adminPasswordHash: process.env.ADMIN_PASSWORD_HASH ?? "",
+  authAccessTokenTtlSeconds: Number(process.env.AUTH_ACCESS_TOKEN_TTL_SECONDS ?? 900),
   ethTreasuryAddress: process.env.ETH_TREASURY_ADDRESS ?? "",
   solTreasuryAddress: process.env.SOL_TREASURY_ADDRESS ?? "",
   solanaPreparedActionTtlSeconds: Number(process.env.SOLANA_PREPARED_ACTION_TTL_SECONDS ?? 75),
@@ -14,7 +21,7 @@ export const env = {
   btcTreasuryExtendedPublicKey: process.env.BTC_TREASURY_EXTENDED_PUBLIC_KEY ?? "",
   btcPaymentsEnabled: process.env.BTC_PAYMENTS_ENABLED === "true",
   tronTreasuryAddress: process.env.TRON_TREASURY_ADDRESS ?? "",
-  tronUsdtContractAddress: process.env.TRON_USDT_CONTRACT_ADDRESS ?? "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj",
+  tronUsdtContractAddress: process.env.TRON_USDT_CONTRACT_ADDRESS?.trim() || "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj",
   ethConfirmations: Number(process.env.ETH_CONFIRMATIONS ?? 12),
   btcConfirmations: Number(process.env.BTC_CONFIRMATIONS ?? 2),
   tronConfirmations: Number(process.env.TRON_CONFIRMATIONS ?? 20),
@@ -47,5 +54,9 @@ export function assertRequiredEnv(): void {
     if (!process.env[key]) {
       throw new Error(`Missing required environment variable: ${key}`);
     }
+  }
+
+  if (!process.env.ADMIN_EMAILS && !process.env.ADMIN_EMAIL) {
+    throw new Error("Missing required environment variable: ADMIN_EMAILS");
   }
 }
