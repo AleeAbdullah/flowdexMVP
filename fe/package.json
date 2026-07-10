@@ -5,6 +5,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "auth:migrate": "npm run auth:prepare-db",
     "auth:prepare-db": "node ./scripts/prepare-auth-db.mjs",
     "dev:spotlight": "pnpm dlx @spotlightjs/spotlight",
     "dev:next": "next dev --port 3003",
