@@ -411,8 +411,8 @@ export async function verifyWalletChallenge(input: {
   } else if (walletChain === 'TRON') {
     const tronWeb = await getTronWeb();
     const hexMessage = Buffer.from(challenge.message, 'utf8').toString('hex');
-    const verified = await tronWeb.trx.verifyMessageV2(hexMessage, input.signature, wallet.checksum);
-    if (!verified) {
+    const recoveredAddress = await tronWeb.trx.verifyMessageV2(hexMessage, input.signature);
+    if (recoveredAddress !== wallet.checksum) {
       throw new Error('Wallet signature does not match the requested address');
     }
   } else {

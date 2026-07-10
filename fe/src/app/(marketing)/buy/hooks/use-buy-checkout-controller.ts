@@ -13,14 +13,25 @@ import {
   usePreparePaymentWalletAction,
   useSubmitPaymentIntentTxResult,
 } from '@/dal/app/payments/payments.services';
-import { PAYMENT_CHAINS, PAYMENT_TERMINAL_STATUSES } from '@/dal/app/payments/payments.types';
+import {
+  PAYMENT_CHAINS,
+  PAYMENT_TERMINAL_STATUSES,
+  type IPreparedEvmWalletAction,
+  type IPreparedSolanaWalletAction,
+  type IPreparedWalletAction,
+} from '@/dal/app/payments/payments.types';
 import { useMarketingWalletStore } from '@/hooks/use-marketing-wallet-store';
 import { useMarketingWalletSync } from '@/hooks/use-marketing-wallet-sync';
 import { usePricing } from '@/dal/market/pricing/pricing.services';
 import { usePresaleConfig, usePresaleStats, usePresaleTiers } from '@/dal/market/presale/presale.services';
 import { extractAxiosError } from '@/lib/axios';
 import type { ActivePaymentView, BuyCheckoutStage, PaymentInstructionSummary } from '../types/buy-view-model';
-import type { WalletTxResult } from '../types/checkout-wallet.types';
+import type {
+  EvmPreparedWalletAction,
+  SolanaPreparedWalletAction,
+  TronPreparedWalletAction,
+  WalletTxResult,
+} from '../types/checkout-wallet.types';
 import {
   formatCompactCurrency,
   formatPaymentAmount,
@@ -47,8 +58,6 @@ import {
   isTronLinkAvailable,
 } from '../wallet-adapters/tronlink-checkout-wallet-adapter';
 import { TRON_MAINNET_WALLET_CHAIN_ID } from '../constants/tronlink';
-import type { IPreparedWalletAction } from '@/dal/app/payments/payments.types';
-import type { PreparedWalletAction, TronPreparedWalletAction } from '../types/checkout-wallet.types';
 
 const DEFAULT_BUY_AMOUNT = '1.7544';
 const PAYMENT_STATUS_POLL_INTERVAL_MS = 12_000;
@@ -508,7 +517,13 @@ export function useBuyCheckoutController() {
 
     setFormError(null);
     setCheckoutStage('verifying_wallet');
-    await marketingWallet.verifyWallet({ chainId: selectedAsset.chainId });
+    const evmChainId = selectedAsset.chainId;
+    if (!evmChainId) {
+      useDirectSend();
+      return;
+    }
+
+    await marketingWallet.verifyWallet({ chainId: evmChainId });
     const nextVerification = useMarketingWalletStore.getState().verification;
     setCheckoutStage(nextVerification.status === 'verified' ? 'wallet_ready' : 'failed');
   }
@@ -564,7 +579,9 @@ export function useBuyCheckoutController() {
       setCheckoutStage('waiting_for_wallet_approval');
       let nextWalletTxResult: WalletTxResult;
       try {
-        nextWalletTxResult = await solanaWalletAdapter.sendPreparedAction(preparedWalletAction);
+        nextWalletTxResult = await solanaWalletAdapter.sendPreparedAction(
+          mapSolanaPreparedWalletAction(preparedWalletAction),
+        );
       } catch (error) {
         if (error instanceof Error && error.message === 'Prepared Solana transaction expired') {
           setFormError('Your Solana transaction expired before approval. Preparing a fresh transaction...');
@@ -580,7 +597,9 @@ export function useBuyCheckoutController() {
             throw toCheckoutStepError('prepare_wallet_action', PAYMENT_CHAINS.SOLANA, nextError);
           });
           setCheckoutStage('waiting_for_wallet_approval');
-          nextWalletTxResult = await solanaWalletAdapter.sendPreparedAction(preparedWalletAction).catch(nextError => {
+          nextWalletTxResult = await solanaWalletAdapter.sendPreparedAction(
+            mapSolanaPreparedWalletAction(preparedWalletAction),
+          ).catch(nextError => {
             throw toCheckoutStepError('wallet_approval', PAYMENT_CHAINS.SOLANA, nextError);
           });
         } else {
@@ -734,6 +753,11 @@ export function useBuyCheckoutController() {
     }
 
     const requiredChainId = selectedAsset.chainId;
+    if (!requiredChainId) {
+      useDirectSend();
+      return;
+    }
+
     setFormError(null);
     setWalletTxResult(null);
 
@@ -744,7 +768,7 @@ export function useBuyCheckoutController() {
 
       if (!verifiedWalletAddress || normalizeWalletAddress(verifiedWalletAddress) !== normalizeWalletAddress(walletProvider.address)) {
         setCheckoutStage('verifying_wallet');
-        await marketingWallet.verifyWallet({ chainId: selectedAsset.chainId });
+        await marketingWallet.verifyWallet({ chainId: requiredChainId });
         const nextVerification = useMarketingWalletStore.getState().verification;
         verifiedWalletAddress = nextVerification.status === 'verified'
           ? nextVerification.walletAddress
@@ -760,7 +784,7 @@ export function useBuyCheckoutController() {
         chain: selectedAsset.chain,
         selectedCheckoutMode: 'wallet',
         providerAccount: marketingWallet.providerAccount,
-        requiredChainId: selectedAsset.chainId,
+        requiredChainId,
       });
 
       if (readiness.status !== 'ready') {
@@ -781,7 +805,7 @@ export function useBuyCheckoutController() {
         payload: {
           chain: PAYMENT_CHAINS.ETHEREUM,
           senderAddress: verifiedWalletAddress,
-          walletChainId: walletProvider.chainId ?? selectedAsset.chainId,
+          walletChainId: walletProvider.chainId ?? requiredChainId,
         },
       });
 
@@ -789,7 +813,7 @@ export function useBuyCheckoutController() {
         status: {
           chain: 'ETHEREUM',
           address: walletProvider.address,
-          chainId: walletProvider.chainId ?? selectedAsset.chainId,
+          chainId: walletProvider.chainId ?? requiredChainId,
           connectorName: walletProvider.connectorName ?? 'Ethereum wallet',
           isConnected: Boolean(walletProvider.address),
           isVerified: Boolean(verifiedWalletAddress),
@@ -808,7 +832,9 @@ export function useBuyCheckoutController() {
       });
 
       setCheckoutStage('waiting_for_wallet_approval');
-      const nextWalletTxResult = await walletAdapter.sendPreparedAction(preparedWalletAction);
+      const nextWalletTxResult = await walletAdapter.sendPreparedAction(
+        mapEvmPreparedWalletAction(preparedWalletAction),
+      );
       if (nextWalletTxResult.chain !== PAYMENT_CHAINS.ETHEREUM) {
         throw new Error('Unsupported wallet transaction result for this checkout.');
       }
@@ -891,7 +917,7 @@ export function useBuyCheckoutController() {
             pendingConnectorName: checkoutStage === 'connecting_wallet' ? 'tronlink' : null,
             availableConnectorNames: isTronLinkAvailable() ? ['tronlink'] : [],
             executionReadiness: tronWalletState.isReady ? 'ready' as const : 'checking' as const,
-            unsupportedReason: isTronLinkAvailable() ? null : 'missing_provider',
+            unsupportedReason: isTronLinkAvailable() ? null : 'missing_provider' as const,
             connectionErrorMessage: tronWalletState.error,
             verificationStatus: tronWalletState.isVerified ? 'verified' as const : 'unverified' as const,
             verifiedWalletAddress: tronWalletState.isVerified ? tronWalletState.address : null,
@@ -1013,6 +1039,44 @@ export function useBuyCheckoutController() {
         setFormError(null);
       },
     },
+  };
+}
+
+function mapEvmPreparedWalletAction(action: IPreparedWalletAction): EvmPreparedWalletAction {
+  if (action.kind !== 'evm_transaction') {
+    throw new Error('Unsupported EVM prepared wallet action.');
+  }
+
+  const evmAction = action as IPreparedEvmWalletAction;
+  return {
+    kind: 'evm_transaction',
+    paymentIntentId: evmAction.paymentIntentId,
+    preparedActionId: evmAction.preparedActionId,
+    chain: 'ETHEREUM',
+    chainId: evmAction.chainId,
+    request: evmAction.request,
+    expiresAt: evmAction.expiresAt,
+  };
+}
+
+function mapSolanaPreparedWalletAction(action: IPreparedWalletAction): SolanaPreparedWalletAction {
+  if (action.kind !== 'solana_transaction') {
+    throw new Error('Unsupported Solana prepared wallet action.');
+  }
+
+  const solanaAction = action as IPreparedSolanaWalletAction;
+  return {
+    kind: 'solana_transaction',
+    paymentIntentId: solanaAction.paymentIntentId,
+    preparedActionId: solanaAction.preparedActionId,
+    chain: 'SOLANA',
+    cluster: solanaAction.cluster,
+    walletChainId: solanaAction.walletChainId,
+    payer: solanaAction.payer,
+    transaction: solanaAction.transaction,
+    transactionEncoding: solanaAction.transactionEncoding,
+    expiresAt: solanaAction.expiresAt,
+    lastValidBlockHeight: solanaAction.lastValidBlockHeight,
   };
 }
 
