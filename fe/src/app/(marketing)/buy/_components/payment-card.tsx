@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2 } from '@/icons';
@@ -51,7 +52,15 @@ export function PaymentCard(props: {
               )}
             >
               {iconSrc ? (
-                <img src={iconSrc} alt="" width={20} height={20} className="h-5 w-5 shrink-0" aria-hidden="true" />
+                <Image
+                  src={iconSrc}
+                  alt=""
+                  width={20}
+                  height={20}
+                  className="h-5 w-5 shrink-0"
+                  aria-hidden="true"
+                  unoptimized
+                />
               ) : null}
               {asset.label}
             </button>

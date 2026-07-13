@@ -160,7 +160,9 @@ function useWalletIssueToast(issue: WalletCheckoutIssue | null) {
       return;
     }
     const key = `${issue.toastTitle}:${issue.message}`;
-    if (lastIssueRef.current === key) return;
+    if (lastIssueRef.current === key) {
+      return;
+    }
     lastIssueRef.current = key;
     toast.error(issue.toastTitle, { description: issue.message, id: 'buy-wallet-checkout-issue' });
   }, [issue]);
@@ -169,7 +171,9 @@ function useWalletIssueToast(issue: WalletCheckoutIssue | null) {
 function usePaymentAttentionToast(message: string | null) {
   const previous = useRef<string | null>(null);
   useEffect(() => {
-    if (!message || previous.current === message) return;
+    if (!message || previous.current === message) {
+      return;
+    }
     previous.current = message;
     toast.error('Payment needs attention', { description: message, id: 'buy-payment-attention-error' });
   }, [message]);

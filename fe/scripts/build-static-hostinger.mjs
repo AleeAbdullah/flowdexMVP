@@ -110,6 +110,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error);
-  process.exit(1);
+  const message = error instanceof Error ? error.stack ?? error.message : String(error);
+  process.stderr.write(`${message}\n`);
+  process.exitCode = 1;
 });

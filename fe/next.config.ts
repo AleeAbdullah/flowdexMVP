@@ -75,14 +75,6 @@ const baseConfig: NextConfig = {
   experimental: {
     turbopackFileSystemCacheForDev: true,
   },
-  transpilePackages: [
-    '@account-kit/core',
-    '@account-kit/react',
-    '@coinbase/cdp-sdk',
-    '@solana-program/system',
-    '@solana/kit',
-    'zustand',
-  ],
   serverExternalPackages: [
     'pg',
   ],

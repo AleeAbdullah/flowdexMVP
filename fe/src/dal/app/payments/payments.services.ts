@@ -8,7 +8,6 @@ import type {
   IPaymentCheckoutSession,
   IPreparedWalletAction,
   IPaymentLeadersResponse,
-  IPaymentIntentPublic,
   IPaymentIntentStatusResponse,
   IPaymentPortfolioTransaction,
   IPaymentPortfolioResponse,

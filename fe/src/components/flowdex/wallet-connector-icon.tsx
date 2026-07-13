@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { Wallet } from '@/icons';
 import { getWalletConnectorIconSrc } from '@/constants/wallet-connector-icons';
 import { cn } from '@/lib/utils';
@@ -15,13 +16,14 @@ export function WalletConnectorIcon(props: {
   }
 
   return (
-    <img
+    <Image
       src={src}
       alt=""
       width={size}
       height={size}
       className={cn('h-5 w-5 shrink-0 object-contain', props.className)}
       aria-hidden="true"
+      unoptimized
     />
   );
 }

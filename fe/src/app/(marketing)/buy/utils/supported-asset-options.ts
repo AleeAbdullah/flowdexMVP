@@ -3,13 +3,13 @@ import { buildBuyMarketModel } from '@/components/flowdex/buy-page-market';
 import {
   PAYMENT_ASSETS,
   PAYMENT_CHAINS,
+  type IPaymentCheckoutCapability,
   type PaymentAsset,
 } from '@/dal/app/payments/payments.types';
 import {
   TRON_MAINNET_WALLET_CHAIN_ID,
   TRON_WALLET_NETWORK_ID,
 } from '../constants/tronlink';
-import type { IPaymentCheckoutCapability } from '@/dal/app/payments/payments.types';
 import type { SupportedAssetOption } from '../types/buy-view-model';
 
 const enabledAssets: PaymentAsset[] = [
