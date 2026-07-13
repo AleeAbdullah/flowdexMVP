@@ -56,6 +56,8 @@ import {
   writeStoredWalletCheckoutRecovery,
 } from '../utils/buy-payment-storage';
 import { buildSupportedAssetOptions } from '../utils/supported-asset-options';
+import { getWalletConnectSessionCapabilities } from '../utils/walletconnect-session-capabilities';
+import type { BuyWalletProvider, UnsupportedReason } from '../utils/buy-transaction.types';
 import { createEvmCheckoutWalletAdapter } from '../wallet-adapters/checkout-wallet-adapter';
 import {
   createSolanaMetaMaskCheckoutWalletAdapter,
@@ -75,6 +77,18 @@ import {
 const DEFAULT_BUY_AMOUNT = '1.7544';
 const PAYMENT_STATUS_POLL_INTERVAL_MS = 12_000;
 const PAYMENT_STATUS_RATE_LIMIT_BACKOFF_MS = 30_000;
+
+const evmCheckoutUnsupportedMessages: Record<UnsupportedReason, string> = {
+  missing_provider: 'A compatible wallet provider is not available for checkout.',
+  unsupported_injected_provider: 'This injected wallet cannot send this checkout transaction.',
+  unsupported_walletconnect_session: 'This WalletConnect session is not approved for the active account and network.',
+  inconclusive_walletconnect_session: 'Reconnect WalletConnect so FlowDex can verify its transaction permissions.',
+  missing_walletconnect_eth_sendTransaction: 'This WalletConnect wallet did not approve transaction sending.',
+  missing_switch_chain: 'This wallet cannot switch to the required checkout network.',
+  wrong_chain: 'Switch to the required checkout network before continuing.',
+  account_mismatch: 'The connected wallet account changed. Reconnect and verify it again.',
+  provider_disconnected: 'The wallet disconnected before checkout could continue.',
+};
 
 export function useBuyCheckoutController() {
   const pricing = usePricing();
@@ -254,6 +268,37 @@ export function useBuyCheckoutController() {
     }
   }
 
+  async function assertEvmCheckoutProviderReady(requiredEvmChainId: number) {
+    const connector = marketingWallet.providerAccount.connector;
+    if (!connector) {
+      throw new Error(evmCheckoutUnsupportedMessages.missing_provider);
+    }
+
+    const provider = await connector.getProvider().catch(() => null) as BuyWalletProvider | null;
+    if (!provider || typeof provider.request !== 'function') {
+      throw new Error(evmCheckoutUnsupportedMessages.missing_provider);
+    }
+
+    if (walletProvider.connectorKind !== 'walletconnect') {
+      return;
+    }
+
+    const readiness = getWalletConnectSessionCapabilities({
+      provider,
+      activeAddress: walletProvider.address,
+      activeChainId: walletProvider.chainId,
+      requiredChainId: requiredEvmChainId,
+    });
+
+    if (readiness.status === 'checking') {
+      throw new Error(evmCheckoutUnsupportedMessages.inconclusive_walletconnect_session);
+    }
+
+    if (readiness.status === 'unsupported') {
+      throw new Error(evmCheckoutUnsupportedMessages[readiness.reason]);
+    }
+  }
+
   async function runWalletCheckout(input: {
     senderAddress: string;
     walletChainId?: string | number;
@@ -391,6 +436,7 @@ export function useBuyCheckoutController() {
       if (!walletProvider.address || !marketingWallet.providerAccount.connector || !requiredChainId) {
         throw new Error('Connect an Ethereum wallet before continuing.');
       }
+      await assertEvmCheckoutProviderReady(requiredChainId);
       dispatch({ type: 'CONNECTING' });
       let verifiedWalletAddress = walletVerification.status === 'verified'
         ? walletVerification.walletAddress

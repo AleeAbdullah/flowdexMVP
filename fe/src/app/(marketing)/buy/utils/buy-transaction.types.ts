@@ -1,4 +1,3 @@
-import type { GetAccountReturnType } from '@wagmi/core';
 import type { MarketingWalletUnsupportedReason } from '@/hooks/marketing-wallet.types';
 
 export type UnsupportedReason = MarketingWalletUnsupportedReason;
@@ -18,25 +17,6 @@ export type EvmExecutionReadiness =
       walletKind: 'injected' | 'walletconnect' | null;
       capabilityKey: string | null;
     };
-
-export type BuyExecutionReadiness =
-  | Extract<EvmExecutionReadiness, { status: 'ready' | 'checking' }>
-  | { status: 'wallet_not_connected' }
-  | { status: 'wallet_not_verified' }
-  | {
-      status: 'wrong_chain';
-      reason: 'wrong_chain';
-      walletKind: 'injected' | 'walletconnect' | null;
-      capabilityKey: string | null;
-    }
-  | {
-      status: 'unsupported_wallet';
-      reason: UnsupportedReason;
-      walletKind: 'injected' | 'walletconnect' | null;
-      capabilityKey: string | null;
-    }
-  | { status: 'manual_only' }
-  | { status: 'unsupported_asset' };
 
 export type BuySendErrorReason =
   | 'user_rejected'
@@ -64,5 +44,3 @@ export type BuyWalletProvider = {
     }>;
   };
 };
-
-export type BuyProviderAccountSnapshot = GetAccountReturnType;

@@ -1,4 +1,4 @@
-import { formatUnits, isAddress } from 'viem';
+import { formatUnits } from 'viem';
 import {
   PAYMENT_CHAINS,
   type PaymentAsset,
@@ -42,11 +42,6 @@ export function normalizeWalletAddress(address: string | null | undefined) {
   return address?.trim().toLowerCase() ?? null;
 }
 
-export function normalizeOptionalAddress(value: string) {
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-}
-
 export function getChainLabel(chain: PaymentChain) {
   switch (chain) {
     case PAYMENT_CHAINS.ETHEREUM:
@@ -82,43 +77,4 @@ export function getPaymentStatusCopy(status: PaymentIntentStatus) {
     default:
       return ['Payment could not be confirmed', 'Start a new purchase or contact support.'] as const;
   }
-}
-
-export function validateSenderAddress(chain: PaymentChain, value: string) {
-  const address = value.trim();
-  if (chain === PAYMENT_CHAINS.ETHEREUM) {
-    if (!address) {
-      return 'Enter the Ethereum wallet address you will pay from.';
-    }
-
-    return isAddress(address) ? null : 'Enter a valid EVM wallet address.';
-  }
-
-  if (chain === PAYMENT_CHAINS.BITCOIN) {
-    if (!address) {
-      return 'Enter the Bitcoin address you will pay from.';
-    }
-
-    return /^(?:[13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[ac-hj-np-z02-9]{11,71})$/u.test(address)
-      ? null
-      : 'Enter a valid Bitcoin address.';
-  }
-
-  if (!address) {
-    return null;
-  }
-
-  if (chain === PAYMENT_CHAINS.SOLANA) {
-    return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/u.test(address)
-      ? null
-      : 'Enter a valid Solana public key or leave this blank.';
-  }
-
-  if (chain === PAYMENT_CHAINS.TRON) {
-    return /^T[1-9A-HJ-NP-Za-km-z]{33}$/u.test(address)
-      ? null
-      : 'Enter a valid TRON wallet address.';
-  }
-
-  return null;
 }

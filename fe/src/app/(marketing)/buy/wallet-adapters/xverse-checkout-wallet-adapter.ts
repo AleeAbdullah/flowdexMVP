@@ -5,7 +5,7 @@ import type { BitcoinPreparedWalletAction, WalletTxResult } from '../types/check
 
 const XVERSE_BITCOIN_PROVIDER_ID = 'XverseProviders.BitcoinProvider';
 
-export type XverseCheckoutWalletState = {
+type XverseCheckoutWalletState = {
   address: string | null;
   isConnected: boolean;
   error: string | null;

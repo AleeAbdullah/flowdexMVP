@@ -55,7 +55,7 @@ export class MarketsService {
   private quoteCurrenciesCache: CacheEntry<CryptoQuoteCurrenciesResponseDto> | null = null;
 
   async getCryptoMarkets(query: CryptoMarketsQueryDto): Promise<CryptoMarketsResponseDto> {
-    const quoteCurrency = DEFAULT_QUOTE_CURRENCY;
+    const quoteCurrency = this.normalizeQuoteCurrency(query.quote);
     const limit = query.limit ?? DEFAULT_LIMIT;
     await this.assertSupportedQuoteCurrency(quoteCurrency);
 

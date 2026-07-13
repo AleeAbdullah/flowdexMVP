@@ -1,7 +1,7 @@
 import type { IPaymentCheckoutSession, IPaymentIntentStatusResponse } from '@/dal/app/payments/payments.types';
 import type { WalletTxResult } from '../types/checkout-wallet.types';
 
-export type WalletCheckoutStage =
+type WalletCheckoutStage =
   | 'closed'
   | 'connecting_wallet'
   | 'wallet_ready'
@@ -11,14 +11,14 @@ export type WalletCheckoutStage =
   | 'tracking'
   | 'failed';
 
-export type WalletCheckoutState = {
+type WalletCheckoutState = {
   stage: WalletCheckoutStage;
   session: IPaymentCheckoutSession | null;
   txResult: WalletTxResult | null;
   error: string | null;
 };
 
-export type WalletCheckoutEvent =
+type WalletCheckoutEvent =
   | { type: 'OPEN' }
   | { type: 'CONNECTING' }
   | { type: 'WALLET_READY' }
