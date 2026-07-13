@@ -19,9 +19,9 @@ type WalletCheckoutState = {
 };
 
 type WalletCheckoutEvent =
-  | { type: 'OPEN' }
   | { type: 'CONNECTING' }
   | { type: 'WALLET_READY' }
+  | { type: 'PREPARING' }
   | { type: 'SESSION_CREATED'; session: IPaymentCheckoutSession }
   | { type: 'AWAITING_APPROVAL' }
   | { type: 'TX_BROADCAST'; txResult: WalletTxResult }
@@ -45,12 +45,12 @@ export function walletCheckoutReducer(
   event: WalletCheckoutEvent,
 ): WalletCheckoutState {
   switch (event.type) {
-    case 'OPEN':
-      return { ...state, stage: 'connecting_wallet', error: null };
     case 'CONNECTING':
       return { ...state, stage: 'connecting_wallet', error: null };
     case 'WALLET_READY':
       return { ...state, stage: 'wallet_ready', error: null };
+    case 'PREPARING':
+      return { ...state, stage: 'preparing_wallet_action', error: null };
     case 'SESSION_CREATED':
       return { ...state, stage: 'preparing_wallet_action', session: event.session, txResult: null, error: null };
     case 'AWAITING_APPROVAL':

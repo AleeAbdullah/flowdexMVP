@@ -3,10 +3,12 @@
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { truncateMiddle } from '@/components/flowdex/utils';
 import { Loader2 } from '@/icons';
 import { getCryptoAssetIconSrc } from '@/constants/crypto-asset-icons';
 import { cn } from '@/lib/utils';
-import type { BuyActions, BuyOrderView, BuyPaymentView } from '../types/buy-view-model';
+import type { BuyActions, BuyOrderView, BuyWalletView } from '../types/buy-view-model';
 
 function SummaryRow(props: {
   label: string;
@@ -27,83 +29,106 @@ function SummaryRow(props: {
 
 export function PaymentCard(props: {
   order: BuyOrderView;
-  payment: BuyPaymentView;
+  wallet: BuyWalletView;
   actions: BuyActions;
 }) {
+  const selectedAsset = props.order.selectedAsset;
+  const selectedAssetIcon = getCryptoAssetIconSrc(selectedAsset?.code);
+  const walletStatus = props.wallet.walletStatus;
+
   return (
     <section>
       <h1 className="text-[10px] font-bold tracking-[0.32em] text-[var(--cyan)] uppercase">Payment Method</h1>
-      <div className="mt-8 text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_46%,transparent)] uppercase">
-        Select Currency
-      </div>
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {props.order.supportedAssets.map(asset => {
-          const iconSrc = getCryptoAssetIconSrc(asset.code);
-          return (
-            <button
-              key={asset.id}
-              type="button"
-              onClick={() => props.actions.selectAsset(asset.id)}
-              className={cn(
-                'flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-xs font-bold transition sm:text-sm',
-                props.order.selectedAsset?.id === asset.id
-                  ? 'border-[var(--cyan)] bg-[var(--accent-bg)] text-[var(--text)]'
-                  : 'border-[var(--card-border)] bg-[var(--buy-panel-soft)] text-[var(--muted)] hover:border-[var(--cyan)]',
-              )}
-            >
-              {iconSrc ? (
-                <Image
-                  src={iconSrc}
-                  alt=""
-                  width={20}
-                  height={20}
-                  className="h-5 w-5 shrink-0"
-                  aria-hidden="true"
-                  unoptimized
-                />
-              ) : null}
-              {asset.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <label className="mt-8 block">
+      <label htmlFor="buy-payment-amount" className="mt-8 block">
         <span className="text-[10px] font-bold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_46%,transparent)] uppercase">
-          Custom Amount
+          You pay
         </span>
-        <div className="mt-4 flex h-20 items-center rounded-[0.75rem] border border-[var(--card-border)] bg-[var(--buy-panel-soft)] px-5">
+        <div className="mt-3 flex min-h-20 items-center gap-3 rounded-[0.85rem] border border-[var(--card-border)] bg-[var(--buy-panel-soft)] px-5 transition focus-within:border-[var(--cyan)]">
           <Input
+            id="buy-payment-amount"
             value={props.order.amountDisplay}
             onChange={event => props.actions.changeAmount(event.target.value)}
             inputMode="decimal"
-            className="h-auto border-0 bg-transparent p-0 font-data text-3xl font-black text-[var(--text)] focus-visible:ring-0 focus-visible:ring-offset-0"
+            aria-label="Payment amount"
+            className="h-auto min-w-0 flex-1 border-0 bg-transparent p-0 font-data text-3xl font-black text-[var(--text)] focus-visible:ring-0 focus-visible:ring-offset-0"
           />
-          <span className="font-bold text-[var(--muted)]">{props.order.selectedAsset?.code ?? ''}</span>
+          <Select value={selectedAsset?.id ?? ''} onValueChange={props.actions.selectAsset}>
+            <SelectTrigger
+              aria-label="Payment asset"
+              className="h-11 w-auto min-w-28 shrink-0 gap-2 border-[var(--card-border)] bg-[var(--surface-elevated)] px-3 font-bold text-[var(--text)] focus:ring-[var(--cyan)]"
+            >
+              <span className="flex items-center gap-2">
+                {selectedAssetIcon ? (
+                  <Image src={selectedAssetIcon} alt="" width={22} height={22} className="h-5.5 w-5.5" aria-hidden="true" unoptimized />
+                ) : null}
+                <SelectValue placeholder="Asset" />
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              {props.order.supportedAssets.map(asset => {
+                const iconSrc = getCryptoAssetIconSrc(asset.code);
+                return (
+                  <SelectItem key={asset.id} value={asset.id}>
+                    <span className="flex items-center gap-2 pr-2 font-bold">
+                      {iconSrc ? (
+                        <Image src={iconSrc} alt="" width={20} height={20} className="h-5 w-5" aria-hidden="true" unoptimized />
+                      ) : null}
+                      <span>{asset.code}</span>
+                      <span className="font-medium text-[var(--muted)]">{asset.label}</span>
+                    </span>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
         </div>
       </label>
 
-      <div className="my-8 h-px bg-[var(--card-border)]" />
-      <div className="space-y-5">
-        <SummaryRow label="You Pay" value={props.order.payDisplay} />
-        <SummaryRow label="You Receive" value={props.order.receiveDisplay} accent />
+      <div className="mt-4 rounded-[0.85rem] border border-[var(--card-border)] bg-[color-mix(in_srgb,var(--buy-panel-soft)_76%,transparent)] px-5 py-4">
+        <div className="text-[10px] font-bold tracking-[0.24em] text-[var(--muted)] uppercase">You receive</div>
+        <div className="mt-2 font-data text-2xl font-black text-[var(--green)]">{props.order.receiveDisplay}</div>
+      </div>
+
+      <div className="mt-6 space-y-4 border-t border-[var(--card-border)] pt-6">
         <SummaryRow label="Value at Listing" value={props.order.listingValueDisplay} />
         <SummaryRow label="Potential ROI" value={props.order.roiDisplay} accent />
       </div>
 
+      {walletStatus.address ? (
+        <div className="mt-6 flex items-center justify-between gap-4 rounded-[0.75rem] border border-[var(--card-border)] bg-[var(--buy-panel-soft)] px-4 py-3">
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold tracking-[0.2em] text-[var(--muted)] uppercase">
+              {walletStatus.connectorName ?? 'Connected wallet'}
+            </div>
+            <div className="mt-1 truncate font-data text-sm font-bold text-[var(--text)]">
+              {truncateMiddle(walletStatus.address, 10, 8)}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={props.actions.disconnectWallet}
+            disabled={walletStatus.isDisconnecting}
+            className="shrink-0 text-xs font-bold text-[var(--cyan)] transition hover:text-[var(--text)] disabled:opacity-50"
+          >
+            {walletStatus.isDisconnecting ? 'Disconnecting' : 'Change'}
+          </button>
+        </div>
+      ) : null}
+
       {props.order.error ? <p className="mt-5 rounded-md border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-100">{props.order.error}</p> : null}
+      {!props.order.error && walletStatus.connectionErrorMessage ? (
+        <p className="mt-5 rounded-md border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-100">
+          {walletStatus.connectionErrorMessage}
+        </p>
+      ) : null}
       <Button
         variant="brand"
         className="mt-8 h-14 w-full text-lg font-black"
-        onClick={props.order.isWrongNetwork ? props.actions.switchNetwork : props.actions.buy}
-        disabled={props.order.isWrongNetwork ? props.order.isSwitchingNetwork : !props.order.canSubmit}
+        onClick={props.actions.buy}
+        disabled={!props.order.canSubmit || props.order.isPrimaryActionBusy}
       >
-        {props.payment.isCreating || props.order.isSwitchingNetwork ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-        {props.payment.isCreating
-          ? 'Starting payment'
-          : props.order.isSwitchingNetwork
-            ? 'Switching network'
-            : props.order.buyButtonLabel}
+        {props.order.isPrimaryActionBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+        {props.order.primaryActionLabel}
       </Button>
     </section>
   );

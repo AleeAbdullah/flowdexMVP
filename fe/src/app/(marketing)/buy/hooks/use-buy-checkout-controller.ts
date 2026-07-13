@@ -1,5 +1,6 @@
 'use client';
 
+import { useAuthModal } from '@account-kit/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -48,7 +49,11 @@ import {
   getPaymentStatusCopy,
   normalizeWalletAddress,
 } from '../utils/buy-display';
-import { getCheckoutErrorMessage, toCheckoutStepError } from '../utils/get-checkout-error-message';
+import {
+  getCheckoutErrorMessage,
+  isPostBroadcastCheckoutError,
+  toCheckoutStepError,
+} from '../utils/get-checkout-error-message';
 import {
   readStoredActivePayment,
   readStoredWalletCheckoutRecovery,
@@ -59,6 +64,7 @@ import { buildSupportedAssetOptions } from '../utils/supported-asset-options';
 import { getWalletConnectSessionCapabilities } from '../utils/walletconnect-session-capabilities';
 import type { BuyWalletProvider, UnsupportedReason } from '../utils/buy-transaction.types';
 import { createEvmCheckoutWalletAdapter } from '../wallet-adapters/checkout-wallet-adapter';
+import { useBitcoinAppKitCheckoutWallet } from '../wallet-adapters/bitcoin-appkit-checkout-wallet';
 import {
   createSolanaMetaMaskCheckoutWalletAdapter,
   initialSolanaCheckoutWalletAdapterState,
@@ -68,11 +74,6 @@ import {
   initialTronCheckoutWalletAdapterState,
   isTronLinkAvailable,
 } from '../wallet-adapters/tronlink-checkout-wallet-adapter';
-import {
-  createXverseCheckoutWalletAdapter,
-  initialXverseCheckoutWalletState,
-  isXverseAvailable,
-} from '../wallet-adapters/xverse-checkout-wallet-adapter';
 
 const DEFAULT_BUY_AMOUNT = '1.7544';
 const PAYMENT_STATUS_POLL_INTERVAL_MS = 12_000;
@@ -114,6 +115,8 @@ export function useBuyCheckoutController() {
   const prepareWalletAction = usePreparePaymentWalletAction();
   const submitPaymentIntentTxResult = useSubmitPaymentIntentTxResult();
   const marketingWallet = useMarketingWalletSync();
+  const { openAuthModal } = useAuthModal();
+  const bitcoinWallet = useBitcoinAppKitCheckoutWallet();
   const walletProvider = useMarketingWalletStore((state: MarketingWalletStore) => state.provider);
   const walletVerification = useMarketingWalletStore((state: MarketingWalletStore) => state.verification);
 
@@ -123,13 +126,12 @@ export function useBuyCheckoutController() {
   const [statusError, setStatusError] = useState<string | null>(null);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [statusBackoffUntil, setStatusBackoffUntil] = useState(0);
+  const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
   const [checkout, dispatch] = useReducer(walletCheckoutReducer, initialWalletCheckoutState);
   const [solanaWalletState, setSolanaWalletState] = useState(initialSolanaCheckoutWalletAdapterState);
   const [tronWalletState, setTronWalletState] = useState(initialTronCheckoutWalletAdapterState);
-  const [xverseWalletState, setXverseWalletState] = useState(initialXverseCheckoutWalletState);
   const solanaWalletStateRef = useRef(solanaWalletState);
   const tronWalletStateRef = useRef(tronWalletState);
-  const xverseWalletStateRef = useRef(xverseWalletState);
 
   useEffect(() => {
     solanaWalletStateRef.current = solanaWalletState;
@@ -137,9 +139,6 @@ export function useBuyCheckoutController() {
   useEffect(() => {
     tronWalletStateRef.current = tronWalletState;
   }, [tronWalletState]);
-  useEffect(() => {
-    xverseWalletStateRef.current = xverseWalletState;
-  }, [xverseWalletState]);
 
   const solanaWalletAdapter = useMemo(() => createSolanaMetaMaskCheckoutWalletAdapter({
     getState: () => solanaWalletStateRef.current,
@@ -155,14 +154,6 @@ export function useBuyCheckoutController() {
       setTronWalletState(state);
     },
   }), []);
-  const xverseWalletAdapter = useMemo(() => createXverseCheckoutWalletAdapter({
-    getState: () => xverseWalletStateRef.current,
-    setState: state => {
-      xverseWalletStateRef.current = state;
-      setXverseWalletState(state);
-    },
-  }), []);
-
   useEffect(() => {
     if (!selectedAssetId && supportedAssets[0]) {
       setSelectedAssetId(supportedAssets[0].id);
@@ -180,7 +171,7 @@ export function useBuyCheckoutController() {
   }, [activePayment]);
   useEffect(() => {
     writeStoredWalletCheckoutRecovery(
-      checkout.session && !PAYMENT_TERMINAL_STATUSES.has(checkout.session.intent.status)
+      checkout.session && checkout.txResult && !PAYMENT_TERMINAL_STATUSES.has(checkout.session.intent.status)
         ? { session: checkout.session, txResult: checkout.txResult }
         : null,
     );
@@ -204,7 +195,7 @@ export function useBuyCheckoutController() {
       && tronWalletState.walletChainId !== TRON_MAINNET_WALLET_CHAIN_ID),
   );
   const selectedWalletAddress = selectedAsset?.chain === PAYMENT_CHAINS.BITCOIN
-    ? xverseWalletState.address
+    ? bitcoinWallet.address
     : selectedAsset?.chain === PAYMENT_CHAINS.SOLANA
       ? solanaWalletState.address
       : selectedAsset?.chain === PAYMENT_CHAINS.TRON
@@ -256,15 +247,20 @@ export function useBuyCheckoutController() {
   }, [activePayment?.intent.id, activePayment?.intent.status, statusBackoffUntil]);
 
   async function requestNetworkSwitch() {
-    if (selectedAsset?.chain === PAYMENT_CHAINS.TRON) {
-      await tronWalletAdapter.switchNetwork?.();
-      return;
-    }
-    if (requiredChainId) {
-      const result = await marketingWallet.switchToChain(requiredChainId);
-      if (!result.ok) {
-        throw new Error(result.message);
+    setIsSwitchingNetwork(true);
+    try {
+      if (selectedAsset?.chain === PAYMENT_CHAINS.TRON) {
+        await tronWalletAdapter.switchNetwork?.();
+        return;
       }
+      if (requiredChainId) {
+        const result = await marketingWallet.switchToChain(requiredChainId);
+        if (!result.ok) {
+          throw new Error(result.message);
+        }
+      }
+    } finally {
+      setIsSwitchingNetwork(false);
     }
   }
 
@@ -308,6 +304,7 @@ export function useBuyCheckoutController() {
       throw new Error('Choose a payment asset first.');
     }
 
+    dispatch({ type: 'PREPARING' });
     const session = await createPaymentIntent.mutateAsync({
       chain: selectedAsset.chain,
       asset: selectedAsset.code,
@@ -353,6 +350,36 @@ export function useBuyCheckoutController() {
     dispatch({ type: 'TRACKING', status });
   }
 
+  async function connectSelectedWallet() {
+    if (!selectedAsset) {
+      return;
+    }
+
+    if (selectedAsset.chain === PAYMENT_CHAINS.BITCOIN) {
+      dispatch({ type: 'CLOSE' });
+      await bitcoinWallet.openSelector();
+      return;
+    }
+
+    if (selectedAsset.chain === PAYMENT_CHAINS.ETHEREUM) {
+      dispatch({ type: 'CLOSE' });
+      openAuthModal();
+      return;
+    }
+
+    dispatch({ type: 'CONNECTING' });
+    if (selectedAsset.chain === PAYMENT_CHAINS.TRON) {
+      await tronWalletAdapter.connect();
+      dispatch({ type: 'WALLET_READY' });
+      return;
+    }
+
+    if (selectedAsset.chain === PAYMENT_CHAINS.SOLANA) {
+      await solanaWalletAdapter.connect();
+      dispatch({ type: 'WALLET_READY' });
+    }
+  }
+
   async function startWalletPayment() {
     if (!selectedAsset || !canSubmit) {
       return;
@@ -382,30 +409,26 @@ export function useBuyCheckoutController() {
       }
 
       if (selectedAsset.chain === PAYMENT_CHAINS.BITCOIN) {
-        dispatch({ type: 'CONNECTING' });
-        const address = xverseWalletStateRef.current.address ?? await xverseWalletAdapter.connect();
-        dispatch({ type: 'WALLET_READY' });
+        const address = bitcoinWallet.address;
+        if (!address) {
+          throw new Error('Connect a Bitcoin wallet before continuing.');
+        }
+        if (!bitcoinWallet.isReady) {
+          throw new Error('This Bitcoin wallet cannot send the prepared payment. Choose another wallet.');
+        }
         await runWalletCheckout({
           senderAddress: address,
           walletChainId: 'mainnet',
-          send: action => xverseWalletAdapter.sendPreparedAction(mapBitcoinPreparedWalletAction(action)),
+          send: action => bitcoinWallet.sendPreparedAction(mapBitcoinPreparedWalletAction(action)),
         });
         return;
       }
 
       if (selectedAsset.chain === PAYMENT_CHAINS.TRON) {
-        dispatch({ type: 'CONNECTING' });
-        if (!tronWalletStateRef.current.address) {
-          await tronWalletAdapter.connect();
-        }
-        if (tronWalletStateRef.current.walletChainId !== TRON_MAINNET_WALLET_CHAIN_ID) {
-          await tronWalletAdapter.switchNetwork?.();
-        }
         const address = tronWalletStateRef.current.address;
         if (!address) {
           throw new Error('Connect TronLink before continuing.');
         }
-        dispatch({ type: 'WALLET_READY' });
         await runWalletCheckout({
           senderAddress: address,
           walletChainId: TRON_MAINNET_WALLET_CHAIN_ID,
@@ -415,16 +438,11 @@ export function useBuyCheckoutController() {
       }
 
       if (selectedAsset.chain === PAYMENT_CHAINS.SOLANA) {
-        dispatch({ type: 'CONNECTING' });
-        if (!solanaWalletStateRef.current.address) {
-          await solanaWalletAdapter.connect();
-        }
         const address = solanaWalletStateRef.current.address;
         const walletChainId = solanaWalletStateRef.current.walletChainId;
         if (!address || !walletChainId) {
           throw new Error('Connect MetaMask Solana before continuing.');
         }
-        dispatch({ type: 'WALLET_READY' });
         await runWalletCheckout({
           senderAddress: address,
           walletChainId,
@@ -437,7 +455,6 @@ export function useBuyCheckoutController() {
         throw new Error('Connect an Ethereum wallet before continuing.');
       }
       await assertEvmCheckoutProviderReady(requiredChainId);
-      dispatch({ type: 'CONNECTING' });
       let verifiedWalletAddress = walletVerification.status === 'verified'
         ? walletVerification.walletAddress
         : null;
@@ -466,7 +483,6 @@ export function useBuyCheckoutController() {
         disconnect: marketingWallet.disconnectWallet,
         verify: () => marketingWallet.verifyWallet({ chainId: requiredChainId }),
       });
-      dispatch({ type: 'WALLET_READY' });
       await runWalletCheckout({
         senderAddress: verifiedWalletAddress,
         walletChainId: walletProvider.chainId ?? requiredChainId,
@@ -474,6 +490,10 @@ export function useBuyCheckoutController() {
       });
     } catch (error) {
       const errorView = getCheckoutErrorMessage(error);
+      if (!isPostBroadcastCheckoutError(error)) {
+        setActivePayment(null);
+        writeStoredActivePayment(null);
+      }
       dispatch({ type: 'FAILED', error: errorView.message });
       toast.error(errorView.title, { description: errorView.message });
     }
@@ -483,6 +503,31 @@ export function useBuyCheckoutController() {
     ? buildPaymentInstructionSummary(activePayment, selectedChainLabel)
     : null;
   const checkoutStage = checkout.stage as BuyCheckoutStage;
+  const needsWalletConnection = !selectedWalletAddress
+    || (selectedAsset?.chain === PAYMENT_CHAINS.BITCOIN && !bitcoinWallet.isReady);
+  const isPrimaryActionBusy = isSwitchingNetwork
+    || checkoutStage === 'connecting_wallet'
+    || checkoutStage === 'preparing_wallet_action'
+    || checkoutStage === 'waiting_for_wallet_approval'
+    || checkoutStage === 'submitting_tx_result'
+    || createPaymentIntent.isPending
+    || prepareWalletAction.isPending
+    || submitPaymentIntentTxResult.isPending;
+  const primaryActionLabel = isSwitchingNetwork
+    ? 'Switching network'
+    : checkoutStage === 'connecting_wallet'
+      ? 'Connecting wallet'
+      : checkoutStage === 'preparing_wallet_action'
+        ? 'Preparing transaction'
+        : checkoutStage === 'waiting_for_wallet_approval'
+          ? 'Confirm in your wallet'
+          : checkoutStage === 'submitting_tx_result'
+            ? 'Recording transaction'
+            : isWrongNetwork
+              ? 'Switch network'
+              : needsWalletConnection
+                ? 'Connect wallet'
+                : `Buy ${formatPlainNumber(tokenAmount, 0)} $FDN`;
 
   return {
     market: {
@@ -506,9 +551,10 @@ export function useBuyCheckoutController() {
       receiveDisplay: `${formatPlainNumber(tokenAmount, 0)} $FDN`,
       listingValueDisplay: formatCurrency(listingValue, 0),
       roiDisplay: contributionUsd > 0 ? `+${formatPlainNumber(roiPercent, 0)}%` : '+0%',
-      buyButtonLabel: isWrongNetwork ? 'Switch Network' : `Buy ${formatPlainNumber(tokenAmount, 0)} $FDN`,
+      primaryActionLabel,
+      isPrimaryActionBusy,
       isWrongNetwork,
-      isSwitchingNetwork: false,
+      isSwitchingNetwork,
       error: checkout.error,
       canSubmit,
       scenarios: buildScenarioCards(tokenAmount, contributionUsd, marketModel.listingReferenceUsd),
@@ -525,22 +571,34 @@ export function useBuyCheckoutController() {
       paymentWalletError: checkout.error,
       canUseWalletCheckout: Boolean(selectedAsset?.walletCheckoutEnabled),
       isWrongNetwork,
-      isSwitchingNetwork: false,
+      isSwitchingNetwork,
       walletStatus: selectedAsset?.chain === PAYMENT_CHAINS.BITCOIN
         ? {
-            providerStatus: xverseWalletState.isConnected ? 'connected' as const : 'disconnected' as const,
-            address: xverseWalletState.address,
+            providerStatus: bitcoinWallet.isConnecting
+              ? 'checking' as const
+              : bitcoinWallet.isConnected
+                ? 'connected' as const
+                : 'disconnected' as const,
+            address: bitcoinWallet.address,
             chainId: null,
-            walletChainId: xverseWalletState.address ? 'mainnet' : null,
-            connectorName: xverseWalletState.address ? 'xverse' : null,
-            pendingConnectorName: checkout.stage === 'connecting_wallet' ? 'xverse' : null,
-            availableConnectorNames: isXverseAvailable() ? ['xverse'] : [],
-            executionReadiness: xverseWalletState.address ? 'ready' as const : 'checking' as const,
-            unsupportedReason: isXverseAvailable() ? null : 'missing_provider' as const,
-            connectionErrorMessage: xverseWalletState.error,
-            verificationStatus: xverseWalletState.address ? 'verified' as const : 'unverified' as const,
-            verifiedWalletAddress: xverseWalletState.address,
-            verificationError: xverseWalletState.error,
+            walletChainId: bitcoinWallet.address ? 'mainnet' : null,
+            connectorName: bitcoinWallet.connectorName,
+            pendingConnectorName: bitcoinWallet.isConnecting ? 'walletconnect' : null,
+            availableConnectorNames: bitcoinWallet.isConfigured ? ['walletconnect'] : [],
+            executionReadiness: bitcoinWallet.isReady
+              ? 'ready' as const
+              : bitcoinWallet.address
+                ? 'unsupported' as const
+                : 'checking' as const,
+            unsupportedReason: !bitcoinWallet.isConfigured || (bitcoinWallet.address && !bitcoinWallet.isReady)
+              ? 'missing_provider' as const
+              : null,
+            connectionErrorMessage: bitcoinWallet.isConfigured
+              ? null
+              : 'Bitcoin wallet connection is not configured.',
+            verificationStatus: bitcoinWallet.address ? 'verified' as const : 'unverified' as const,
+            verifiedWalletAddress: bitcoinWallet.address,
+            verificationError: null,
             isDisconnecting: false,
             isVerifying: false,
           }
@@ -618,30 +676,30 @@ export function useBuyCheckoutController() {
           dispatch({ type: 'RESUME_TRACKING' });
           return;
         }
-        dispatch({ type: 'OPEN' });
+        if (isWrongNetwork) {
+          void requestNetworkSwitch().catch(error => {
+            const message = error instanceof Error ? error.message : 'Could not switch network.';
+            dispatch({ type: 'FAILED', error: message });
+            toast.error('Network switch failed', { description: message });
+          });
+          return;
+        }
+        if (needsWalletConnection) {
+          void connectSelectedWallet().catch(error => {
+            const message = error instanceof Error ? error.message : 'Could not connect this wallet.';
+            dispatch({ type: 'FAILED', error: message });
+            toast.error('Wallet connection failed', { description: message });
+          });
+          return;
+        }
+        void startWalletPayment();
       },
       closeCheckout() {
         dispatch({ type: 'CLOSE' });
       },
-      connectWallet(connectorName: string) {
-        dispatch({ type: 'CONNECTING' });
-        if (selectedAsset?.chain === PAYMENT_CHAINS.BITCOIN) {
-          void xverseWalletAdapter.connect().then(() => dispatch({ type: 'WALLET_READY' })).catch(error => dispatch({ type: 'FAILED', error: error instanceof Error ? error.message : 'Could not connect Xverse.' }));
-          return;
-        }
-        if (selectedAsset?.chain === PAYMENT_CHAINS.TRON) {
-          void tronWalletAdapter.connect().then(() => dispatch({ type: 'WALLET_READY' })).catch(error => dispatch({ type: 'FAILED', error: error instanceof Error ? error.message : 'Could not connect TronLink.' }));
-          return;
-        }
-        if (selectedAsset?.chain === PAYMENT_CHAINS.SOLANA) {
-          void solanaWalletAdapter.connect().then(() => dispatch({ type: 'WALLET_READY' })).catch(error => dispatch({ type: 'FAILED', error: error instanceof Error ? error.message : 'Could not connect MetaMask Solana.' }));
-          return;
-        }
-        marketingWallet.connectByName(connectorName, requiredChainId ? { chainId: requiredChainId } : undefined);
-      },
       disconnectWallet() {
         if (selectedAsset?.chain === PAYMENT_CHAINS.BITCOIN) {
-          xverseWalletAdapter.disconnect();
+          void bitcoinWallet.disconnect();
           return;
         }
         if (selectedAsset?.chain === PAYMENT_CHAINS.TRON) {
@@ -653,15 +711,6 @@ export function useBuyCheckoutController() {
           return;
         }
         void marketingWallet.disconnectWallet();
-      },
-      verifyWallet() {
-        void startWalletPayment();
-      },
-      startWalletPayment() {
-        void startWalletPayment();
-      },
-      switchNetwork() {
-        void requestNetworkSwitch().catch(error => dispatch({ type: 'FAILED', error: error instanceof Error ? error.message : 'Could not switch network.' }));
       },
       startNewPayment() {
         setActivePayment(null);

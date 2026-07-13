@@ -74,7 +74,7 @@ export function buildSupportedAssetOptions(
   return enabledAssets.flatMap((asset) => {
     const { chain, chainId, walletChainId, walletNetworkId, walletCheckoutEnabled } = assetConfig[asset];
     const capability = capabilities?.find(item => item.asset === asset && item.chain === chain);
-    if (capability && !capability.enabled) {
+    if (capabilities && (!capability || !capability.enabled)) {
       return [];
     }
     return {

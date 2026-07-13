@@ -45,6 +45,10 @@ export function toCheckoutStepError(
   return new CheckoutStepError(step, chain, error);
 }
 
+export function isPostBroadcastCheckoutError(error: unknown): boolean {
+  return error instanceof CheckoutStepError && error.step === 'submit_tx_result';
+}
+
 export function getCheckoutErrorMessage(error: unknown): CheckoutErrorView {
   const stepError = error instanceof CheckoutStepError ? error : null;
   const sourceError = stepError?.originalError ?? error;

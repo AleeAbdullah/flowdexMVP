@@ -74,7 +74,8 @@ export type BuyOrderView = {
   receiveDisplay: string;
   listingValueDisplay: string;
   roiDisplay: string;
-  buyButtonLabel: string;
+  primaryActionLabel: string;
+  isPrimaryActionBusy: boolean;
   isWrongNetwork: boolean;
   isSwitchingNetwork: boolean;
   error: string | null;
@@ -132,10 +133,6 @@ export type BuyActions = {
   changeAmount: (value: string) => void;
   buy: () => void;
   closeCheckout: () => void;
-  connectWallet: (connectorName: string) => void;
   disconnectWallet: () => void;
-  verifyWallet: () => void;
-  startWalletPayment: () => void;
-  switchNetwork: () => void;
   startNewPayment: () => void;
 };
