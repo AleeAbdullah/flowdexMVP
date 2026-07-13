@@ -1,4 +1,4 @@
-export type AboutOpportunityIcon = 'globe' | 'wallet' | 'layers';
+type AboutOpportunityIcon = 'globe' | 'wallet' | 'layers';
 
 export const aboutPageMeta = [
   { label: 'Asset Goal', value: '500+ Tradeable Markets' },

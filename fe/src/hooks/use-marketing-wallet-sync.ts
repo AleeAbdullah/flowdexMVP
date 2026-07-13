@@ -43,7 +43,7 @@ function normalizeWalletAddress(address: string | null | undefined) {
   return address?.trim().toLowerCase() ?? null;
 }
 
-export function normalizeMarketingWalletConnectorName(name: string | null | undefined) {
+function normalizeMarketingWalletConnectorName(name: string | null | undefined) {
   const normalized = (name ?? '').trim().toLowerCase().replace(/\s+/g, '');
   if (normalized === 'wallet_connect' || normalized === 'walletconnect') {
     return 'walletconnect';
@@ -144,7 +144,7 @@ function isWalletConnectionRejected(error: unknown) {
     || lowered.includes('declined');
 }
 
-export type MarketingWalletSwitchNetworkResult =
+type MarketingWalletSwitchNetworkResult =
   | { ok: true }
   | {
       ok: false;

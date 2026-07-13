@@ -1,4 +1,4 @@
-export type MarketingNavItem = {
+type MarketingNavItem = {
   label: string;
   href: string;
 };

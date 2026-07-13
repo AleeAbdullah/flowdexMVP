@@ -37,8 +37,6 @@ export const Env = createEnv({
     NEXT_PUBLIC_BETTER_STACK_INGESTING_HOST: z.string().optional(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
     NEXT_PUBLIC_POSTHOG_HOST: z.string().optional(),
-    NEXT_PUBLIC_USDT_WALLET_CHECKOUT_ENABLED: z.coerce.boolean().default(true),
-    NEXT_PUBLIC_USDT_MANUAL_CHECKOUT_ENABLED: z.coerce.boolean().default(true),
   },
   shared: {
     NODE_ENV: z.enum(['test', 'development', 'production']).optional(),
@@ -67,8 +65,6 @@ export const Env = createEnv({
     NEXT_PUBLIC_BETTER_STACK_INGESTING_HOST: process.env.NEXT_PUBLIC_BETTER_STACK_INGESTING_HOST,
     NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
     NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
-    NEXT_PUBLIC_USDT_WALLET_CHECKOUT_ENABLED: process.env.NEXT_PUBLIC_USDT_WALLET_CHECKOUT_ENABLED,
-    NEXT_PUBLIC_USDT_MANUAL_CHECKOUT_ENABLED: process.env.NEXT_PUBLIC_USDT_MANUAL_CHECKOUT_ENABLED,
     NODE_ENV: process.env.NODE_ENV,
   },
 });

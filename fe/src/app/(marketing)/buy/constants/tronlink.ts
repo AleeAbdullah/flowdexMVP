@@ -1,6 +1,4 @@
 export const TRON_MAINNET_WALLET_CHAIN_ID = '0x2b6653dc';
-export const TRON_SHASTA_WALLET_CHAIN_ID = '0x94a9059e';
-export const TRON_NILE_WALLET_CHAIN_ID = '0xcd8690dc';
 
 export const TRON_WALLET_NETWORK_ID = 'tron:mainnet';
 

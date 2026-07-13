@@ -14,7 +14,7 @@ import { Env } from '@/libs/Env';
 import { getOptionalWalletSessionFromRequest, type WalletSession } from '@/lib/wallet-auth.server';
 import { ROUTES } from '@/routes';
 
-export class BackendApiError extends Error {
+class BackendApiError extends Error {
   constructor(
     message: string,
     public readonly status: number,
@@ -28,7 +28,7 @@ export async function getOptionalAdminToken() {
   return getAdminSessionToken();
 }
 
-export async function requireAdminToken() {
+async function requireAdminToken() {
   const token = await getAdminSessionToken();
 
   if (!token) {
@@ -81,7 +81,7 @@ export async function backendFetchJson<T>(
   return payload as T;
 }
 
-export async function getAuthenticatedAppContext() {
+async function getAuthenticatedAppContext() {
   const token = await requireAdminToken();
 
   try {
@@ -174,6 +174,9 @@ export async function proxyPublicBackendRequest(
       cache: 'no-store',
       headers: {
         'Content-Type': request.headers.get('content-type') ?? 'application/json',
+        ...(request.headers.has('x-payment-checkout-token')
+          ? { 'x-payment-checkout-token': request.headers.get('x-payment-checkout-token') ?? '' }
+          : {}),
       },
       body: bodyText && bodyText.length > 0 ? bodyText : undefined,
     });

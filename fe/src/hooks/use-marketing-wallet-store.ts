@@ -47,7 +47,7 @@ const initialCheckoutState: MarketingWalletCheckoutState = {
   errorMessage: null,
 };
 
-type MarketingWalletStore = {
+export type MarketingWalletStore = {
   provider: MarketingWalletProviderState;
   verification: MarketingWalletVerificationState;
   checkout: MarketingWalletCheckoutState;
@@ -365,7 +365,3 @@ export const useMarketingWalletStore = create<MarketingWalletStore>((set) => ({
     });
   },
 }));
-
-export function getInitialMarketingWalletCheckoutState() {
-  return initialCheckoutState;
-}

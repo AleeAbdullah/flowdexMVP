@@ -22,10 +22,6 @@ export const API_ROUTES = {
       simulate: '/api/bff/transactions/simulate',
       track: '/api/bff/transactions/track',
     },
-    payments: {
-      intentWalletAction: (intentId: string) => `/api/bff/payments/intents/${intentId}/wallet-action`,
-      intentTxResult: (intentId: string) => `/api/bff/payments/intents/${intentId}/tx-result`,
-    },
     admin: {
       stats: '/api/bff/admin/stats',
       payments: {
@@ -46,8 +42,11 @@ export const API_ROUTES = {
     },
     payments: {
       root: '/payments',
+      checkoutCapabilities: '/payments/checkout-capabilities',
       intents: '/payments/intents',
       intentStatus: (intentId: string) => `/payments/intents/${intentId}/status`,
+      intentWalletAction: (intentId: string) => `/payments/intents/${intentId}/wallet-action`,
+      intentTxResult: (intentId: string) => `/payments/intents/${intentId}/tx-result`,
       portfolio: (params: { walletAddress: string }) => {
         const searchParams = new URLSearchParams({
           walletAddress: params.walletAddress,
@@ -77,10 +76,6 @@ export const API_ROUTES = {
       simulate: '/transactions/simulate',
       track: '/transactions/track',
       detail: (id: string) => `/transactions/${id}`,
-    },
-    payments: {
-      intentWalletAction: (intentId: string) => `/payments/intents/${intentId}/wallet-action`,
-      intentTxResult: (intentId: string) => `/payments/intents/${intentId}/tx-result`,
     },
     admin: {
       stats: '/admin/stats',

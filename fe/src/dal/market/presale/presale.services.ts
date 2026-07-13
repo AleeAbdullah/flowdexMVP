@@ -7,13 +7,13 @@ import type {
   IPresaleTiersResponse,
 } from './presale.types';
 
-export const presaleQueryKeys = {
+const presaleQueryKeys = {
   presaleStats: ['market', 'presale-stats'] as const,
   presaleTiers: ['market', 'presale-tiers'] as const,
   presaleConfig: ['market', 'presale-config'] as const,
 };
 
-export const presaleService = {
+const presaleService = {
   getPresaleStats() {
     return api.get<IPresaleStats>(API_ROUTES.public.presale.stats);
   },

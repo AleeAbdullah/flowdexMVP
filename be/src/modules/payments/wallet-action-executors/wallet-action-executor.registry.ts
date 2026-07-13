@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 import { PaymentChain } from '../payments.types';
+import { BitcoinWalletActionExecutor } from './bitcoin-wallet-action.executor';
 import { EthereumWalletActionExecutor } from './ethereum-wallet-action.executor';
 import { SolanaWalletActionExecutor } from './solana-wallet-action.executor';
 import { TronWalletActionExecutor } from './tron-wallet-action.executor';
@@ -13,11 +14,13 @@ export class WalletActionExecutorRegistry {
   constructor(
     ethereumWalletActionExecutor: EthereumWalletActionExecutor,
     solanaWalletActionExecutor: SolanaWalletActionExecutor,
+    bitcoinWalletActionExecutor: BitcoinWalletActionExecutor,
     tronWalletActionExecutor: TronWalletActionExecutor,
   ) {
     this.executors = new Map<PaymentChain, WalletActionExecutor>([
       [PaymentChain.ETHEREUM, ethereumWalletActionExecutor],
       [PaymentChain.SOLANA, solanaWalletActionExecutor],
+      [PaymentChain.BITCOIN, bitcoinWalletActionExecutor],
       [PaymentChain.TRON, tronWalletActionExecutor],
     ]);
   }

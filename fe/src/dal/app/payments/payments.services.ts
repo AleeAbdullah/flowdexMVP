@@ -1,11 +1,11 @@
 import { API_ROUTES } from '@/api-routes';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { AxiosInstance } from 'axios';
 import { api, extractAxiosError } from '@/lib/axios';
-import useAxiosAuth from '@/hooks/use-axiosAuth';
 import { toast } from 'sonner';
 import type {
   CreatePaymentIntentInput,
+  IPaymentCheckoutCapabilitiesResponse,
+  IPaymentCheckoutSession,
   IPreparedWalletAction,
   IPaymentLeadersResponse,
   IPaymentIntentPublic,
@@ -22,6 +22,7 @@ import type {
 } from './payments.types';
 
 export const paymentsQueryKeys = {
+  checkoutCapabilities: ['app', 'payments', 'checkout-capabilities'] as const,
   intentStatus: (intentId: string | null | undefined) => ['app', 'payments', 'intent-status', intentId ?? 'none'] as const,
   history: (walletAddress: string | null | undefined) => ['app', 'payments', 'history', walletAddress ?? 'none'] as const,
   portfolio: (walletAddress: string | null | undefined) => ['app', 'payments', 'portfolio', walletAddress ?? 'none'] as const,
@@ -89,9 +90,15 @@ function normalizePaymentPortfolio(response: IPaymentPortfolioResponse): IPaymen
 
 export const paymentsService = {
   createPaymentIntent(input: CreatePaymentIntentInput) {
-    return api.post<IPaymentIntentPublic>(
+    return api.post<IPaymentCheckoutSession>(
       API_ROUTES.public.payments.intents,
       input,
+      browserPublicProxyConfig,
+    );
+  },
+  getCheckoutCapabilities() {
+    return api.get<IPaymentCheckoutCapabilitiesResponse>(
+      API_ROUTES.public.payments.checkoutCapabilities,
       browserPublicProxyConfig,
     );
   },
@@ -120,26 +127,34 @@ export const paymentsService = {
     ).then(normalizePaymentPortfolio);
   },
   async prepareWalletAction(
-    client: AxiosInstance,
     intentId: string,
+    checkoutToken: string,
     input: PreparePaymentWalletActionInput,
   ): Promise<IPreparedWalletAction> {
-    const response = await client.post<IPreparedWalletAction>(
-      API_ROUTES.bff.payments.intentWalletAction(intentId),
+    const response = await api.post<IPreparedWalletAction>(
+      API_ROUTES.public.payments.intentWalletAction(intentId),
       input,
+      {
+        ...browserPublicProxyConfig,
+        headers: { 'x-payment-checkout-token': checkoutToken },
+      },
     );
-    return response.data;
+    return response;
   },
   async submitPaymentIntentTxResult(
-    client: AxiosInstance,
     intentId: string,
+    checkoutToken: string,
     input: SubmitPaymentTxResultInput,
   ): Promise<IPaymentIntentStatusResponse> {
-    const response = await client.post<IPaymentIntentStatusResponse>(
-      API_ROUTES.bff.payments.intentTxResult(intentId),
+    const response = await api.post<IPaymentIntentStatusResponse>(
+      API_ROUTES.public.payments.intentTxResult(intentId),
       input,
+      {
+        ...browserPublicProxyConfig,
+        headers: { 'x-payment-checkout-token': checkoutToken },
+      },
     );
-    return response.data;
+    return response;
   },
 };
 
@@ -154,11 +169,9 @@ export function useCreatePaymentIntent() {
 }
 
 export function usePreparePaymentWalletAction() {
-  const axiosAuth = useAxiosAuth();
-
   return useMutation({
-    mutationFn: (input: { intentId: string; payload: PreparePaymentWalletActionInput }) => (
-      paymentsService.prepareWalletAction(axiosAuth, input.intentId, input.payload)
+    mutationFn: (input: { intentId: string; checkoutToken: string; payload: PreparePaymentWalletActionInput }) => (
+      paymentsService.prepareWalletAction(input.intentId, input.checkoutToken, input.payload)
     ),
     onError(error, input) {
       const details = extractAxiosError(error);
@@ -172,12 +185,11 @@ export function usePreparePaymentWalletAction() {
 }
 
 export function useSubmitPaymentIntentTxResult() {
-  const axiosAuth = useAxiosAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: { intentId: string; payload: SubmitPaymentTxResultInput }) => (
-      paymentsService.submitPaymentIntentTxResult(axiosAuth, input.intentId, input.payload)
+    mutationFn: (input: { intentId: string; checkoutToken: string; payload: SubmitPaymentTxResultInput }) => (
+      paymentsService.submitPaymentIntentTxResult(input.intentId, input.checkoutToken, input.payload)
     ),
     onSuccess: async (result) => {
       await Promise.all([
@@ -193,21 +205,19 @@ export function useSubmitPaymentIntentTxResult() {
   });
 }
 
-export function usePaymentIntentStatus(intentId: string | null, enabled: boolean) {
-  return useQuery({
-    queryKey: paymentsQueryKeys.intentStatus(intentId),
-    queryFn: () => paymentsService.getPaymentIntentStatus(intentId!),
-    enabled: Boolean(intentId && enabled),
-    refetchInterval: false,
-    retry: false,
-  });
-}
-
 export function usePaymentHistory(walletAddress: string | null) {
   return useQuery({
     queryKey: paymentsQueryKeys.history(walletAddress),
     queryFn: () => paymentsService.getPaymentHistory({ walletAddress: walletAddress! }),
     enabled: Boolean(walletAddress),
+  });
+}
+
+export function usePaymentCheckoutCapabilities() {
+  return useQuery({
+    queryKey: paymentsQueryKeys.checkoutCapabilities,
+    queryFn: paymentsService.getCheckoutCapabilities,
+    staleTime: 60_000,
   });
 }
 

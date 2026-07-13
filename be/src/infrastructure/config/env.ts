@@ -26,6 +26,7 @@ export const env = {
   btcConfirmations: Number(process.env.BTC_CONFIRMATIONS ?? 2),
   tronConfirmations: Number(process.env.TRON_CONFIRMATIONS ?? 20),
   paymentIntentTtlMinutes: Number(process.env.PAYMENT_INTENT_TTL_MINUTES ?? 30),
+  paymentLateSubmissionGraceMinutes: Number(process.env.PAYMENT_LATE_SUBMISSION_GRACE_MINUTES ?? 30),
   paymentStatusCacheSeconds: Number(process.env.PAYMENT_STATUS_CACHE_SECONDS ?? 20),
   paymentScannerCron: process.env.PAYMENT_SCANNER_CRON ?? "*/30 * * * * *",
   paymentScannerBatchSize: Number(process.env.PAYMENT_SCANNER_BATCH_SIZE ?? 20),

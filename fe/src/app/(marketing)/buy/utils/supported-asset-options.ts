@@ -1,6 +1,5 @@
 import type { BuySnapshot } from '@/components/flowdex/buy-page-types';
 import { buildBuyMarketModel } from '@/components/flowdex/buy-page-market';
-import { Env } from '@/libs/Env';
 import {
   PAYMENT_ASSETS,
   PAYMENT_CHAINS,
@@ -10,15 +9,14 @@ import {
   TRON_MAINNET_WALLET_CHAIN_ID,
   TRON_WALLET_NETWORK_ID,
 } from '../constants/tronlink';
+import type { IPaymentCheckoutCapability } from '@/dal/app/payments/payments.types';
 import type { SupportedAssetOption } from '../types/buy-view-model';
 
 const enabledAssets: PaymentAsset[] = [
   PAYMENT_ASSETS.ETH,
   PAYMENT_ASSETS.SOL,
   PAYMENT_ASSETS.BTC,
-  ...(Env.NEXT_PUBLIC_USDT_MANUAL_CHECKOUT_ENABLED || Env.NEXT_PUBLIC_USDT_WALLET_CHECKOUT_ENABLED
-    ? [PAYMENT_ASSETS.USDT_TRC20]
-    : []),
+  PAYMENT_ASSETS.USDT_TRC20,
 ];
 
 const assetConfig: Record<PaymentAsset, {
@@ -30,13 +28,13 @@ const assetConfig: Record<PaymentAsset, {
 }> = {
   ETH: { chain: PAYMENT_CHAINS.ETHEREUM, chainId: 1, walletChainId: null, walletNetworkId: null, walletCheckoutEnabled: true },
   SOL: { chain: PAYMENT_CHAINS.SOLANA, chainId: null, walletChainId: 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1', walletNetworkId: 'solana:mainnet', walletCheckoutEnabled: true },
-  BTC: { chain: PAYMENT_CHAINS.BITCOIN, chainId: null, walletChainId: null, walletNetworkId: null, walletCheckoutEnabled: false },
+  BTC: { chain: PAYMENT_CHAINS.BITCOIN, chainId: null, walletChainId: 'mainnet', walletNetworkId: 'bitcoin:mainnet', walletCheckoutEnabled: true },
   USDT_TRC20: {
     chain: PAYMENT_CHAINS.TRON,
     chainId: null,
     walletChainId: TRON_MAINNET_WALLET_CHAIN_ID,
     walletNetworkId: TRON_WALLET_NETWORK_ID,
-    walletCheckoutEnabled: Env.NEXT_PUBLIC_USDT_WALLET_CHECKOUT_ENABLED,
+    walletCheckoutEnabled: true,
   },
 };
 
@@ -69,9 +67,16 @@ function getAssetPrice(snapshot: BuySnapshot, asset: PaymentAsset) {
     : fallbackPrices[asset];
 }
 
-export function buildSupportedAssetOptions(snapshot: BuySnapshot): SupportedAssetOption[] {
-  return enabledAssets.map((asset) => {
+export function buildSupportedAssetOptions(
+  snapshot: BuySnapshot,
+  capabilities?: IPaymentCheckoutCapability[],
+): SupportedAssetOption[] {
+  return enabledAssets.flatMap((asset) => {
     const { chain, chainId, walletChainId, walletNetworkId, walletCheckoutEnabled } = assetConfig[asset];
+    const capability = capabilities?.find(item => item.asset === asset && item.chain === chain);
+    if (capability && !capability.enabled) {
+      return [];
+    }
     return {
       id: asset,
       code: asset,
@@ -80,8 +85,8 @@ export function buildSupportedAssetOptions(snapshot: BuySnapshot): SupportedAsse
       chainId,
       walletChainId,
       walletNetworkId,
-      walletCheckoutEnabled,
-      decimals: decimals[asset],
+      walletCheckoutEnabled: walletCheckoutEnabled && (capability?.enabled ?? true),
+      decimals: capability?.decimals ?? decimals[asset],
       usdPrice: getAssetPrice(snapshot, asset),
     };
   });

@@ -4,9 +4,6 @@ import type {
   IPresaleTier,
 } from '@/dal/market/presale/presale.types';
 import type { IPricingItem } from '@/dal/market/pricing/pricing.types';
-import type { BUY_TAB_VALUES } from './buy-page-content';
-
-export type BuyTab = (typeof BUY_TAB_VALUES)[number];
 
 export type BuySnapshot = {
   pricing: { items: IPricingItem[] };

@@ -75,10 +75,16 @@ const baseConfig: NextConfig = {
   experimental: {
     turbopackFileSystemCacheForDev: true,
   },
+  transpilePackages: [
+    '@account-kit/core',
+    '@account-kit/react',
+    '@coinbase/cdp-sdk',
+    '@solana-program/system',
+    '@solana/kit',
+    'zustand',
+  ],
   serverExternalPackages: [
-    'import-in-the-middle',
     'pg',
-    'require-in-the-middle',
   ],
   webpack(config) {
     config.resolve = config.resolve ?? {};

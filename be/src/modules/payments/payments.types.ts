@@ -38,6 +38,7 @@ export enum PaymentWalletActionKind {
   EVM_TRANSACTION = 'evm_transaction',
   SOLANA_TRANSACTION = 'solana_transaction',
   TRON_TRANSACTION = 'tron_transaction',
+  BITCOIN_TRANSFER = 'bitcoin_transfer',
 }
 
 export enum PaymentWalletActionStatus {
@@ -52,6 +53,7 @@ export enum PaymentWalletTxIdKind {
   EVM_TX_HASH = 'evm_tx_hash',
   SOLANA_SIGNATURE = 'solana_signature',
   TRON_TX_HASH = 'tron_tx_hash',
+  BTC_TX_HASH = 'btc_tx_hash',
 }
 
 export const PAYMENT_ASSET_DECIMALS: Record<PaymentAsset, number> = {

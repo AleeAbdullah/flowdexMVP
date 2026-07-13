@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { randomBytes, randomUUID } from 'node:crypto';
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
 import type { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
 import bs58 from 'bs58';
@@ -48,7 +48,7 @@ export type WalletSession = {
   expiresAt: string;
 };
 
-export type WalletChallengePayload = {
+type WalletChallengePayload = {
   challengeId: string;
   walletChain: WalletChain;
   domain: string;
@@ -501,14 +501,6 @@ export async function getOptionalWalletSessionFromRequest(request: NextRequest) 
   return readWalletSessionById(request.cookies.get(COOKIE_NAME)?.value);
 }
 
-export async function getRequiredWalletSession() {
-  const session = await getOptionalWalletSession();
-  if (!session) {
-    throw new Error('Wallet session required');
-  }
-  return session;
-}
-
 export async function clearWalletSession(sessionId: string | null | undefined) {
   if (!sessionId) {
     return;
@@ -544,14 +536,4 @@ export async function logoutWalletSessionFromRequest(request: NextRequest) {
   assertTrustedOrigin(request);
   const sessionId = request.cookies.get(COOKIE_NAME)?.value;
   await clearWalletSession(sessionId);
-}
-
-export async function getWalletSessionForServerRender() {
-  const session = await getOptionalWalletSession();
-  return session;
-}
-
-export async function getRequestOrigin() {
-  const headersStore = await headers();
-  return headersStore.get('origin') ?? Env.NEXT_PUBLIC_APP_URL ?? '';
 }

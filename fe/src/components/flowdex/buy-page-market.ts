@@ -1,11 +1,19 @@
-import {
-  FALLBACK_ASSET_PRICES,
-  LISTING_REFERENCE_USD,
-  STAKING_APY_TEXT,
-  VESTING_LABELS,
-} from './buy-page-content';
 import type { BuyAssetOption, BuyMarketModel, BuySnapshot } from './buy-page-types';
 import { parseDecimal } from './utils';
+
+const VESTING_LABELS = ['5% TGE', '12mo cliff', '24mo vest', 'Full unlock 36 months'];
+const LISTING_REFERENCE_USD = 0.05;
+const STAKING_APY_TEXT = '12-18%';
+
+const FALLBACK_ASSET_PRICES: Record<string, number> = {
+  ETH: 2850,
+  USDT: 1,
+  USDT_TRC20: 1,
+  USDC: 1,
+  BNB: 610,
+  SOL: 190,
+  BTC: 65000,
+};
 
 function toAssetLabel(code: string) {
   const labels: Record<string, string> = {

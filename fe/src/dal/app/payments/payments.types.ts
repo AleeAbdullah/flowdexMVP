@@ -24,16 +24,6 @@ export const PAYMENT_INTENT_STATUSES = {
   LATE_PAID: 'LATE_PAID',
 } as const;
 
-export const PAYMENT_STATUSES = {
-  DETECTED: 'DETECTED',
-  CONFIRMING: 'CONFIRMING',
-  CONFIRMED: 'CONFIRMED',
-  FAILED: 'FAILED',
-  UNDERPAID: 'UNDERPAID',
-  OVERPAID: 'OVERPAID',
-  LATE_PAID: 'LATE_PAID',
-} as const;
-
 export const PAYMENT_TERMINAL_STATUSES = new Set<PaymentIntentStatus>([
   PAYMENT_INTENT_STATUSES.CONFIRMED,
   PAYMENT_INTENT_STATUSES.EXPIRED,
@@ -46,7 +36,14 @@ export const PAYMENT_TERMINAL_STATUSES = new Set<PaymentIntentStatus>([
 export type PaymentChain = (typeof PAYMENT_CHAINS)[keyof typeof PAYMENT_CHAINS];
 export type PaymentAsset = (typeof PAYMENT_ASSETS)[keyof typeof PAYMENT_ASSETS];
 export type PaymentIntentStatus = (typeof PAYMENT_INTENT_STATUSES)[keyof typeof PAYMENT_INTENT_STATUSES];
-export type PaymentStatus = (typeof PAYMENT_STATUSES)[keyof typeof PAYMENT_STATUSES];
+export type PaymentStatus =
+  | typeof PAYMENT_INTENT_STATUSES.DETECTED
+  | typeof PAYMENT_INTENT_STATUSES.CONFIRMING
+  | typeof PAYMENT_INTENT_STATUSES.CONFIRMED
+  | typeof PAYMENT_INTENT_STATUSES.FAILED
+  | typeof PAYMENT_INTENT_STATUSES.UNDERPAID
+  | typeof PAYMENT_INTENT_STATUSES.OVERPAID
+  | typeof PAYMENT_INTENT_STATUSES.LATE_PAID;
 export type PaymentTransactionIdKind = 'evm_tx_hash' | 'solana_signature' | 'btc_tx_hash' | 'tron_tx_hash';
 
 export type CreatePaymentIntentInput = {
@@ -57,7 +54,7 @@ export type CreatePaymentIntentInput = {
 };
 
 export type PreparePaymentWalletActionInput = {
-  chain: typeof PAYMENT_CHAINS.ETHEREUM | typeof PAYMENT_CHAINS.SOLANA | typeof PAYMENT_CHAINS.TRON;
+  chain: PaymentChain;
   senderAddress: string;
   walletChainId?: string | number;
 };
@@ -119,16 +116,49 @@ export type IPreparedTronWalletAction = {
   expiresAt: string;
 };
 
+export type IPreparedBitcoinWalletAction = {
+  kind: 'bitcoin_transfer';
+  paymentIntentId: string;
+  preparedActionId: string;
+  chain: typeof PAYMENT_CHAINS.BITCOIN;
+  walletChainId: 'mainnet';
+  bitcoin: {
+    network: 'mainnet';
+    recipientAddress: string;
+    amountSats: string;
+  };
+  expiresAt: string;
+};
+
 export type IPreparedWalletAction =
   | IPreparedEvmWalletAction
   | IPreparedSolanaWalletAction
+  | IPreparedBitcoinWalletAction
   | IPreparedTronWalletAction;
 
 export type SubmitPaymentTxResultInput = {
-  chain: typeof PAYMENT_CHAINS.ETHEREUM | typeof PAYMENT_CHAINS.SOLANA | typeof PAYMENT_CHAINS.TRON;
+  chain: PaymentChain;
   preparedActionId: string;
-  txIdKind: 'evm_tx_hash' | 'solana_signature' | 'tron_tx_hash';
+  txIdKind: PaymentTransactionIdKind;
   txId: string;
+};
+
+export type IPaymentCheckoutSession = {
+  intent: IPaymentIntentPublic;
+  checkoutToken: string;
+};
+
+export type IPaymentCheckoutCapability = {
+  chain: PaymentChain;
+  asset: PaymentAsset;
+  walletProvider: 'metamask' | 'metamask_solana' | 'xverse' | 'tronlink';
+  network: 'mainnet' | 'mainnet-beta';
+  decimals: number;
+  enabled: boolean;
+};
+
+export type IPaymentCheckoutCapabilitiesResponse = {
+  items: IPaymentCheckoutCapability[];
 };
 
 export type PaymentHistoryFilters = {

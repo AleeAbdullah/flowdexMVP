@@ -1,4 +1,4 @@
-export function getHydrationConnectorName(name: string | null | undefined) {
+function getHydrationConnectorName(name: string | null | undefined) {
   const normalized = (name ?? '').trim().toLowerCase().replace(/\s+/g, '');
   if (normalized === 'wallet_connect' || normalized === 'walletconnect') {
     return 'walletconnect';

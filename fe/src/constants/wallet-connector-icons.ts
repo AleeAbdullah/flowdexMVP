@@ -1,11 +1,11 @@
-export const WALLET_CONNECTOR_ICON_SRC = {
+const WALLET_CONNECTOR_ICON_SRC = {
   metamask: '/assets/wallets/metamask.svg',
   coinbasewallet: '/assets/wallets/coinbase-wallet.svg',
   walletconnect: '/assets/wallets/walletconnect.svg',
   'metamask-solana': '/assets/wallets/metamask.svg',
 } as const;
 
-export function normalizeWalletConnectorIconKey(connectorName: string | null | undefined) {
+function normalizeWalletConnectorIconKey(connectorName: string | null | undefined) {
   const normalized = (connectorName ?? '').trim().toLowerCase().replace(/\s+/g, '');
   if (normalized === 'wallet_connect' || normalized === 'walletconnect') {
     return 'walletconnect';

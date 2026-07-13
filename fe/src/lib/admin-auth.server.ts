@@ -7,11 +7,9 @@ import { API_ROUTES } from '@/api-routes';
 import { ADMIN_SESSION_COOKIE } from '@/lib/admin-auth.cookie';
 import { Env } from '@/libs/Env';
 
-export { ADMIN_SESSION_COOKIE };
-
 const SESSION_TTL_MS = 15 * 60 * 1000;
 
-export type AdminLoginResult = {
+type AdminLoginResult = {
   accessToken: string;
   expiresIn: number;
   user: {

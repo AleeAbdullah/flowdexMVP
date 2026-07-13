@@ -3,24 +3,19 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import type { PreparedWalletActionDto } from '../dto/payments.dto';
-import { PaymentEntity } from '../entities/payment.entity';
 import { PaymentWalletActionEntity } from '../entities/payment-wallet-action.entity';
 import {
   PaymentChain,
-  PaymentIntentStatus,
-  PaymentStatus,
   PaymentWalletActionKind,
   PaymentWalletActionStatus,
   PaymentWalletTxIdKind,
 } from '../payments.types';
 import { EvmPaymentExecutionService } from '../services/evm-payment-execution.service';
 import { PaymentStateService } from '../services/payment-state.service';
-import { assertWalletActionIsUsable, assertWalletIntentIsUsable } from './wallet-checkout.guards';
+import { assertWalletIntentIsUsable } from './wallet-checkout.guards';
 import type {
   WalletActionExecutor,
   WalletActionPrepareInput,
-  WalletActionSubmitInput,
-  WalletActionSubmitResult,
 } from './wallet-action-executor.types';
 
 const ETHEREUM_MAINNET_CHAIN_ID = 1;
@@ -35,7 +30,7 @@ export class EthereumWalletActionExecutor implements WalletActionExecutor {
     @InjectRepository(PaymentWalletActionEntity)
     private readonly paymentWalletActionsRepository: Repository<PaymentWalletActionEntity>,
     private readonly evmPaymentExecutionService: EvmPaymentExecutionService,
-    private readonly stateService: PaymentStateService,
+    private readonly _stateService: PaymentStateService,
   ) {}
 
   async prepare(input: WalletActionPrepareInput): Promise<PreparedWalletActionDto> {
@@ -79,66 +74,10 @@ export class EthereumWalletActionExecutor implements WalletActionExecutor {
     };
   }
 
-  async submitTxResult(input: WalletActionSubmitInput): Promise<WalletActionSubmitResult> {
-    if (input.dto.txIdKind !== PaymentWalletTxIdKind.EVM_TX_HASH) {
-      throw new BadRequestException('ETH wallet checkout requires an EVM transaction hash');
-    }
-    if (!TX_HASH_PATTERN.test(input.dto.txId)) {
+  assertTxId(txIdKind: PaymentWalletTxIdKind, txId: string): void {
+    if (txIdKind !== PaymentWalletTxIdKind.EVM_TX_HASH || !TX_HASH_PATTERN.test(txId)) {
       throw new BadRequestException('txId must be a 32-byte EVM transaction hash');
     }
-
-    assertWalletActionIsUsable(input.action, input.wallet.normalized, PaymentChain.ETHEREUM);
-
-    input.action.status = PaymentWalletActionStatus.SUBMITTED;
-    input.action.usedAt = new Date();
-    input.action.txId = input.dto.txId;
-    input.action.txIdKind = input.dto.txIdKind;
-    await input.manager.save(input.action);
-
-    const nextPaymentStatus = PaymentStatus.CONFIRMING;
-    const nextIntentStatus = this.stateService.toIntentStatus(nextPaymentStatus);
-    const existing = await input.manager.findOne(PaymentEntity, { where: { intentId: input.intent.id } });
-    const payment = input.manager.create(PaymentEntity, {
-      ...(existing ?? {}),
-      intentId: input.intent.id,
-      chain: input.intent.chain,
-      asset: input.intent.asset,
-      amountBaseUnits: input.intent.expectedAmountBaseUnits,
-      senderAddress: input.intent.senderAddress,
-      receiverAddress: input.intent.receiverAddress,
-      txHash: input.dto.txId,
-      outputIndex: null,
-      status: nextPaymentStatus,
-      blockNumber: null,
-      confirmations: 0,
-      confirmedAt: null,
-      rawPayload: {
-        source: 'wallet_tx_result',
-        preparedActionId: input.action.id,
-        txIdKind: input.dto.txIdKind,
-      },
-    });
-    await input.manager.save(payment);
-
-    input.action.status = PaymentWalletActionStatus.USED;
-    await input.manager.save(input.action);
-
-    this.stateService.assertIntentTransition(input.intent.status, nextIntentStatus);
-    input.intent.status = nextIntentStatus;
-    input.intent.lastCheckedAt = null;
-    input.intent.lastCheckResult = {
-      source: 'WALLET_TX_RESULT',
-      status: nextPaymentStatus,
-      txHash: input.dto.txId,
-    };
-    const savedIntent = await input.manager.save(input.intent);
-
-    return {
-      intent: savedIntent,
-      payment,
-      nextPaymentStatus,
-      nextIntentStatus,
-    };
   }
 
   private normalizeWalletChainId(value: string | number | undefined): number | null {

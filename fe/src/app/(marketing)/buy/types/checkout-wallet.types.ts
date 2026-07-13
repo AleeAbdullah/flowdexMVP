@@ -1,8 +1,6 @@
 import type { IPaymentWalletTransactionRequest } from '@/dal/app/payments/payments.types';
 
-export type CheckoutChain = 'ETHEREUM' | 'SOLANA' | 'TRON';
-
-export type CheckoutTxIdKind = 'evm_tx_hash' | 'solana_signature' | 'tron_tx_hash';
+export type CheckoutChain = 'ETHEREUM' | 'SOLANA' | 'BITCOIN' | 'TRON';
 
 export type EvmPreparedWalletAction = {
   kind: 'evm_transaction';
@@ -45,9 +43,21 @@ export type TronPreparedWalletAction = {
   expiresAt: string;
 };
 
+export type BitcoinPreparedWalletAction = {
+  kind: 'bitcoin_transfer';
+  paymentIntentId: string;
+  preparedActionId: string;
+  chain: 'BITCOIN';
+  walletChainId: 'mainnet';
+  recipientAddress: string;
+  amountSats: string;
+  expiresAt: string;
+};
+
 export type PreparedWalletAction =
   | EvmPreparedWalletAction
   | SolanaPreparedWalletAction
+  | BitcoinPreparedWalletAction
   | TronPreparedWalletAction;
 
 export type EvmWalletTxResult = {
@@ -74,7 +84,16 @@ export type TronWalletTxResult = {
   txId: string;
 };
 
+export type BitcoinWalletTxResult = {
+  paymentIntentId: string;
+  preparedActionId: string;
+  chain: 'BITCOIN';
+  txIdKind: 'btc_tx_hash';
+  txId: string;
+};
+
 export type WalletTxResult =
   | EvmWalletTxResult
   | SolanaWalletTxResult
+  | BitcoinWalletTxResult
   | TronWalletTxResult;

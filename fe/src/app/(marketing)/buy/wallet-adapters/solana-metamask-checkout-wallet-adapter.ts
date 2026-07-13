@@ -44,7 +44,7 @@ type SolanaWallet = {
   features: SolanaWalletFeatureMap;
 };
 
-export type SolanaCheckoutWalletAdapterState = {
+type SolanaCheckoutWalletAdapterState = {
   address: string | null;
   walletChainId: string | null;
   isConnected: boolean;

@@ -24,6 +24,9 @@ export function assertWalletIntentIsUsable(
   if (chain === PaymentChain.TRON && (intent.chain !== PaymentChain.TRON || intent.asset !== PaymentAsset.USDT_TRC20)) {
     throw new BadRequestException('TRON wallet checkout requires a USDT TRC20 payment intent');
   }
+  if (chain === PaymentChain.BITCOIN && (intent.chain !== PaymentChain.BITCOIN || intent.asset !== PaymentAsset.BTC)) {
+    throw new BadRequestException('Bitcoin wallet checkout requires a BTC payment intent');
+  }
   if (TERMINAL_PAYMENT_INTENT_STATUSES.has(intent.status)) {
     throw new BadRequestException('Payment intent is already final');
   }
@@ -47,6 +50,7 @@ export function assertWalletActionIsUsable(
     (chain === PaymentChain.ETHEREUM && action.chain === PaymentChain.ETHEREUM && action.actionKind === PaymentWalletActionKind.EVM_TRANSACTION)
     || (chain === PaymentChain.SOLANA && action.chain === PaymentChain.SOLANA && action.actionKind === PaymentWalletActionKind.SOLANA_TRANSACTION)
     || (chain === PaymentChain.TRON && action.chain === PaymentChain.TRON && action.actionKind === PaymentWalletActionKind.TRON_TRANSACTION)
+    || (chain === PaymentChain.BITCOIN && action.chain === PaymentChain.BITCOIN && action.actionKind === PaymentWalletActionKind.BITCOIN_TRANSFER)
   );
 
   if (!isSupported) {

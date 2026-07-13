@@ -2,7 +2,7 @@
 
 import { API_ROUTES } from '@/api-routes';
 
-export type AuthBootstrapErrorCode =
+type AuthBootstrapErrorCode =
   | 'USER_ACCOUNT_INACTIVE'
   | 'USER_PROFILE_NOT_FOUND'
   | 'UNAUTHORIZED'

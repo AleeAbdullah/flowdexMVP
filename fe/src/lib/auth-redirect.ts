@@ -36,7 +36,3 @@ export function sanitizeAppRedirectPath(value: string | null | undefined): strin
 export function resolveAppRedirectPath(value: string | null | undefined): string {
   return sanitizeAppRedirectPath(value);
 }
-
-export function shouldPersistAppRedirectPath(value: string): boolean {
-  return value !== ROUTES.ADMIN.HOME;
-}

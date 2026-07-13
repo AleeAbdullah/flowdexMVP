@@ -13,7 +13,6 @@ import { TronWeb } from 'tronweb';
 import { DataSource, EntityManager, In, ObjectLiteral, Repository, SelectQueryBuilder } from 'typeorm';
 
 import { normalizeAddress } from '../../common/utils/address';
-import { AuthContext } from '../../common/decorators/current-auth.decorator';
 import { divideFixed, formatFixed, normalizeFixed, parseFixed } from '../../common/utils/decimal';
 import { env } from '../../infrastructure/config/env';
 import {
@@ -27,6 +26,8 @@ import {
 } from './dto/admin-payments.dto';
 import {
   CreatePaymentIntentDto,
+  PaymentCheckoutCapabilitiesDto,
+  PaymentCheckoutSessionDto,
   PaymentLeaderDto,
   PaymentLeadersResponseDto,
   PaymentIntentPublicDto,
@@ -49,13 +50,13 @@ import {
   PaymentChain,
   PaymentIntentStatus,
   PaymentStatus,
-  PaymentWalletActionKind,
   PaymentWalletActionStatus,
-  PaymentWalletTxIdKind,
   TERMINAL_PAYMENT_INTENT_STATUSES,
 } from './payments.types';
 import { WalletActionExecutorRegistry } from './wallet-action-executors/wallet-action-executor.registry';
+import { assertWalletActionIsUsable, assertWalletIntentIsUsable } from './wallet-action-executors/wallet-checkout.guards';
 import { BtcAddressService } from './services/btc-address.service';
+import { PaymentCheckoutCapabilityService } from './services/payment-checkout-capability.service';
 import { EvmPaymentExecutionService } from './services/evm-payment-execution.service';
 import { PaymentPricingService } from './services/payment-pricing.service';
 import { PaymentStateService } from './services/payment-state.service';
@@ -79,17 +80,6 @@ const BTC_DERIVATION_ADVISORY_LOCK = 810_200_001;
 const PAYMENT_SCANNER_ADVISORY_LOCK = 810_200_002;
 const OPEN_BTC_INTENT_LIMIT = 3;
 const ETHEREUM_MAINNET_CHAIN_ID = 1;
-export const SOLANA_MAINNET_WALLET_CHAIN_ID = 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1';
-const SOLANA_MAINNET_WALLET_CHAIN_ALIASES = new Set([
-  SOLANA_MAINNET_WALLET_CHAIN_ID,
-  'solana:mainnet',
-  'solana:mainnet-beta',
-  'mainnet',
-  'mainnet-beta',
-]);
-const PAYMENT_WALLET_ACTION_TTL_MS = 5 * 60 * 1000;
-const TX_HASH_PATTERN = /^0x[a-fA-F0-9]{64}$/;
-const SOLANA_SIGNATURE_PATTERN = /^[1-9A-HJ-NP-Za-km-z]{64,88}$/;
 const TRON_TRANSFER_TOPIC = 'ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const MAX_TRON_SCAN_BLOCKS_PER_INTENT = 1_000;
 const PORTFOLIO_PENDING_STATUSES = new Set<PaymentIntentStatus>([
@@ -130,9 +120,10 @@ export class PaymentsService {
     private readonly solanaPaymentExecutionService: SolanaPaymentExecutionService,
     private readonly stateService: PaymentStateService,
     private readonly walletActionExecutorRegistry: WalletActionExecutorRegistry,
+    private readonly checkoutCapabilityService: PaymentCheckoutCapabilityService,
   ) {}
 
-  async createIntent(input: CreatePaymentIntentDto, requestIp?: string): Promise<PaymentIntentPublicDto> {
+  async createIntent(input: CreatePaymentIntentDto, requestIp?: string): Promise<PaymentCheckoutSessionDto> {
     this.assertChainAsset(input.chain, input.asset);
 
     if (input.chain === PaymentChain.BITCOIN && !env.btcPaymentsEnabled) {
@@ -154,6 +145,7 @@ export class PaymentsService {
       tokenAmount: input.tokenAmount,
     });
 
+    const capability = this.checkoutCapabilityService.issue();
     return this.dataSource.transaction(async manager => {
       if (input.chain === PaymentChain.BITCOIN) {
         await this.assertBtcIntentLimit(manager, senderAddress, requestIp);
@@ -173,6 +165,7 @@ export class PaymentsService {
         expectedAmountBaseUnits: quote.expectedAmountBaseUnits,
         senderAddress,
         requestIp: requestIp ?? null,
+        checkoutTokenHash: capability.tokenHash,
         status: PaymentIntentStatus.WAITING,
         expiresAt: new Date(now.getTime() + env.paymentIntentTtlMinutes * 60_000),
         lastCheckedAt: null,
@@ -184,7 +177,10 @@ export class PaymentsService {
         ...(await this.buildChainSpecificIntentFields(manager, input.chain)),
       });
 
-      return this.toPublicIntent(await manager.save(intent));
+      return {
+        intent: this.toPublicIntent(await manager.save(intent)),
+        checkoutToken: capability.rawToken,
+      };
     });
   }
 
@@ -194,59 +190,83 @@ export class PaymentsService {
       throw new NotFoundException('Payment intent not found');
     }
 
-    if (this.canUseCachedStatus(intent)) {
-      return this.toStatusDto(intent, await this.findPaymentByIntent(intent.id));
-    }
+    return this.toStatusDto(intent, await this.findPaymentByIntent(intent.id));
+  }
 
-    const updatedIntent = await this.checkAndPersistIntent(intent);
-    return this.toStatusDto(updatedIntent, await this.findPaymentByIntent(updatedIntent.id));
+  getCheckoutCapabilities(): PaymentCheckoutCapabilitiesDto {
+    return {
+      items: [
+        {
+          chain: PaymentChain.ETHEREUM,
+          asset: PaymentAsset.ETH,
+          walletProvider: 'metamask',
+          network: 'mainnet',
+          decimals: PAYMENT_ASSET_DECIMALS[PaymentAsset.ETH],
+          enabled: Boolean(env.ethTreasuryAddress.trim()),
+        },
+        {
+          chain: PaymentChain.SOLANA,
+          asset: PaymentAsset.SOL,
+          walletProvider: 'metamask_solana',
+          network: 'mainnet-beta',
+          decimals: PAYMENT_ASSET_DECIMALS[PaymentAsset.SOL],
+          enabled: Boolean(env.solTreasuryAddress.trim()),
+        },
+        {
+          chain: PaymentChain.BITCOIN,
+          asset: PaymentAsset.BTC,
+          walletProvider: 'xverse',
+          network: 'mainnet',
+          decimals: PAYMENT_ASSET_DECIMALS[PaymentAsset.BTC],
+          enabled: env.btcPaymentsEnabled,
+        },
+        {
+          chain: PaymentChain.TRON,
+          asset: PaymentAsset.USDT_TRC20,
+          walletProvider: 'tronlink',
+          network: 'mainnet',
+          decimals: PAYMENT_ASSET_DECIMALS[PaymentAsset.USDT_TRC20],
+          enabled: Boolean(env.tronTreasuryAddress.trim()),
+        },
+      ],
+    };
   }
 
   async prepareWalletAction(
-    auth: AuthContext,
     intentId: string,
+    checkoutToken: string,
     input: PreparePaymentWalletActionDto,
   ): Promise<PreparedWalletActionDto> {
-    const wallet = this.requireWalletSession(auth);
-    if (wallet.chain !== input.chain) {
-      throw new UnauthorizedException('Wallet session chain does not match wallet action chain');
-    }
-
     const senderAddress = this.normalizeSender(input.chain, input.senderAddress);
-    if (senderAddress !== wallet.normalized) {
-      throw new BadRequestException('senderAddress does not match wallet session');
-    }
-
     const intent = await this.paymentIntentsRepository.findOne({ where: { id: intentId } });
     if (!intent) {
       throw new NotFoundException('Payment intent not found');
     }
+    this.checkoutCapabilityService.assertCanPrepare(intent, checkoutToken);
+    assertWalletIntentIsUsable(intent, senderAddress, input.chain);
 
     const executor = this.walletActionExecutorRegistry.get(input.chain);
     return executor.prepare({
       intent,
       senderAddress,
-      wallet,
       dto: input,
     });
   }
 
   async submitWalletTxResult(
-    auth: AuthContext,
     intentId: string,
+    checkoutToken: string,
     input: SubmitPaymentTxResultDto,
   ): Promise<PaymentIntentStatusDto> {
-    const wallet = this.requireWalletSession(auth);
-    if (wallet.chain !== input.chain) {
-      throw new UnauthorizedException('Wallet session chain does not match tx-result chain');
-    }
-
     const result = await this.dataSource.transaction(async manager => {
       const intent = await manager.findOne(PaymentIntentEntity, { where: { id: intentId } });
       if (!intent) {
         throw new NotFoundException('Payment intent not found');
       }
-      this.assertWalletIntentIsUsable(intent, wallet.normalized, input.chain);
+      this.checkoutCapabilityService.assertCanSubmit(intent, checkoutToken);
+      if (intent.chain !== input.chain) {
+        throw new BadRequestException('Transaction result chain does not match payment intent');
+      }
 
       const action = await manager.findOne(PaymentWalletActionEntity, {
         where: {
@@ -257,6 +277,20 @@ export class PaymentsService {
       if (!action) {
         throw new NotFoundException('Prepared wallet action not found');
       }
+      if (!intent.senderAddress || intent.senderAddress !== action.senderAddress) {
+        throw new BadRequestException('Prepared wallet action does not match payment intent sender');
+      }
+
+      const executor = this.walletActionExecutorRegistry.get(input.chain);
+      executor.assertTxId(input.txIdKind, input.txId);
+
+      if (action.status === PaymentWalletActionStatus.SUBMITTED && action.txId === input.txId) {
+        return {
+          intent,
+          payment: await manager.findOne(PaymentEntity, { where: { intentId: intent.id } }),
+        };
+      }
+      assertWalletActionIsUsable(action, action.senderAddress, input.chain);
 
       const duplicate = await manager.findOne(PaymentWalletActionEntity, {
         where: {
@@ -278,22 +312,56 @@ export class PaymentsService {
         throw new BadRequestException('Transaction hash is already attached to another payment intent');
       }
 
-      const executor = this.walletActionExecutorRegistry.get(input.chain);
-      const submitResult = await executor.submitTxResult({
-        intent,
-        action,
-        wallet,
-        dto: input,
-        manager,
+      const existingPayment = await manager.findOne(PaymentEntity, { where: { intentId: intent.id } });
+      if (existingPayment && existingPayment.txHash !== input.txId) {
+        throw new BadRequestException('Payment intent already has a submitted transaction');
+      }
+
+      action.status = PaymentWalletActionStatus.SUBMITTED;
+      action.txId = input.txId;
+      action.txIdKind = input.txIdKind;
+      action.usedAt = null;
+      await manager.save(action);
+
+      const payment = manager.create(PaymentEntity, {
+        ...(existingPayment ?? {}),
+        intentId: intent.id,
+        chain: intent.chain,
+        asset: intent.asset,
+        amountBaseUnits: intent.expectedAmountBaseUnits,
+        senderAddress: intent.senderAddress,
+        receiverAddress: intent.receiverAddress,
+        txHash: input.txId,
+        outputIndex: null,
+        status: PaymentStatus.CONFIRMING,
+        blockNumber: null,
+        confirmations: 0,
+        confirmedAt: null,
+        rawPayload: {
+          source: 'wallet_tx_result',
+          preparedActionId: action.id,
+          txIdKind: input.txIdKind,
+        },
       });
+      await manager.save(payment);
+
+      this.stateService.assertIntentTransition(intent.status, PaymentIntentStatus.CONFIRMING);
+      intent.status = PaymentIntentStatus.CONFIRMING;
+      intent.lastCheckedAt = null;
+      intent.lastCheckResult = {
+        source: 'WALLET_TX_RESULT',
+        status: PaymentStatus.CONFIRMING,
+        txHash: input.txId,
+      };
+      const savedIntent = await manager.save(intent);
 
       return {
-        intent: submitResult.intent,
-        payment: submitResult.payment,
+        intent: savedIntent,
+        payment,
       };
     });
 
-    return this.toStatusDto(result.intent, result.payment);
+    return this.toStatusDto(result.intent, result.payment ?? await this.findPaymentByIntent(result.intent.id));
   }
 
   async processEthereumAlchemyWebhook(input: {
@@ -553,7 +621,11 @@ export class PaymentsService {
       let scanned = 0;
       for (const intent of intents) {
         if (!this.canUseCachedStatus(intent)) {
-          await this.checkAndPersistIntent(intent);
+          try {
+            await this.checkAndPersistIntent(intent);
+          } catch {
+            // A malformed provider response for one checkout must not prevent the remaining batch from reconciling.
+          }
           scanned += 1;
         }
       }
@@ -613,7 +685,15 @@ export class PaymentsService {
       return intent;
     }
 
-    if (intent.expiresAt <= new Date()) {
+    const submittedAction = await this.paymentWalletActionsRepository.findOne({
+      where: {
+        paymentIntentId: intent.id,
+        status: PaymentWalletActionStatus.SUBMITTED,
+      },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (intent.expiresAt <= new Date() && !submittedAction) {
       this.stateService.assertIntentTransition(intent.status, PaymentIntentStatus.EXPIRED);
       intent.status = PaymentIntentStatus.EXPIRED;
       intent.lastCheckedAt = new Date();
@@ -621,7 +701,7 @@ export class PaymentsService {
       return this.paymentIntentsRepository.save(intent);
     }
 
-    const match = await this.findMatch(intent);
+    const match = await this.findMatch(intent, submittedAction);
     intent.lastCheckedAt = new Date();
 
     if (!match) {
@@ -660,6 +740,21 @@ export class PaymentsService {
       });
       await manager.save(payment);
 
+      if (match.txHash) {
+        const action = await manager.findOne(PaymentWalletActionEntity, {
+          where: {
+            paymentIntentId: intent.id,
+            txId: match.txHash,
+            status: PaymentWalletActionStatus.SUBMITTED,
+          },
+        });
+        if (action) {
+          action.status = PaymentWalletActionStatus.USED;
+          action.usedAt = new Date();
+          await manager.save(action);
+        }
+      }
+
       intent.status = nextIntentStatus;
       intent.lastCheckedAt = new Date();
       intent.lastCheckResult = {
@@ -672,16 +767,19 @@ export class PaymentsService {
     });
   }
 
-  private async findMatch(intent: PaymentIntentEntity): Promise<MatchResult> {
+  private async findMatch(
+    intent: PaymentIntentEntity,
+    submittedAction: PaymentWalletActionEntity | null,
+  ): Promise<MatchResult> {
     switch (intent.chain) {
       case PaymentChain.ETHEREUM:
         return this.findEthereumMatch(intent);
       case PaymentChain.SOLANA:
         return this.findSubmittedSolanaPaymentMatch(intent);
       case PaymentChain.BITCOIN:
-        return this.findBitcoinMatch(intent);
+        return this.findBitcoinMatch(intent, submittedAction?.txId ?? null);
       case PaymentChain.TRON:
-        return this.findTronUsdtMatch(intent);
+        return this.findTronUsdtMatch(intent, submittedAction?.txId ?? null);
     }
   }
 
@@ -956,7 +1054,7 @@ export class PaymentsService {
     };
   }
 
-  private async findTronUsdtMatch(intent: PaymentIntentEntity): Promise<MatchResult> {
+  private async findTronUsdtMatch(intent: PaymentIntentEntity, submittedTxId: string | null): Promise<MatchResult> {
     if (!intent.senderAddress || !intent.tronCreatedBlockNumber) {
       return null;
     }
@@ -978,6 +1076,29 @@ export class PaymentsService {
       receiverHex: this.toTronLogAddressHex(intent.receiverAddress, 'TRON receiverAddress'),
       amountBaseUnits: intent.expectedAmountBaseUnits,
     };
+
+    if (submittedTxId) {
+      const transaction = await this.alchemyService.getTronTransactionInfoById(submittedTxId);
+      if (!transaction) {
+        return null;
+      }
+      const match = this.extractTronUsdtTransferMatch(transaction, expected);
+      if (!match) {
+        return {
+          status: PaymentStatus.FAILED,
+          amountBaseUnits: intent.expectedAmountBaseUnits,
+          senderAddress: intent.senderAddress,
+          receiverAddress: intent.receiverAddress,
+          txHash: submittedTxId,
+          outputIndex: null,
+          blockNumber: transaction.blockNumber ? String(transaction.blockNumber) : null,
+          confirmations: 0,
+          confirmedAt: null,
+          rawPayload: { source: 'ALCHEMY_TRON', reason: 'SUBMITTED_TRANSACTION_MISMATCH' },
+        };
+      }
+      return this.toTronMatch(intent, transaction, match.amountBaseUnits, latestBlock);
+    }
 
     for (let blockNumber = createdBlock; blockNumber <= endBlock; blockNumber += 1) {
       const transactions = await this.alchemyService.getTronTransactionInfoByBlockNumber(blockNumber);
@@ -1061,10 +1182,13 @@ export class PaymentsService {
     };
   }
 
-  private async findBitcoinMatch(intent: PaymentIntentEntity): Promise<MatchResult> {
+  private async findBitcoinMatch(intent: PaymentIntentEntity, submittedTxId: string | null): Promise<MatchResult> {
     const transactions = await this.alchemyService.getBitcoinAddressTransactions(intent.receiverAddress);
 
     for (const tx of transactions) {
+      if (submittedTxId && tx.txid.toLowerCase() !== submittedTxId.toLowerCase()) {
+        continue;
+      }
       const output = tx.outputs.find(item => item.address === intent.receiverAddress);
       if (!output) {
         continue;
@@ -1122,147 +1246,6 @@ export class PaymentsService {
     }
 
     return confirmed ? PaymentStatus.CONFIRMED : PaymentStatus.CONFIRMING;
-  }
-
-  private async verifySolanaWalletAction(action: PaymentWalletActionEntity, signature: string) {
-    const request = action.requestJson;
-    const payer = typeof request.payer === 'string' ? request.payer : action.senderAddress;
-    const recipientAddress = typeof request.recipientAddress === 'string' ? request.recipientAddress : '';
-    const lamports = typeof request.lamports === 'string' ? request.lamports : '';
-    const memoOrReference = typeof request.memoOrReference === 'string' ? request.memoOrReference : '';
-
-    if (!payer || !recipientAddress || !lamports || !memoOrReference) {
-      return {
-        status: 'invalid' as const,
-        reason: 'Prepared Solana action metadata is incomplete',
-        rawPayload: null,
-      };
-    }
-
-    return this.solanaPaymentExecutionService.verifySolanaSignatureForIntent({
-      signature,
-      payer,
-      recipientAddress,
-      lamports,
-      memoOrReference,
-    });
-  }
-
-  private requireWalletSession(auth: AuthContext): { normalized: string; checksum: string; chain: PaymentChain } {
-    if (auth.authType !== 'wallet' || !auth.walletAddressNormalized) {
-      throw new UnauthorizedException('Wallet session required');
-    }
-
-    const chain = auth.walletChain === PaymentChain.SOLANA
-      ? PaymentChain.SOLANA
-      : auth.walletChain === PaymentChain.TRON
-        ? PaymentChain.TRON
-        : PaymentChain.ETHEREUM;
-
-    if (chain === PaymentChain.SOLANA) {
-      const normalized = this.solanaPaymentExecutionService.normalizePublicKey(
-        auth.walletAddressNormalized,
-        'wallet session address',
-      );
-      return {
-        normalized,
-        checksum: normalized,
-        chain,
-      };
-    }
-
-    if (chain === PaymentChain.TRON) {
-      const normalized = this.normalizeTronAddress(auth.walletAddressNormalized, 'wallet session address');
-      return {
-        normalized,
-        checksum: normalized,
-        chain,
-      };
-    }
-
-    const normalized = normalizeAddress(auth.walletAddressNormalized);
-    return {
-      normalized,
-      checksum: auth.walletAddressChecksum ? getAddress(auth.walletAddressChecksum) : getAddress(normalized),
-      chain,
-    };
-  }
-
-  private assertWalletIntentIsUsable(intent: PaymentIntentEntity, senderAddress: string, chain: PaymentChain): void {
-    if (chain === PaymentChain.ETHEREUM && (intent.chain !== PaymentChain.ETHEREUM || intent.asset !== PaymentAsset.ETH)) {
-      throw new BadRequestException('ETH wallet checkout requires an ETH payment intent');
-    }
-    if (chain === PaymentChain.SOLANA && (intent.chain !== PaymentChain.SOLANA || intent.asset !== PaymentAsset.SOL)) {
-      throw new BadRequestException('SOL wallet checkout requires a SOL payment intent');
-    }
-    if (chain === PaymentChain.TRON && (intent.chain !== PaymentChain.TRON || intent.asset !== PaymentAsset.USDT_TRC20)) {
-      throw new BadRequestException('TRON wallet checkout requires a USDT TRC20 payment intent');
-    }
-    if (TERMINAL_PAYMENT_INTENT_STATUSES.has(intent.status)) {
-      throw new BadRequestException('Payment intent is already final');
-    }
-    if (intent.expiresAt.getTime() <= Date.now()) {
-      throw new BadRequestException('Payment intent expired');
-    }
-    if (!intent.senderAddress) {
-      throw new BadRequestException('Payment intent senderAddress is required for wallet checkout');
-    }
-    if (intent.senderAddress !== senderAddress) {
-      throw new BadRequestException('Payment intent senderAddress does not match wallet session');
-    }
-  }
-
-  private assertWalletActionIsUsable(action: PaymentWalletActionEntity, senderAddress: string, chain: PaymentChain): void {
-    if (
-      (chain === PaymentChain.ETHEREUM && (action.chain !== PaymentChain.ETHEREUM || action.actionKind !== PaymentWalletActionKind.EVM_TRANSACTION))
-      || (chain === PaymentChain.SOLANA && (action.chain !== PaymentChain.SOLANA || action.actionKind !== PaymentWalletActionKind.SOLANA_TRANSACTION))
-      || (chain === PaymentChain.TRON && (action.chain !== PaymentChain.TRON || action.actionKind !== PaymentWalletActionKind.TRON_TRANSACTION))
-    ) {
-      throw new BadRequestException('Unsupported prepared wallet action');
-    }
-    if (action.senderAddress !== senderAddress) {
-      throw new BadRequestException('Prepared wallet action does not match wallet session');
-    }
-    if (action.status === PaymentWalletActionStatus.USED) {
-      throw new BadRequestException('Prepared wallet action already used');
-    }
-    if (action.status === PaymentWalletActionStatus.CANCELLED) {
-      throw new BadRequestException('Prepared wallet action cancelled');
-    }
-    if (action.expiresAt.getTime() <= Date.now()) {
-      action.status = PaymentWalletActionStatus.EXPIRED;
-      throw new BadRequestException('Prepared wallet action expired');
-    }
-    if (action.status !== PaymentWalletActionStatus.PREPARED) {
-      throw new BadRequestException('Prepared wallet action is not usable');
-    }
-  }
-
-  private normalizeWalletChainId(value: string | number | undefined): number | null {
-    if (value === undefined || value === null || value === '') {
-      return null;
-    }
-
-    const parsed = typeof value === 'number'
-      ? value
-      : value.startsWith('0x')
-        ? Number.parseInt(value, 16)
-        : Number.parseInt(value, 10);
-
-    if (!Number.isInteger(parsed) || parsed <= 0) {
-      throw new BadRequestException('walletChainId must be a valid chain id');
-    }
-
-    return parsed;
-  }
-
-  private normalizeSolanaWalletChainId(value?: string | null): string {
-    const normalized = value?.trim() ?? '';
-    if (!normalized || SOLANA_MAINNET_WALLET_CHAIN_ALIASES.has(normalized)) {
-      return SOLANA_MAINNET_WALLET_CHAIN_ID;
-    }
-
-    throw new BadRequestException('Unsupported Solana wallet chain.');
   }
 
   private assertChainAsset(chain: PaymentChain, asset: PaymentAsset): void {

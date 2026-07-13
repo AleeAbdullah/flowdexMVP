@@ -4,20 +4,20 @@ import type { PaymentChain } from '@/dal/app/payments/payments.types';
 const SOLANA_WALLET_CHECKOUT_UNAVAILABLE = 'SOLANA_WALLET_CHECKOUT_UNAVAILABLE';
 const SOLANA_WALLET_CHECKOUT_UNAVAILABLE_MESSAGE = 'Solana wallet checkout is temporarily unavailable. Please try again later.';
 
-export type CheckoutFailureStep =
+type CheckoutFailureStep =
   | 'create_intent'
   | 'prepare_wallet_action'
   | 'wallet_approval'
   | 'submit_tx_result'
   | 'status_poll';
 
-export type CheckoutErrorView = {
+type CheckoutErrorView = {
   title: string;
   message: string;
   variant: 'error' | 'warning';
 };
 
-export class CheckoutStepError extends Error {
+class CheckoutStepError extends Error {
   readonly step: CheckoutFailureStep;
 
   readonly chain: PaymentChain;

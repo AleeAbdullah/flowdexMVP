@@ -5,20 +5,14 @@ import useAxiosAuth from '@/hooks/use-axiosAuth';
 import type {
   AdminPaymentFilters,
   IAdminPaymentsResponse,
-  IAdminStats,
 } from './admin.types';
 
-export const adminQueryKeys = {
-  adminStats: ['app', 'admin', 'stats'] as const,
+const adminQueryKeys = {
   adminPayments: (filters?: AdminPaymentFilters) =>
     ['app', 'admin', 'payments', filters ?? {}] as const,
 };
 
-export const adminService = {
-  async getAdminStats(client: AxiosInstance): Promise<IAdminStats> {
-    const response = await client.get<IAdminStats>(API_ROUTES.bff.admin.stats);
-    return response.data;
-  },
+const adminService = {
   async getAdminPayments(client: AxiosInstance, filters?: AdminPaymentFilters): Promise<IAdminPaymentsResponse> {
     const response = await client.get<IAdminPaymentsResponse>(API_ROUTES.bff.admin.payments.root, {
       params: compactParams(filters),
@@ -26,17 +20,6 @@ export const adminService = {
     return response.data;
   },
 };
-
-export function useAdminStats(initialData?: IAdminStats) {
-  const axiosAuth = useAxiosAuth();
-
-  return useQuery({
-    queryKey: adminQueryKeys.adminStats,
-    queryFn: () => adminService.getAdminStats(axiosAuth),
-    enabled: Boolean(axiosAuth),
-    initialData,
-  });
-}
 
 export function useAdminPayments(
   filters?: AdminPaymentFilters,

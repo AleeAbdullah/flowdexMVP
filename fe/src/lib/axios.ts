@@ -21,7 +21,7 @@ function getUserTimezone() {
   }
 }
 
-export const axiosInstance: AxiosInstance = axios.create({
+const axiosInstance: AxiosInstance = axios.create({
   baseURL: resolvePublicApiBaseUrl(),
   headers: { 'Content-Type': 'application/json' },
   timeout: 30000,

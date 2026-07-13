@@ -12,7 +12,7 @@ import { FlowdexWordmark } from './primitives';
 import { ThemeToggle } from './theme-toggle';
 import { getActiveMarketingNavHref, MARKETING_NAV_ITEMS } from './marketing-nav.utils';
 
-export type MarketingPrimaryAction = {
+type MarketingPrimaryAction = {
   href: string;
   label: string;
 };

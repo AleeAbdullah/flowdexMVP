@@ -6,7 +6,7 @@ function isAdminPath(pathname: string) {
   return pathname === '/app/admin' || pathname.startsWith('/app/admin/');
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!isAdminPath(pathname)) {

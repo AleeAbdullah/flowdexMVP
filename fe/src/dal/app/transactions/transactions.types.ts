@@ -1,4 +1,4 @@
-export const TRANSACTION_STATUSES = {
+const TRANSACTION_STATUSES = {
   PENDING: 'PENDING',
   CONFIRMED: 'CONFIRMED',
   FAILED: 'FAILED',
@@ -6,24 +6,10 @@ export const TRANSACTION_STATUSES = {
 
 export type TransactionStatus = (typeof TRANSACTION_STATUSES)[keyof typeof TRANSACTION_STATUSES];
 
-export function isLiveTransactionStatus(status: string | null | undefined) {
-  return status === TRANSACTION_STATUSES.PENDING;
-}
-
 export function isTerminalTransactionStatus(status: string | null | undefined) {
   return status === TRANSACTION_STATUSES.CONFIRMED
     || status === TRANSACTION_STATUSES.FAILED;
 }
-
-export type SimulateTransactionInput = {
-  chainId: number;
-  assetType: 'native' | 'erc20';
-  assetCode: string;
-  assetContractAddress?: string;
-  assetDecimals: number;
-  amountBaseUnits: string;
-  amountDisplay: string;
-};
 
 export type IWalletTransactionRequest = {
   to: `0x${string}`;
@@ -41,16 +27,6 @@ export type IWalletTransactionSimulationResult = {
   reason: string | null;
   simulationId: string | null;
   request: IWalletTransactionRequest | null;
-};
-
-export type TrackTransactionInput = {
-  simulationId: string;
-  txHash?: string;
-};
-
-export type IWalletTransactionTrackResult = {
-  publicId: string;
-  status: string;
 };
 
 export type IWalletTransactionListItem = {
@@ -76,8 +52,4 @@ export type IWalletTransactionListItem = {
   confirmedAt: string | null;
   createdAt: string;
   updatedAt: string;
-};
-
-export type IWalletTransactionsResponse = {
-  items: IWalletTransactionListItem[];
 };

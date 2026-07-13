@@ -37,10 +37,6 @@ export function formatPlainNumber(value: string | number, maximumFractionDigits 
   }).format(parseDecimal(value));
 }
 
-export function formatPercent(value: number) {
-  return `${value.toFixed(0)}%`;
-}
-
 export function formatDateTime(value?: string | Date | null) {
   if (!value) {
     return 'Pending';

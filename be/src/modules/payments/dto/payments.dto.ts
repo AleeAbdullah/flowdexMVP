@@ -105,6 +105,39 @@ export class PaymentIntentPublicDto {
   instructions!: PaymentInstructionsDto;
 }
 
+export class PaymentCheckoutSessionDto {
+  @ApiProperty({ type: PaymentIntentPublicDto })
+  intent!: PaymentIntentPublicDto;
+
+  @ApiProperty()
+  checkoutToken!: string;
+}
+
+export class PaymentCheckoutCapabilityDto {
+  @ApiProperty({ enum: PaymentChain })
+  chain!: PaymentChain;
+
+  @ApiProperty({ enum: PaymentAsset })
+  asset!: PaymentAsset;
+
+  @ApiProperty({ enum: ['metamask', 'metamask_solana', 'xverse', 'tronlink'] })
+  walletProvider!: 'metamask' | 'metamask_solana' | 'xverse' | 'tronlink';
+
+  @ApiProperty({ enum: ['mainnet', 'mainnet-beta'] })
+  network!: 'mainnet' | 'mainnet-beta';
+
+  @ApiProperty()
+  decimals!: number;
+
+  @ApiProperty()
+  enabled!: boolean;
+}
+
+export class PaymentCheckoutCapabilitiesDto {
+  @ApiProperty({ type: [PaymentCheckoutCapabilityDto] })
+  items!: PaymentCheckoutCapabilityDto[];
+}
+
 export class PaymentPublicDto {
   @ApiProperty()
   intentId!: string;
@@ -152,7 +185,7 @@ export class PaymentIntentStatusDto {
 }
 
 export class PreparePaymentWalletActionDto {
-  @ApiProperty({ enum: [PaymentChain.ETHEREUM, PaymentChain.SOLANA, PaymentChain.TRON] })
+  @ApiProperty({ enum: [PaymentChain.ETHEREUM, PaymentChain.SOLANA, PaymentChain.BITCOIN, PaymentChain.TRON] })
   @IsEnum(PaymentChain)
   chain!: PaymentChain;
 
@@ -226,8 +259,19 @@ export class PreparedTronWalletTransferDto {
   payerAddressHex!: string;
 }
 
+export class PreparedBitcoinWalletTransferDto {
+  @ApiProperty({ enum: ['mainnet'] })
+  network!: 'mainnet';
+
+  @ApiProperty()
+  recipientAddress!: string;
+
+  @ApiProperty()
+  amountSats!: string;
+}
+
 export class PreparedWalletActionDto {
-  @ApiProperty({ enum: [PaymentWalletActionKind.EVM_TRANSACTION, PaymentWalletActionKind.SOLANA_TRANSACTION, PaymentWalletActionKind.TRON_TRANSACTION] })
+  @ApiProperty({ enum: [PaymentWalletActionKind.EVM_TRANSACTION, PaymentWalletActionKind.SOLANA_TRANSACTION, PaymentWalletActionKind.BITCOIN_TRANSFER, PaymentWalletActionKind.TRON_TRANSACTION] })
   kind!: PaymentWalletActionKind;
 
   @ApiProperty()
@@ -236,7 +280,7 @@ export class PreparedWalletActionDto {
   @ApiProperty()
   preparedActionId!: string;
 
-  @ApiProperty({ enum: [PaymentChain.ETHEREUM, PaymentChain.SOLANA, PaymentChain.TRON] })
+  @ApiProperty({ enum: [PaymentChain.ETHEREUM, PaymentChain.SOLANA, PaymentChain.BITCOIN, PaymentChain.TRON] })
   chain!: PaymentChain;
 
   @ApiProperty({ required: false })
@@ -266,12 +310,15 @@ export class PreparedWalletActionDto {
   @ApiProperty({ type: PreparedTronWalletTransferDto, required: false })
   tron?: PreparedTronWalletTransferDto;
 
+  @ApiProperty({ type: PreparedBitcoinWalletTransferDto, required: false })
+  bitcoin?: PreparedBitcoinWalletTransferDto;
+
   @ApiProperty()
   expiresAt!: Date;
 }
 
 export class SubmitPaymentTxResultDto {
-  @ApiProperty({ enum: [PaymentChain.ETHEREUM, PaymentChain.SOLANA, PaymentChain.TRON] })
+  @ApiProperty({ enum: [PaymentChain.ETHEREUM, PaymentChain.SOLANA, PaymentChain.BITCOIN, PaymentChain.TRON] })
   @IsEnum(PaymentChain)
   chain!: PaymentChain;
 
@@ -279,8 +326,8 @@ export class SubmitPaymentTxResultDto {
   @IsString()
   preparedActionId!: string;
 
-  @ApiProperty({ enum: [PaymentWalletTxIdKind.EVM_TX_HASH, PaymentWalletTxIdKind.SOLANA_SIGNATURE, PaymentWalletTxIdKind.TRON_TX_HASH] })
-  @IsIn([PaymentWalletTxIdKind.EVM_TX_HASH, PaymentWalletTxIdKind.SOLANA_SIGNATURE, PaymentWalletTxIdKind.TRON_TX_HASH])
+  @ApiProperty({ enum: [PaymentWalletTxIdKind.EVM_TX_HASH, PaymentWalletTxIdKind.SOLANA_SIGNATURE, PaymentWalletTxIdKind.BTC_TX_HASH, PaymentWalletTxIdKind.TRON_TX_HASH] })
+  @IsIn([PaymentWalletTxIdKind.EVM_TX_HASH, PaymentWalletTxIdKind.SOLANA_SIGNATURE, PaymentWalletTxIdKind.BTC_TX_HASH, PaymentWalletTxIdKind.TRON_TX_HASH])
   txIdKind!: PaymentWalletTxIdKind;
 
   @ApiProperty()

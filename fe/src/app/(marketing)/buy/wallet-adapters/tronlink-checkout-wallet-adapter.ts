@@ -1,8 +1,6 @@
-import { walletAuthService } from '@/dal/app/wallet-auth/wallet-auth.services';
 import {
   TIP6963_ANNOUNCE_PROVIDER,
   TIP6963_REQUEST_PROVIDER,
-  TRON_MAINNET_CHAIN_ID_DECIMAL,
   TRON_MAINNET_WALLET_CHAIN_ID,
   TRON_WALLET_NETWORK_ID,
 } from '../constants/tronlink';
@@ -22,9 +20,6 @@ type TronWebInstance = {
   defaultAddress?: {
     base58?: string;
     hex?: string;
-  };
-  trx: {
-    signMessageV2: (hexMessage: string) => Promise<string>;
   };
   contract: () => {
     at: (address: string) => Promise<TronContractInstance>;
@@ -51,7 +46,7 @@ declare global {
   }
 }
 
-export type TronCheckoutWalletAdapterState = {
+type TronCheckoutWalletAdapterState = {
   address: string | null;
   walletChainId: string | null;
   walletNetworkId: string | null;
@@ -78,11 +73,6 @@ function normalizeTronWalletChainId(value?: string | null) {
   }
 
   return null;
-}
-
-function utf8ToHex(message: string) {
-  const bytes = new TextEncoder().encode(message);
-  return Array.from(bytes).map(byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 function normalizeError(error: unknown) {
@@ -265,22 +255,6 @@ export function createTronLinkCheckoutWalletAdapter(input: {
         throw new Error('Connect TronLink before verifying your wallet.');
       }
 
-      const nextProvider = await ensureProvider();
-      const challenge = await walletAuthService.createChallenge({
-        walletAddress: state.address,
-        walletChain: 'TRON',
-        chainId: TRON_MAINNET_CHAIN_ID_DECIMAL,
-      });
-      const hexMessage = utf8ToHex(challenge.message);
-      const signature = await nextProvider.tronWeb!.trx.signMessageV2(hexMessage);
-      await walletAuthService.verify({
-        challengeId: challenge.challengeId,
-        walletAddress: state.address,
-        walletChain: 'TRON',
-        chainId: TRON_MAINNET_CHAIN_ID_DECIMAL,
-        signature,
-      });
-
       updateState({
         isVerified: true,
         isReady: true,
@@ -311,8 +285,8 @@ export function createTronLinkCheckoutWalletAdapter(input: {
       }
 
       const state = input.getState();
-      if (!state.address || !state.isVerified) {
-        throw new Error('Connect and verify TronLink before continuing.');
+      if (!state.address) {
+        throw new Error('Connect TronLink before continuing.');
       }
 
       const nextProvider = await ensureProvider();

@@ -64,6 +64,9 @@ export class PaymentIntentEntity {
   @Column({ name: 'request_ip', type: 'varchar', length: 96, nullable: true })
   requestIp!: string | null;
 
+  @Column({ name: 'checkout_token_hash', type: 'varchar', length: 64, nullable: true })
+  checkoutTokenHash!: string | null;
+
   @Column({ name: 'receiver_address', type: 'varchar', length: 255 })
   receiverAddress!: string;
 

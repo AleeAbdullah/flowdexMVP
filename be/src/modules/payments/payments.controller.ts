@@ -1,14 +1,13 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Headers, Param, Post, Query, Req } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 
-import { AuthContext, CurrentAuth } from '../../common/decorators/current-auth.decorator';
-import { InternalJwtGuard } from '../../common/guards/internal-jwt.guard';
 import {
   CreatePaymentIntentDto,
+  PaymentCheckoutCapabilitiesDto,
+  PaymentCheckoutSessionDto,
   PaymentHistoryQueryDto,
-  PaymentIntentPublicDto,
   PaymentLeadersQueryDto,
   PaymentLeadersResponseDto,
   PaymentIntentStatusDto,
@@ -29,12 +28,17 @@ type RawBodyRequest = Request & {
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
+  @Get('checkout-capabilities')
+  getCheckoutCapabilities(): PaymentCheckoutCapabilitiesDto {
+    return this.paymentsService.getCheckoutCapabilities();
+  }
+
   @Post('intents')
   @Throttle({ intent: { limit: 5, ttl: 60_000 } })
   createIntent(
     @Body() body: CreatePaymentIntentDto,
     @Req() request: Request,
-  ): Promise<PaymentIntentPublicDto> {
+  ): Promise<PaymentCheckoutSessionDto> {
     return this.paymentsService.createIntent(body, request.ip);
   }
 
@@ -45,27 +49,23 @@ export class PaymentsController {
   }
 
   @Post('intents/:intentId/wallet-action')
-  @ApiBearerAuth()
-  @UseGuards(InternalJwtGuard)
   @Throttle({ walletAction: { limit: 10, ttl: 60_000 } })
   prepareWalletAction(
-    @CurrentAuth() auth: AuthContext,
     @Param('intentId') intentId: string,
+    @Headers('x-payment-checkout-token') checkoutToken: string | undefined,
     @Body() body: PreparePaymentWalletActionDto,
   ): Promise<PreparedWalletActionDto> {
-    return this.paymentsService.prepareWalletAction(auth, intentId, body);
+    return this.paymentsService.prepareWalletAction(intentId, checkoutToken ?? '', body);
   }
 
   @Post('intents/:intentId/tx-result')
-  @ApiBearerAuth()
-  @UseGuards(InternalJwtGuard)
   @Throttle({ walletTxResult: { limit: 10, ttl: 60_000 } })
   submitWalletTxResult(
-    @CurrentAuth() auth: AuthContext,
     @Param('intentId') intentId: string,
+    @Headers('x-payment-checkout-token') checkoutToken: string | undefined,
     @Body() body: SubmitPaymentTxResultDto,
   ): Promise<PaymentIntentStatusDto> {
-    return this.paymentsService.submitWalletTxResult(auth, intentId, body);
+    return this.paymentsService.submitWalletTxResult(intentId, checkoutToken ?? '', body);
   }
 
   @Get('portfolio')

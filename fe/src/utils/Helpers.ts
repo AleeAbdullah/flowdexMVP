@@ -16,11 +16,3 @@ export const getBaseUrl = () => {
 
   return 'http://localhost:3000';
 };
-
-export const getI18nPath = (url: string, _locale: string) => {
-  return url;
-};
-
-export const isServer = () => {
-  return typeof window === 'undefined';
-};

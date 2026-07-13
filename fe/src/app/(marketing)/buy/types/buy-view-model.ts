@@ -92,15 +92,11 @@ export type BuyPaymentView = {
 
 export type BuyCheckoutStage =
   | 'closed'
-  | 'choose_method'
   | 'connecting_wallet'
-  | 'verifying_wallet'
   | 'wallet_ready'
   | 'preparing_wallet_action'
   | 'waiting_for_wallet_approval'
   | 'submitting_tx_result'
-  | 'direct_address'
-  | 'direct_instructions'
   | 'tracking'
   | 'failed';
 
@@ -124,7 +120,6 @@ export type BuyWalletStatusView = {
 
 export type BuyWalletView = {
   checkoutStage: BuyCheckoutStage;
-  paymentWalletAddress: string;
   paymentWalletError: string | null;
   canUseWalletCheckout: boolean;
   isWrongNetwork: boolean;
@@ -142,8 +137,5 @@ export type BuyActions = {
   verifyWallet: () => void;
   startWalletPayment: () => void;
   switchNetwork: () => void;
-  useDirectSend: () => void;
-  createDirectPayment: () => void;
   startNewPayment: () => void;
-  setPaymentWalletAddress: (value: string) => void;
 };

@@ -31,7 +31,7 @@ function assertHexQuantity(value: string, label: string) {
   }
 }
 
-export function validateBuySimulationRequest(request: IPaymentWalletTransactionRequest) {
+function validateBuySimulationRequest(request: IPaymentWalletTransactionRequest) {
   if (!isAddress(request.to)) {
     throw new BuyTransactionValidationError('rpc_error', 'Simulation returned an invalid recipient address.');
   }

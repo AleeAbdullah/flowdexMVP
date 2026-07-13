@@ -8,7 +8,7 @@ const Dithering = lazy(() =>
   import('@paper-design/shaders-react').then(mod => ({ default: mod.Dithering })),
 );
 
-export type HeroDitheringCardProps = React.HTMLAttributes<HTMLDivElement> & {
+type HeroDitheringCardProps = React.HTMLAttributes<HTMLDivElement> & {
   contentClassName?: string;
   colorFront?: string;
 };

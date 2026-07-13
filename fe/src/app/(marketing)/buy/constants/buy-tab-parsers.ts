@@ -1,7 +1,8 @@
 import { parseAsStringLiteral } from 'nuqs';
-import { BUY_TAB_VALUES } from '@/components/flowdex/buy-page-content';
 
-export const buyTabParser = parseAsStringLiteral([...BUY_TAB_VALUES]);
+const queryTabValues = ['buy', 'portfolio', 'leaders', 'staking', 'referrals'] as const;
+
+export const buyTabParser = parseAsStringLiteral([...queryTabValues]);
 
 export const BUY_PAGE_TABS = ['Buy $FDN', 'Portfolio', 'Referral'] as const;
 export type BuyPageTab = (typeof BUY_PAGE_TABS)[number];
@@ -10,10 +11,10 @@ const QUERY_TAB_TO_PAGE_TAB = {
   buy: 'Buy $FDN',
   portfolio: 'Portfolio',
   referrals: 'Referral',
-} as const satisfies Partial<Record<(typeof BUY_TAB_VALUES)[number], BuyPageTab>>;
+} as const satisfies Partial<Record<(typeof queryTabValues)[number], BuyPageTab>>;
 
 export function resolveBuyPageTabFromQuery(
-  tab: (typeof BUY_TAB_VALUES)[number] | null,
+  tab: (typeof queryTabValues)[number] | null,
 ): BuyPageTab | null {
   if (!tab) {
     return null;

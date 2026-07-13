@@ -1,10 +1,4 @@
-import type { MarketingPrimaryAction } from './marketing-nav-client';
 import type { IconName } from '@/icons';
-
-export const marketingAppAction: MarketingPrimaryAction = {
-  href: '/buy',
-  label: 'Buy Now',
-};
 
 export const marketingShellBanner = {
   status: 'Launch Access Live',
@@ -46,8 +40,6 @@ export const marketingShellFooter = {
     { label: 'Twitter/X', href: 'https://x.com/flowdexnetwork', icon: 'Twitter' },
   ] satisfies Array<{ label: string; href: string; icon: IconName }>,
 };
-
-export const marketingSocialCards = [];
 
 export const marketingFeatureCards = [
   {
