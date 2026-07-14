@@ -238,6 +238,20 @@ export class PreparedEvmWalletTransactionRequestDto {
   maxPriorityFeePerGas?: `0x${string}`;
 }
 
+export class TronUnsignedTransactionDto {
+  @ApiProperty()
+  visible!: boolean;
+
+  @ApiProperty()
+  txID!: string;
+
+  @ApiProperty({ type: Object })
+  raw_data!: Record<string, unknown>;
+
+  @ApiProperty()
+  raw_data_hex!: string;
+}
+
 export class PreparedTronWalletTransferDto {
   @ApiProperty({ enum: ['tron_transaction'] })
   kind!: 'tron_transaction';
@@ -274,20 +288,6 @@ export class PreparedTronWalletTransferDto {
 
   @ApiProperty({ type: () => TronUnsignedTransactionDto })
   unsignedTransaction!: TronUnsignedTransactionDto;
-}
-
-export class TronUnsignedTransactionDto {
-  @ApiProperty()
-  visible!: boolean;
-
-  @ApiProperty()
-  txID!: string;
-
-  @ApiProperty({ type: Object })
-  raw_data!: Record<string, unknown>;
-
-  @ApiProperty()
-  raw_data_hex!: string;
 }
 
 export class SignedTronTransactionDto extends TronUnsignedTransactionDto {
