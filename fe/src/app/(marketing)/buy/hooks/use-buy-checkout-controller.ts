@@ -415,7 +415,7 @@ export function useBuyCheckoutController() {
           throw new Error('Connect a supported TRON wallet before continuing.');
         }
         if (!tronWallet.isReady) {
-          throw new Error('Choose TronLink, OKX, Trust Wallet, or MetaMask TRON for this payment.');
+          throw new Error('Choose TronLink, OKX, Trust Wallet, or a compatible WalletConnect wallet.');
         }
         await runWalletCheckout({
           senderAddress: address,
@@ -592,8 +592,10 @@ export function useBuyCheckoutController() {
             chainId: null,
             walletChainId: bitcoinWallet.address ? 'mainnet' : null,
             connectorName: bitcoinWallet.connectorName,
-            pendingConnectorName: bitcoinWallet.isConnecting ? 'walletconnect' : null,
-            availableConnectorNames: bitcoinWallet.isConfigured ? ['walletconnect'] : [],
+            pendingConnectorName: bitcoinWallet.isConnecting ? 'Bitcoin wallet' : null,
+            availableConnectorNames: bitcoinWallet.isConfigured
+              ? ['Xverse', 'OKX Wallet', 'Leather', 'Phantom', 'WalletConnect']
+              : [],
             executionReadiness: bitcoinWallet.isReady
               ? 'ready' as const
               : bitcoinWallet.address
@@ -624,7 +626,7 @@ export function useBuyCheckoutController() {
               connectorName: tronWallet.connectorName,
               pendingConnectorName: tronWallet.isConnecting ? 'TRON wallet' : null,
               availableConnectorNames: tronWallet.isConfigured
-                ? ['TronLink', 'OKX Wallet', 'Trust Wallet', 'MetaMask TRON']
+                ? ['TronLink', 'OKX Wallet', 'Trust Wallet', 'WalletConnect']
                 : [],
               executionReadiness: tronWallet.isReady
                 ? 'ready' as const

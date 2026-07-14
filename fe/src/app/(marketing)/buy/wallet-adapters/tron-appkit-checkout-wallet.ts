@@ -17,6 +17,14 @@ import { configuredReownProjectId } from './reown-checkout-appkit';
 const TRON_TX_ID_PATTERN = /^[a-fA-F0-9]{64}$/u;
 const TRON_SIGNATURE_PATTERN = /^[a-fA-F0-9]{130}$/u;
 
+type WalletConnectTronConnector = TronConnector & {
+  provider?: {
+    session?: {
+      sessionProperties?: Record<string, string>;
+    };
+  };
+};
+
 function parseSignedTransaction(value: unknown): ITronSignedTransaction {
   if (!value || typeof value !== 'object') {
     throw new Error('The TRON wallet did not return a signed transaction.');
@@ -52,13 +60,15 @@ function parseSignedTransaction(value: unknown): ITronSignedTransaction {
 export function useTronAppKitCheckoutWallet() {
   const { open } = useAppKit();
   const account = useAppKitAccount({ namespace: 'tron' });
-  const { walletProvider } = useAppKitProvider<TronConnector>('tron');
+  const { walletProvider, walletProviderType } = useAppKitProvider<TronConnector>('tron');
   const { disconnect } = useDisconnect();
   const { walletInfo } = useWalletInfo('tron');
   const provider = walletProvider as TronConnector | undefined;
   const address = account.address ?? null;
-  const isInjectedProvider = provider?.type === 'INJECTED';
-  const isProviderReady = typeof provider?.request === 'function' && isInjectedProvider;
+  const providerType = walletProviderType ?? provider?.type;
+  const isWalletConnectProvider = providerType === 'WALLET_CONNECT';
+  const isSupportedProvider = providerType === 'INJECTED' || isWalletConnectProvider;
+  const isProviderReady = typeof provider?.request === 'function' && isSupportedProvider;
 
   return {
     address,
@@ -84,8 +94,8 @@ export function useTronAppKitCheckoutWallet() {
       if (!address) {
         throw new Error('Connect a supported TRON wallet before continuing.');
       }
-      if (!provider || !isInjectedProvider) {
-        throw new Error('Choose TronLink, OKX, Trust Wallet, or MetaMask TRON for this payment.');
+      if (!provider || !isSupportedProvider) {
+        throw new Error('Choose TronLink, OKX, Trust Wallet, or a compatible WalletConnect wallet.');
       }
       if (!isProviderReady) {
         throw new Error('This TRON wallet cannot sign the prepared payment. Choose another wallet.');
@@ -94,10 +104,25 @@ export function useTronAppKitCheckoutWallet() {
         throw new Error('The connected TRON account changed. Reconnect before continuing.');
       }
 
-      const signedTransaction = parseSignedTransaction(await provider.request({
-        method: 'tron_sendTransaction',
-        params: { transaction: action.unsignedTransaction },
-      }));
+      const walletConnectUsesV1Format = isWalletConnectProvider
+        && (provider as WalletConnectTronConnector).provider?.session
+          ?.sessionProperties?.tron_method_version === 'v1';
+      const signedTransaction = parseSignedTransaction(await provider.request(
+        isWalletConnectProvider
+          ? {
+              method: 'tron_signTransaction',
+              params: {
+                address,
+                transaction: walletConnectUsesV1Format
+                  ? action.unsignedTransaction
+                  : { transaction: action.unsignedTransaction },
+              },
+            }
+          : {
+              method: 'tron_sendTransaction',
+              params: { transaction: action.unsignedTransaction },
+            },
+      ));
       const { txId } = await paymentsService.broadcastPreparedTronTransaction(
         action.paymentIntentId,
         action.preparedActionId,

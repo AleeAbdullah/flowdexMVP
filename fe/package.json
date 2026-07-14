@@ -42,7 +42,6 @@
     "@t3-oss/env-nextjs": "^0.13.10",
     "@tanstack/react-query": "^5.90.20",
     "@tanstack/react-query-devtools": "^5.91.3",
-    "@tronweb3/tronwallet-adapter-metamask-tron": "1.0.1",
     "@tronweb3/tronwallet-adapter-okxwallet": "1.0.7",
     "@tronweb3/tronwallet-adapter-tronlink": "1.1.13",
     "@tronweb3/tronwallet-adapter-trust": "1.0.2",
