@@ -22,8 +22,8 @@ import { PaymentCard } from './payment-card';
 import { PaymentDialogs } from './payment-dialogs';
 import { PortfolioPanel } from './portfolio-panel';
 
-const ReownCheckoutRuntime = dynamic(
-  () => import('../wallet-adapters/reown-checkout-runtime').then(module => module.ReownCheckoutRuntime),
+const TronReownCheckoutRuntime = dynamic(
+  () => import('../wallet-adapters/reown-tron-checkout-runtime').then(module => module.TronReownCheckoutRuntime),
   { ssr: false },
 );
 
@@ -49,7 +49,7 @@ export function BuyPageContent() {
 
   return (
     <main className="section-shell section-pad">
-      {wallet.shouldLoadReown ? <ReownCheckoutRuntime /> : null}
+      {wallet.reownRuntime === 'tron' ? <TronReownCheckoutRuntime /> : null}
       <PaymentDialogs wallet={wallet} payment={payment} actions={actions} />
 
       <GlassPanel as="section" className="rounded-[1.15rem] bg-[var(--buy-panel)] p-6 md:p-8">

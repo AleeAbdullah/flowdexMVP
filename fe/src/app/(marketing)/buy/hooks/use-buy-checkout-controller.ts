@@ -66,11 +66,14 @@ import {
   createSolanaMetaMaskCheckoutWalletAdapter,
   initialSolanaCheckoutWalletAdapterState,
 } from '../wallet-adapters/solana-metamask-checkout-wallet-adapter';
+import { useXverseBitcoinCheckoutWallet } from '../wallet-adapters/xverse-bitcoin-checkout-wallet';
 
 const DEFAULT_BUY_AMOUNT = '1.7544';
 const PAYMENT_STATUS_POLL_INTERVAL_MS = 12_000;
 const PAYMENT_STATUS_RATE_LIMIT_BACKOFF_MS = 30_000;
 const MAX_PAYMENT_STATUS_FAILURES = 3;
+const REOWN_RUNTIME_LOAD_TIMEOUT_MS = 15_000;
+const WALLET_SELECTOR_OPEN_TIMEOUT_MS = 15_000;
 
 const evmCheckoutUnsupportedMessages: Record<UnsupportedReason, string> = {
   missing_provider: 'A compatible wallet provider is not available for checkout.',
@@ -83,6 +86,59 @@ const evmCheckoutUnsupportedMessages: Record<UnsupportedReason, string> = {
   account_mismatch: 'The connected wallet account changed. Reconnect and verify it again.',
   provider_disconnected: 'The wallet disconnected before checkout could continue.',
 };
+
+async function openWalletSelector(openSelector: () => Promise<void>, timeoutMessage: string) {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  try {
+    await Promise.race([
+      openSelector(),
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), WALLET_SELECTOR_OPEN_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
+function isTronRuntimeLoaded() {
+  return useReownCheckoutStore.getState().isTronRuntimeLoaded;
+}
+
+async function waitForTronRuntime() {
+  if (isTronRuntimeLoaded()) {
+    return;
+  }
+
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  let unsubscribe: (() => void) | null = null;
+  await new Promise<void>((resolve, reject) => {
+    const cleanup = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      if (unsubscribe) {
+        unsubscribe();
+        unsubscribe = null;
+      }
+    };
+
+    timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error('Wallet connection is still loading. Please try again.'));
+    }, REOWN_RUNTIME_LOAD_TIMEOUT_MS);
+
+    unsubscribe = useReownCheckoutStore.subscribe(() => {
+      if (isTronRuntimeLoaded()) {
+        cleanup();
+        resolve();
+      }
+    });
+  });
+}
 
 export function useBuyCheckoutController() {
   const buyConfig = usePaymentBuyConfig();
@@ -97,9 +153,9 @@ export function useBuyCheckoutController() {
   const submitPaymentIntentTxResult = useSubmitPaymentIntentTxResult();
   const marketingWallet = useMarketingWalletSync();
   const { openAuthModal } = useAuthModal();
-  const bitcoinWallet = useReownCheckoutStore(state => state.bitcoin);
+  const bitcoinWallet = useXverseBitcoinCheckoutWallet();
   const tronWallet = useReownCheckoutStore(state => state.tron);
-  const isReownRuntimeLoaded = useReownCheckoutStore(state => state.isRuntimeLoaded);
+  const isTronRuntimeLoaded = useReownCheckoutStore(state => state.isTronRuntimeLoaded);
   const walletProvider = useMarketingWalletStore((state: MarketingWalletStore) => state.provider);
   const walletVerification = useMarketingWalletStore((state: MarketingWalletStore) => state.verification);
 
@@ -111,6 +167,7 @@ export function useBuyCheckoutController() {
   const [statusBackoffUntil, setStatusBackoffUntil] = useState(0);
   const [isStatusPollingStopped, setIsStatusPollingStopped] = useState(false);
   const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
+  const [isTronRuntimeRequested, setIsTronRuntimeRequested] = useState(false);
   const [checkout, dispatch] = useReducer(walletCheckoutReducer, initialWalletCheckoutState);
   const [solanaWalletState, setSolanaWalletState] = useState(initialSolanaCheckoutWalletAdapterState);
   const solanaWalletStateRef = useRef(solanaWalletState);
@@ -341,8 +398,12 @@ export function useBuyCheckoutController() {
     }
 
     if (selectedAsset.chain === PAYMENT_CHAINS.BITCOIN) {
+      dispatch({ type: 'CONNECTING' });
+      await openWalletSelector(
+        () => bitcoinWallet.openSelector(),
+        'Xverse wallet did not open. Try again or make sure the extension is enabled.',
+      );
       dispatch({ type: 'CLOSE' });
-      await bitcoinWallet.openSelector();
       return;
     }
 
@@ -354,8 +415,14 @@ export function useBuyCheckoutController() {
 
     dispatch({ type: 'CONNECTING' });
     if (selectedAsset.chain === PAYMENT_CHAINS.TRON) {
+      setIsTronRuntimeRequested(true);
+      await waitForTronRuntime();
+      const currentTronWallet = useReownCheckoutStore.getState().tron;
+      await openWalletSelector(
+        () => currentTronWallet.openSelector(),
+        'TRON wallet selector did not open. Try again or choose another wallet.',
+      );
       dispatch({ type: 'CLOSE' });
-      await tronWallet.openSelector();
       return;
     }
 
@@ -415,7 +482,7 @@ export function useBuyCheckoutController() {
           throw new Error('Connect a supported TRON wallet before continuing.');
         }
         if (!tronWallet.isReady) {
-          throw new Error('Choose TronLink, OKX, Trust Wallet, or a compatible WalletConnect wallet.');
+          throw new Error('Choose a compatible TRON wallet through WalletConnect.');
         }
         await runWalletCheckout({
           senderAddress: address,
@@ -497,9 +564,10 @@ export function useBuyCheckoutController() {
   const needsWalletConnection = !selectedWalletAddress
     || (selectedAsset?.chain === PAYMENT_CHAINS.BITCOIN && !bitcoinWallet.isReady)
     || (selectedAsset?.chain === PAYMENT_CHAINS.TRON && !tronWallet.isReady);
-  const shouldLoadReown = selectedAsset?.chain === PAYMENT_CHAINS.BITCOIN
-    || selectedAsset?.chain === PAYMENT_CHAINS.TRON;
-  const isReownRuntimeLoading = Boolean(shouldLoadReown && !isReownRuntimeLoaded);
+  const activeReownRuntime = isTronRuntimeRequested && selectedAsset?.chain === PAYMENT_CHAINS.TRON
+    ? 'tron' as const
+    : null;
+  const isReownRuntimeLoading = Boolean(activeReownRuntime && !isTronRuntimeLoaded);
   const isPrimaryActionBusy = isReownRuntimeLoading
     || isSwitchingNetwork
     || checkoutStage === 'connecting_wallet'
@@ -575,7 +643,7 @@ export function useBuyCheckoutController() {
       walletTxResult: checkout.txResult,
     },
     wallet: {
-      shouldLoadReown: Boolean(shouldLoadReown),
+      reownRuntime: activeReownRuntime,
       checkoutStage,
       paymentWalletError: checkout.error,
       canUseWalletCheckout: Boolean(selectedAsset?.walletCheckoutEnabled),
@@ -592,10 +660,8 @@ export function useBuyCheckoutController() {
             chainId: null,
             walletChainId: bitcoinWallet.address ? 'mainnet' : null,
             connectorName: bitcoinWallet.connectorName,
-            pendingConnectorName: bitcoinWallet.isConnecting ? 'Bitcoin wallet' : null,
-            availableConnectorNames: bitcoinWallet.isConfigured
-              ? ['Xverse', 'OKX Wallet', 'Leather', 'Phantom', 'WalletConnect']
-              : [],
+            pendingConnectorName: bitcoinWallet.isConnecting ? 'Xverse Wallet' : null,
+            availableConnectorNames: bitcoinWallet.isConfigured ? ['Xverse Wallet'] : [],
             executionReadiness: bitcoinWallet.isReady
               ? 'ready' as const
               : bitcoinWallet.address
@@ -604,9 +670,9 @@ export function useBuyCheckoutController() {
             unsupportedReason: !bitcoinWallet.isConfigured || (bitcoinWallet.address && !bitcoinWallet.isReady)
               ? 'missing_provider' as const
               : null,
-            connectionErrorMessage: bitcoinWallet.isConfigured
-              ? null
-              : 'Bitcoin wallet connection is not configured.',
+            connectionErrorMessage: !bitcoinWallet.isConfigured
+              ? 'Install or enable Xverse Wallet to pay with BTC.'
+              : null,
             verificationStatus: bitcoinWallet.address ? 'verified' as const : 'unverified' as const,
             verifiedWalletAddress: bitcoinWallet.address,
             verificationError: null,
@@ -625,20 +691,22 @@ export function useBuyCheckoutController() {
               walletChainId: tronWallet.walletChainId,
               connectorName: tronWallet.connectorName,
               pendingConnectorName: tronWallet.isConnecting ? 'TRON wallet' : null,
-              availableConnectorNames: tronWallet.isConfigured
-                ? ['TronLink', 'OKX Wallet', 'Trust Wallet', 'WalletConnect']
+              availableConnectorNames: activeReownRuntime === 'tron' && tronWallet.isConfigured
+                ? ['WalletConnect']
                 : [],
               executionReadiness: tronWallet.isReady
                 ? 'ready' as const
                 : tronWallet.address
                   ? 'unsupported' as const
                   : 'checking' as const,
-              unsupportedReason: !tronWallet.isConfigured || (tronWallet.address && !tronWallet.isReady)
+              unsupportedReason: activeReownRuntime === 'tron' && (
+                !tronWallet.isConfigured || (tronWallet.address && !tronWallet.isReady)
+              )
                 ? 'missing_provider' as const
                 : null,
-              connectionErrorMessage: tronWallet.isConfigured
-                ? null
-                : 'TRON wallet connection is not configured.',
+              connectionErrorMessage: activeReownRuntime === 'tron' && !tronWallet.isConfigured
+                ? 'TRON wallet connection is not configured.'
+                : null,
               verificationStatus: tronWallet.address ? 'verified' as const : 'unverified' as const,
               verifiedWalletAddress: tronWallet.address,
               verificationError: null,
@@ -684,6 +752,7 @@ export function useBuyCheckoutController() {
     actions: {
       selectAsset(assetId: string) {
         setSelectedAssetId(assetId);
+        setIsTronRuntimeRequested(false);
         dispatch({ type: 'CLOSE' });
       },
       changeAmount(value: string) {
@@ -741,6 +810,7 @@ export function useBuyCheckoutController() {
         setStatusError(null);
         statusFailureCountRef.current = 0;
         setIsStatusPollingStopped(false);
+        setIsTronRuntimeRequested(false);
         dispatch({ type: 'RESET' });
         writeStoredActivePayment(null);
         writeStoredWalletCheckoutRecovery(null);

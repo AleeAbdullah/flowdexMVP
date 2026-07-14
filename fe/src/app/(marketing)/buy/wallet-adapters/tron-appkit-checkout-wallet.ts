@@ -95,7 +95,7 @@ export function useTronAppKitCheckoutWallet() {
         throw new Error('Connect a supported TRON wallet before continuing.');
       }
       if (!provider || !isSupportedProvider) {
-        throw new Error('Choose TronLink, OKX, Trust Wallet, or a compatible WalletConnect wallet.');
+        throw new Error('Choose a compatible TRON wallet through WalletConnect.');
       }
       if (!isProviderReady) {
         throw new Error('This TRON wallet cannot sign the prepared payment. Choose another wallet.');

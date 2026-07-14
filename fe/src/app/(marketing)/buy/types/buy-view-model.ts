@@ -122,7 +122,7 @@ export type BuyWalletStatusView = {
 };
 
 export type BuyWalletView = {
-  shouldLoadReown: boolean;
+  reownRuntime: 'tron' | null;
   checkoutStage: BuyCheckoutStage;
   paymentWalletError: string | null;
   canUseWalletCheckout: boolean;
