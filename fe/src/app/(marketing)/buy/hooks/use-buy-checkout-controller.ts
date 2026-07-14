@@ -4,14 +4,13 @@ import { useAuthModal } from '@account-kit/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import type { BuySnapshot } from '@/components/flowdex/buy-page-types';
 import { buildBuyMarketModel } from '@/components/flowdex/buy-page-market';
 import { formatCompact, formatCurrency, formatDateTime, formatPlainNumber } from '@/components/flowdex/utils';
 import {
   paymentsQueryKeys,
   paymentsService,
   useCreatePaymentIntent,
-  usePaymentCheckoutCapabilities,
+  usePaymentBuyConfig,
   usePreparePaymentWalletAction,
   useSubmitPaymentIntentTxResult,
 } from '@/dal/app/payments/payments.services';
@@ -25,8 +24,6 @@ import {
 } from '@/dal/app/payments/payments.types';
 import { useMarketingWalletStore, type MarketingWalletStore } from '@/hooks/use-marketing-wallet-store';
 import { useMarketingWalletSync } from '@/hooks/use-marketing-wallet-sync';
-import { usePricing } from '@/dal/market/pricing/pricing.services';
-import { usePresaleConfig, usePresaleStats, usePresaleTiers } from '@/dal/market/presale/presale.services';
 import { extractAxiosError } from '@/lib/axios';
 import {
   initialWalletCheckoutState,
@@ -63,10 +60,8 @@ import { buildSupportedAssetOptions } from '../utils/supported-asset-options';
 import { getWalletConnectSessionCapabilities } from '../utils/walletconnect-session-capabilities';
 import type { BuyWalletProvider, UnsupportedReason } from '../utils/buy-transaction.types';
 import { createEvmCheckoutWalletAdapter } from '../wallet-adapters/checkout-wallet-adapter';
-import { useBitcoinAppKitCheckoutWallet } from '../wallet-adapters/bitcoin-appkit-checkout-wallet';
 import { TRON_MAINNET_WALLET_CHAIN_ID } from '../constants/tron';
-import { useReownCheckoutTheme } from '../wallet-adapters/reown-checkout-appkit';
-import { useTronAppKitCheckoutWallet } from '../wallet-adapters/tron-appkit-checkout-wallet';
+import { useReownCheckoutStore } from '../wallet-adapters/reown-checkout-store';
 import {
   createSolanaMetaMaskCheckoutWalletAdapter,
   initialSolanaCheckoutWalletAdapterState,
@@ -75,6 +70,7 @@ import {
 const DEFAULT_BUY_AMOUNT = '1.7544';
 const PAYMENT_STATUS_POLL_INTERVAL_MS = 12_000;
 const PAYMENT_STATUS_RATE_LIMIT_BACKOFF_MS = 30_000;
+const MAX_PAYMENT_STATUS_FAILURES = 3;
 
 const evmCheckoutUnsupportedMessages: Record<UnsupportedReason, string> = {
   missing_provider: 'A compatible wallet provider is not available for checkout.',
@@ -89,23 +85,11 @@ const evmCheckoutUnsupportedMessages: Record<UnsupportedReason, string> = {
 };
 
 export function useBuyCheckoutController() {
-  const pricing = usePricing();
-  const presaleStats = usePresaleStats();
-  const presaleTiers = usePresaleTiers();
-  const presaleConfig = usePresaleConfig();
-  const checkoutCapabilities = usePaymentCheckoutCapabilities();
-  const snapshot: BuySnapshot = pricing.data && presaleStats.data && presaleTiers.data && presaleConfig.data
-    ? {
-        pricing: pricing.data,
-        presaleStats: presaleStats.data,
-        presaleTiers: presaleTiers.data,
-        presaleConfig: presaleConfig.data,
-      }
-    : null;
-  const marketModel = buildBuyMarketModel(snapshot);
+  const buyConfig = usePaymentBuyConfig();
+  const marketModel = buildBuyMarketModel(buyConfig.data ?? null);
   const supportedAssets = useMemo(
-    () => checkoutCapabilities.data ? buildSupportedAssetOptions(snapshot, checkoutCapabilities.data.items) : [],
-    [checkoutCapabilities.data, snapshot],
+    () => buyConfig.data ? buildSupportedAssetOptions(buyConfig.data, buyConfig.data.assets) : [],
+    [buyConfig.data],
   );
   const queryClient = useQueryClient();
   const createPaymentIntent = useCreatePaymentIntent();
@@ -113,9 +97,9 @@ export function useBuyCheckoutController() {
   const submitPaymentIntentTxResult = useSubmitPaymentIntentTxResult();
   const marketingWallet = useMarketingWalletSync();
   const { openAuthModal } = useAuthModal();
-  useReownCheckoutTheme();
-  const bitcoinWallet = useBitcoinAppKitCheckoutWallet();
-  const tronWallet = useTronAppKitCheckoutWallet();
+  const bitcoinWallet = useReownCheckoutStore(state => state.bitcoin);
+  const tronWallet = useReownCheckoutStore(state => state.tron);
+  const isReownRuntimeLoaded = useReownCheckoutStore(state => state.isRuntimeLoaded);
   const walletProvider = useMarketingWalletStore((state: MarketingWalletStore) => state.provider);
   const walletVerification = useMarketingWalletStore((state: MarketingWalletStore) => state.verification);
 
@@ -125,10 +109,13 @@ export function useBuyCheckoutController() {
   const [statusError, setStatusError] = useState<string | null>(null);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [statusBackoffUntil, setStatusBackoffUntil] = useState(0);
+  const [isStatusPollingStopped, setIsStatusPollingStopped] = useState(false);
   const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
   const [checkout, dispatch] = useReducer(walletCheckoutReducer, initialWalletCheckoutState);
   const [solanaWalletState, setSolanaWalletState] = useState(initialSolanaCheckoutWalletAdapterState);
   const solanaWalletStateRef = useRef(solanaWalletState);
+  const statusFailureCountRef = useRef(0);
+  const isStatusRequestInFlightRef = useRef(false);
 
   useEffect(() => {
     solanaWalletStateRef.current = solanaWalletState;
@@ -172,7 +159,15 @@ export function useBuyCheckoutController() {
   const listingValue = tokenAmount * marketModel.listingReferenceUsd;
   const roiPercent = contributionUsd > 0 ? ((listingValue - contributionUsd) / contributionUsd) * 100 : 0;
   const remainingTokens = Math.max(0, marketModel.remainingRaiseUsd / Math.max(marketModel.tokenPriceUsd, 0.000001));
-  const canSubmit = Boolean(selectedAsset && !createPaymentIntent.isPending && contributionUsd > 0 && tokenAmountInput);
+  const canSubmit = Boolean(
+    buyConfig.data
+    && selectedAsset
+    && selectedAsset.usdPrice > 0
+    && marketModel.tokenPriceUsd > 0
+    && !createPaymentIntent.isPending
+    && contributionUsd > 0
+    && tokenAmountInput,
+  );
   const selectedChainLabel = selectedAsset ? getChainLabel(selectedAsset.chain) : 'Wallet';
   const requiredChainId = selectedAsset?.chain === PAYMENT_CHAINS.ETHEREUM ? selectedAsset.chainId : null;
   const isWrongNetwork = Boolean(
@@ -193,22 +188,31 @@ export function useBuyCheckoutController() {
   }, [checkout.stage, selectedWalletAddress]);
 
   async function refreshStatus(intentId: string) {
-    if (Date.now() < statusBackoffUntil) {
+    if (isStatusRequestInFlightRef.current || Date.now() < statusBackoffUntil) {
       return;
     }
 
+    isStatusRequestInFlightRef.current = true;
     setIsCheckingStatus(true);
     try {
       const status = await paymentsService.getPaymentIntentStatus(intentId);
       setActivePayment({ intent: status.intent, payment: status.payment });
       dispatch({ type: 'STATUS_UPDATED', status });
       setStatusError(null);
+      statusFailureCountRef.current = 0;
+      setIsStatusPollingStopped(false);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: paymentsQueryKeys.history(status.intent.senderAddress) }),
         queryClient.invalidateQueries({ queryKey: paymentsQueryKeys.portfolio(status.intent.senderAddress) }),
       ]);
     } catch (error) {
       const details = extractAxiosError(error);
+      statusFailureCountRef.current += 1;
+      if (statusFailureCountRef.current >= MAX_PAYMENT_STATUS_FAILURES) {
+        setIsStatusPollingStopped(true);
+        setStatusError('Automatic status checks paused after repeated failures. Reload the page to try again.');
+        return;
+      }
       if (details.status === 429) {
         setStatusBackoffUntil(Date.now() + PAYMENT_STATUS_RATE_LIMIT_BACKOFF_MS);
         setStatusError('Payment status is updating slowly. Checking again shortly.');
@@ -216,19 +220,20 @@ export function useBuyCheckoutController() {
         setStatusError(details.message || 'Could not refresh payment status. Retrying shortly.');
       }
     } finally {
+      isStatusRequestInFlightRef.current = false;
       setIsCheckingStatus(false);
     }
   }
 
   useEffect(() => {
-    if (!activePayment || PAYMENT_TERMINAL_STATUSES.has(activePayment.intent.status)) {
+    if (!activePayment || isStatusPollingStopped || PAYMENT_TERMINAL_STATUSES.has(activePayment.intent.status)) {
       return;
     }
 
     void refreshStatus(activePayment.intent.id);
     const interval = window.setInterval(() => void refreshStatus(activePayment.intent.id), PAYMENT_STATUS_POLL_INTERVAL_MS);
     return () => window.clearInterval(interval);
-  }, [activePayment?.intent.id, activePayment?.intent.status, statusBackoffUntil]);
+  }, [activePayment?.intent.id, activePayment?.intent.status, isStatusPollingStopped, statusBackoffUntil]);
 
   async function requestNetworkSwitch() {
     setIsSwitchingNetwork(true);
@@ -492,7 +497,11 @@ export function useBuyCheckoutController() {
   const needsWalletConnection = !selectedWalletAddress
     || (selectedAsset?.chain === PAYMENT_CHAINS.BITCOIN && !bitcoinWallet.isReady)
     || (selectedAsset?.chain === PAYMENT_CHAINS.TRON && !tronWallet.isReady);
-  const isPrimaryActionBusy = isSwitchingNetwork
+  const shouldLoadReown = selectedAsset?.chain === PAYMENT_CHAINS.BITCOIN
+    || selectedAsset?.chain === PAYMENT_CHAINS.TRON;
+  const isReownRuntimeLoading = Boolean(shouldLoadReown && !isReownRuntimeLoaded);
+  const isPrimaryActionBusy = isReownRuntimeLoading
+    || isSwitchingNetwork
     || checkoutStage === 'connecting_wallet'
     || checkoutStage === 'preparing_wallet_action'
     || checkoutStage === 'waiting_for_wallet_approval'
@@ -500,7 +509,13 @@ export function useBuyCheckoutController() {
     || createPaymentIntent.isPending
     || prepareWalletAction.isPending
     || submitPaymentIntentTxResult.isPending;
-  const primaryActionLabel = isSwitchingNetwork
+  const primaryActionLabel = isReownRuntimeLoading
+    ? 'Loading wallet options'
+    : buyConfig.isLoading
+    ? 'Loading live pricing'
+    : buyConfig.isError
+      ? 'Live pricing unavailable'
+      : isSwitchingNetwork
     ? 'Switching network'
     : checkoutStage === 'connecting_wallet'
       ? 'Connecting wallet'
@@ -518,16 +533,22 @@ export function useBuyCheckoutController() {
 
   return {
     market: {
+      isLoading: buyConfig.isLoading,
+      hasError: buyConfig.isError,
       currentTier: marketModel.currentTier,
       tokenPriceUsd: marketModel.tokenPriceUsd,
       listingReferenceUsd: marketModel.listingReferenceUsd,
-      raisedDisplay: formatCurrency(marketModel.fundsRaisedUsd, 0),
-      targetRaisedDisplay: marketModel.targetRaisedUsd > 0 ? formatCompactCurrency(marketModel.targetRaisedUsd) : '$5.00M',
-      tokensSoldDisplay: `${formatCompact(marketModel.tokensSold, 2)} FDN`,
-      remainingTokensDisplay: formatCompact(remainingTokens, 2),
-      tokenPriceDisplay: formatCurrency(marketModel.tokenPriceUsd, 4),
-      discountPercentDisplay: `-${marketModel.discountPercent}%`,
-      nextTierPriceDisplay: marketModel.nextTierTokenPriceUsd ? formatCurrency(marketModel.nextTierTokenPriceUsd, 4) : formatCurrency(marketModel.listingReferenceUsd, 3),
+      raisedDisplay: buyConfig.data ? formatCurrency(marketModel.fundsRaisedUsd, 0) : '—',
+      targetRaisedDisplay: marketModel.targetRaisedUsd > 0 ? formatCompactCurrency(marketModel.targetRaisedUsd) : '—',
+      tokensSoldDisplay: buyConfig.data ? `${formatCompact(marketModel.tokensSold, 2)} FDN` : '—',
+      remainingTokensDisplay: buyConfig.data ? formatCompact(remainingTokens, 2) : '—',
+      tokenPriceDisplay: buyConfig.data ? formatCurrency(marketModel.tokenPriceUsd, 4) : '—',
+      discountPercentDisplay: buyConfig.data ? `-${marketModel.discountPercent}%` : '—',
+      nextTierPriceDisplay: marketModel.nextTierTokenPriceUsd
+        ? formatCurrency(marketModel.nextTierTokenPriceUsd, 4)
+        : buyConfig.data
+          ? 'Final tier'
+          : '—',
       raisedProgressPercent: marketModel.raisedProgressPercent,
     },
     order: {
@@ -542,7 +563,7 @@ export function useBuyCheckoutController() {
       isPrimaryActionBusy,
       isWrongNetwork,
       isSwitchingNetwork,
-      error: checkout.error,
+      error: checkout.error ?? (buyConfig.isError ? 'Live pricing is temporarily unavailable. Please try again shortly.' : null),
       canSubmit,
       scenarios: buildScenarioCards(tokenAmount, contributionUsd, marketModel.listingReferenceUsd),
     },
@@ -554,6 +575,7 @@ export function useBuyCheckoutController() {
       walletTxResult: checkout.txResult,
     },
     wallet: {
+      shouldLoadReown: Boolean(shouldLoadReown),
       checkoutStage,
       paymentWalletError: checkout.error,
       canUseWalletCheckout: Boolean(selectedAsset?.walletCheckoutEnabled),
@@ -715,6 +737,8 @@ export function useBuyCheckoutController() {
       startNewPayment() {
         setActivePayment(null);
         setStatusError(null);
+        statusFailureCountRef.current = 0;
+        setIsStatusPollingStopped(false);
         dispatch({ type: 'RESET' });
         writeStoredActivePayment(null);
         writeStoredWalletCheckoutRecovery(null);

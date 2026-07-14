@@ -1,16 +1,6 @@
-import type {
-  IPresaleConfig,
-  IPresaleStats,
-  IPresaleTier,
-} from '@/dal/market/presale/presale.types';
-import type { IPricingItem } from '@/dal/market/pricing/pricing.types';
+import type { IPaymentBuyConfigResponse } from '@/dal/app/payments/payments.types';
 
-export type BuySnapshot = {
-  pricing: { items: IPricingItem[] };
-  presaleStats: IPresaleStats;
-  presaleTiers: { items: IPresaleTier[] };
-  presaleConfig: IPresaleConfig;
-} | null;
+export type BuySnapshot = IPaymentBuyConfigResponse | null;
 
 export type BuyAssetOption = {
   code: string;

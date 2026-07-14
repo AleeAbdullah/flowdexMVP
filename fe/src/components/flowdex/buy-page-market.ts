@@ -5,16 +5,6 @@ const VESTING_LABELS = ['5% TGE', '12mo cliff', '24mo vest', 'Full unlock 36 mon
 const LISTING_REFERENCE_USD = 0.05;
 const STAKING_APY_TEXT = '12-18%';
 
-const FALLBACK_ASSET_PRICES: Record<string, number> = {
-  ETH: 2850,
-  USDT: 1,
-  USDT_TRC20: 1,
-  USDC: 1,
-  BNB: 610,
-  SOL: 190,
-  BTC: 65000,
-};
-
 function toAssetLabel(code: string) {
   const labels: Record<string, string> = {
     ETH: 'Ethereum',
@@ -29,37 +19,19 @@ function toAssetLabel(code: string) {
   return labels[code] ?? code;
 }
 
-function buildFallbackAssets(): BuyAssetOption[] {
-  return Object.entries(FALLBACK_ASSET_PRICES).map(([code, usdPrice]) => ({
-    code,
-    label: toAssetLabel(code),
-    symbol: code,
-    chain: code === 'SOL' ? 'SOLANA' : 'EVM',
-    usdPrice,
-    minAmount: 0,
-    minConfirmations: 0,
-  }));
-}
-
 function buildAssetOptions(snapshot: NonNullable<BuySnapshot>): BuyAssetOption[] {
-  const pricingByAsset = new Map(
-    snapshot.pricing.items.map(item => [item.assetCode.toUpperCase(), parseDecimal(item.priceUsd)]),
-  );
-
-  const supported = snapshot.presaleConfig.supportedAssets.map((asset) => {
-    const code = asset.assetCode.toUpperCase();
+  return snapshot.assets.map((asset) => {
+    const code = asset.asset.toUpperCase();
     return {
       code,
       label: toAssetLabel(code),
       symbol: code,
-      chain: code === 'USDT_TRC20' ? 'TRON' : asset.chain,
-      usdPrice: pricingByAsset.get(code) ?? FALLBACK_ASSET_PRICES[code] ?? 0,
-      minAmount: parseDecimal(asset.minAmount),
-      minConfirmations: asset.minConfirmations,
+      chain: asset.chain,
+      usdPrice: parseDecimal(asset.priceUsd),
+      minAmount: 0,
+      minConfirmations: 0,
     };
   });
-
-  return supported.length ? supported : buildFallbackAssets();
 }
 
 function parseMarketNumber(value?: string | number | null) {
@@ -92,49 +64,13 @@ function parseMarketNumber(value?: string | number | null) {
   return parsed * multiplier;
 }
 
-function estimateTargetRaisedUsd(snapshot: NonNullable<BuySnapshot>, currentTokenPriceUsd: number) {
-  const activeTier = snapshot.presaleTiers.items.find(item => item.isActive);
-  if (activeTier) {
-    const tierCapTokens = parseDecimal(activeTier.tokenCapReal);
-    if (tierCapTokens > 0 && currentTokenPriceUsd > 0) {
-      return tierCapTokens * currentTokenPriceUsd;
-    }
-  }
-
-  const aggregateCapTokens = snapshot.presaleTiers.items.reduce((acc, tier) => {
-    return acc + parseDecimal(tier.tokenCapReal);
-  }, 0);
-
-  if (aggregateCapTokens > 0 && currentTokenPriceUsd > 0) {
-    return aggregateCapTokens * currentTokenPriceUsd;
-  }
-
-  return 0;
-}
-
-function findNextTierTokenPriceUsd(snapshot: NonNullable<BuySnapshot>) {
-  const activeTier = snapshot.presaleTiers.items.find(item => item.isActive);
-  const currentOrder = activeTier?.order ?? snapshot.presaleStats.currentTier;
-  const nextTier = [...snapshot.presaleTiers.items]
-    .sort((a, b) => a.order - b.order)
-    .find(item => item.order > currentOrder);
-
-  if (!nextTier) {
-    return null;
-  }
-
-  const nextPrice = parseDecimal(nextTier.tokenPriceUsd);
-  return nextPrice > 0 ? nextPrice : null;
-}
-
 export function buildBuyMarketModel(snapshot: BuySnapshot): BuyMarketModel {
   if (!snapshot) {
-    const tokenPriceUsd = 0.001;
     return {
-      currentTier: 1,
-      tokenPriceUsd,
+      currentTier: 0,
+      tokenPriceUsd: 0,
       listingReferenceUsd: LISTING_REFERENCE_USD,
-      discountPercent: Math.max(0, Math.round(((LISTING_REFERENCE_USD - tokenPriceUsd) / LISTING_REFERENCE_USD) * 100)),
+      discountPercent: 0,
       fundsRaisedUsd: 0,
       targetRaisedUsd: 0,
       remainingRaiseUsd: 0,
@@ -143,26 +79,22 @@ export function buildBuyMarketModel(snapshot: BuySnapshot): BuyMarketModel {
       raisedProgressPercent: 0,
       stakingApyText: STAKING_APY_TEXT,
       vestingLabels: [...VESTING_LABELS],
-      assetOptions: buildFallbackAssets(),
+      assetOptions: [],
       sourceUpdatedAt: null,
     };
   }
 
-  const tokenPriceUsd = parseDecimal(snapshot.presaleStats.currentTokenPriceUsd);
-  const fundsRaisedUsd = parseMarketNumber(
-    snapshot.presaleStats.fundsRaisedRealUsd || snapshot.presaleStats.fundsRaisedDisplayUsd,
-  );
-  const tokensSold = parseMarketNumber(
-    snapshot.presaleStats.tokensSoldReal || snapshot.presaleStats.tokensSoldDisplay,
-  );
-  const targetRaisedUsd = estimateTargetRaisedUsd(snapshot, tokenPriceUsd);
+  const tokenPriceUsd = parseDecimal(snapshot.presale.tokenPriceUsd);
+  const fundsRaisedUsd = parseMarketNumber(snapshot.presale.fundsRaisedUsd);
+  const tokensSold = parseMarketNumber(snapshot.presale.tokensSold);
+  const targetRaisedUsd = parseMarketNumber(snapshot.presale.targetRaisedUsd);
   const remainingRaiseUsd = Math.max(0, targetRaisedUsd - fundsRaisedUsd);
   const raisedProgressPercent = targetRaisedUsd > 0
     ? Math.min(100, (fundsRaisedUsd / targetRaisedUsd) * 100)
     : 0;
 
   return {
-    currentTier: snapshot.presaleStats.currentTier,
+    currentTier: snapshot.presale.currentTier,
     tokenPriceUsd,
     listingReferenceUsd: LISTING_REFERENCE_USD,
     discountPercent: tokenPriceUsd > 0
@@ -172,11 +104,13 @@ export function buildBuyMarketModel(snapshot: BuySnapshot): BuyMarketModel {
     targetRaisedUsd,
     remainingRaiseUsd,
     tokensSold,
-    nextTierTokenPriceUsd: findNextTierTokenPriceUsd(snapshot),
+    nextTierTokenPriceUsd: snapshot.presale.nextTierTokenPriceUsd
+      ? parseDecimal(snapshot.presale.nextTierTokenPriceUsd)
+      : null,
     raisedProgressPercent,
     stakingApyText: STAKING_APY_TEXT,
     vestingLabels: [...VESTING_LABELS],
     assetOptions: buildAssetOptions(snapshot),
-    sourceUpdatedAt: snapshot.presaleStats.updatedAt ?? null,
+    sourceUpdatedAt: snapshot.presale.updatedAt,
   };
 }

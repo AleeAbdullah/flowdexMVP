@@ -8,6 +8,7 @@ import {
   BroadcastPreparedTronTransactionResponseDto,
   CreatePaymentIntentDto,
   PaymentCheckoutCapabilitiesDto,
+  PaymentBuyConfigDto,
   PaymentCheckoutSessionDto,
   PaymentHistoryQueryDto,
   PaymentLeadersQueryDto,
@@ -20,6 +21,7 @@ import {
   SubmitPaymentTxResultDto,
 } from './dto/payments.dto';
 import { PaymentsService } from './payments.service';
+import { PaymentBuyConfigService } from './services/payment-buy-config.service';
 
 type RawBodyRequest = Request & {
   rawBody?: Buffer;
@@ -28,7 +30,18 @@ type RawBodyRequest = Request & {
 @ApiTags('payments')
 @Controller('payments')
 export class PaymentsController {
-  constructor(private readonly paymentsService: PaymentsService) {}
+  constructor(
+    private readonly paymentsService: PaymentsService,
+    private readonly paymentBuyConfigService: PaymentBuyConfigService,
+  ) {}
+
+  @Get('buy-config')
+  @Throttle({ buyConfig: { limit: 30, ttl: 60_000 } })
+  getBuyConfig(): Promise<PaymentBuyConfigDto> {
+    return this.paymentBuyConfigService.getBuyConfig(
+      this.paymentsService.getCheckoutCapabilities().items,
+    );
+  }
 
   @Get('checkout-capabilities')
   getCheckoutCapabilities(): PaymentCheckoutCapabilitiesDto {

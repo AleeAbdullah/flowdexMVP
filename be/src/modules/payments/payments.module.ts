@@ -14,6 +14,7 @@ import { EvmPaymentExecutionService } from './services/evm-payment-execution.ser
 import { AlchemySolanaProvider } from './services/alchemy-solana-provider.service';
 import { PaymentPricingService } from './services/payment-pricing.service';
 import { PaymentCheckoutCapabilityService } from './services/payment-checkout-capability.service';
+import { PaymentBuyConfigService } from './services/payment-buy-config.service';
 import { PaymentStateService } from './services/payment-state.service';
 import { SolanaPaymentExecutionService } from './services/solana-payment-execution.service';
 import { TronPaymentExecutionService } from './services/tron-payment-execution.service';
@@ -37,6 +38,7 @@ import { WalletActionExecutorRegistry } from './wallet-action-executors/wallet-a
     EvmPaymentExecutionService,
     AlchemySolanaProvider,
     PaymentPricingService,
+    PaymentBuyConfigService,
     PaymentCheckoutCapabilityService,
     PaymentStateService,
     SolanaPaymentExecutionService,

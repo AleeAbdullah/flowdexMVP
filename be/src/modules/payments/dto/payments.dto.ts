@@ -152,6 +152,57 @@ export class PaymentCheckoutCapabilitiesDto {
   items!: PaymentCheckoutCapabilityDto[];
 }
 
+export class PaymentBuyAssetDto extends PaymentCheckoutCapabilityDto {
+  @ApiProperty()
+  priceUsd!: string;
+
+  @ApiProperty()
+  quotedAt!: string;
+
+  @ApiProperty({ enum: ['fresh', 'cached', 'fixed'] })
+  cacheStatus!: 'fresh' | 'cached' | 'fixed';
+}
+
+export class PaymentBuyPresaleDto {
+  @ApiProperty()
+  currentTier!: number;
+
+  @ApiProperty()
+  tokenPriceUsd!: string;
+
+  @ApiProperty({ nullable: true })
+  nextTierTokenPriceUsd!: string | null;
+
+  @ApiProperty()
+  fundsRaisedUsd!: string;
+
+  @ApiProperty()
+  tokensSold!: string;
+
+  @ApiProperty()
+  currentTierTokenCap!: string;
+
+  @ApiProperty()
+  aggregateTokenCap!: string;
+
+  @ApiProperty()
+  targetRaisedUsd!: string;
+
+  @ApiProperty()
+  updatedAt!: string;
+}
+
+export class PaymentBuyConfigDto {
+  @ApiProperty({ type: PaymentBuyPresaleDto })
+  presale!: PaymentBuyPresaleDto;
+
+  @ApiProperty({ type: [PaymentBuyAssetDto] })
+  assets!: PaymentBuyAssetDto[];
+
+  @ApiProperty()
+  servedAt!: string;
+}
+
 export class PaymentPublicDto {
   @ApiProperty()
   intentId!: string;
