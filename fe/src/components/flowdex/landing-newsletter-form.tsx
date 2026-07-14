@@ -81,7 +81,7 @@ export function LandingNewsletterForm() {
           Product notes, launch timing, and major public updates.
         </p>
         {error ? (
-          <p id={errorId} role="alert" className="text-sm leading-6 text-rose-300">
+          <p id={errorId} role="alert" className="text-sm leading-6 text-[var(--status-error-text)]">
             {error}
           </p>
         ) : null}

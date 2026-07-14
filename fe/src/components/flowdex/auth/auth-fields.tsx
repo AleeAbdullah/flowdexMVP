@@ -40,7 +40,7 @@ function AuthField(props: {
         required
       />
       {props.error ? (
-        <div id={`${props.name}-error`} className="text-sm text-rose-200">
+        <div id={`${props.name}-error`} className="text-sm text-[var(--status-error-text)]">
           {props.error}
         </div>
       ) : null}

@@ -42,7 +42,7 @@ export function AdminTransactionsList(props: {
           </div>
         ) : null}
         {props.errorMessage ? (
-          <div className="px-6 py-5 text-sm text-rose-200">{props.errorMessage}</div>
+          <div className="border-y border-[var(--status-error-border)] bg-[var(--status-error-surface)] px-6 py-5 text-sm text-[var(--status-error-text)]">{props.errorMessage}</div>
         ) : null}
         {!props.isLoading && !props.errorMessage && props.items.length === 0 ? (
           <div className="px-6 py-6 text-sm text-[var(--muted)]">

@@ -12,7 +12,7 @@ const alertVariants = cva(
         brand:
           'border-[var(--accent-border)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--accent-bg)_92%,transparent),color-mix(in_srgb,var(--card-bg)_88%,transparent))] text-[color-mix(in_srgb,var(--text)_94%,transparent)] [&>svg]:text-[var(--cyan)]',
         destructive:
-          'border-red-500/30 bg-red-500/10 text-red-100 [&>svg]:text-red-300',
+          'border-[var(--status-error-border)] bg-[var(--status-error-surface)] text-[var(--status-error-text)] [&>svg]:text-[var(--status-error-text)]',
       },
     },
     defaultVariants: {

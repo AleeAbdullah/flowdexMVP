@@ -112,8 +112,28 @@ export type IPreparedTronWalletAction = {
     feeLimitSun: string;
     payerAddress: string;
     payerAddressHex: string;
+    unsignedTransaction: ITronUnsignedTransaction;
   };
   expiresAt: string;
+};
+
+export type ITronUnsignedTransaction = {
+  visible: boolean;
+  txID: string;
+  raw_data: Record<string, unknown>;
+  raw_data_hex: string;
+};
+
+export type ITronSignedTransaction = ITronUnsignedTransaction & {
+  signature: string[];
+};
+
+export type BroadcastPreparedTronTransactionInput = {
+  signedTransaction: ITronSignedTransaction;
+};
+
+export type BroadcastPreparedTronTransactionResponse = {
+  txId: string;
 };
 
 export type IPreparedBitcoinWalletAction = {
@@ -151,7 +171,7 @@ export type IPaymentCheckoutSession = {
 export type IPaymentCheckoutCapability = {
   chain: PaymentChain;
   asset: PaymentAsset;
-  walletProvider: 'metamask' | 'metamask_solana' | 'xverse' | 'tronlink';
+  walletProvider: 'metamask' | 'metamask_solana' | 'xverse' | 'reown';
   network: 'mainnet' | 'mainnet-beta';
   decimals: number;
   enabled: boolean;

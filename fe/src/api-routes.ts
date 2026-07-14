@@ -46,6 +46,9 @@ export const API_ROUTES = {
       intents: '/payments/intents',
       intentStatus: (intentId: string) => `/payments/intents/${intentId}/status`,
       intentWalletAction: (intentId: string) => `/payments/intents/${intentId}/wallet-action`,
+      intentTronBroadcast: (intentId: string, preparedActionId: string) => (
+        `/payments/intents/${intentId}/wallet-actions/${preparedActionId}/tron-broadcast`
+      ),
       intentTxResult: (intentId: string) => `/payments/intents/${intentId}/tx-result`,
       portfolio: (params: { walletAddress: string }) => {
         const searchParams = new URLSearchParams({

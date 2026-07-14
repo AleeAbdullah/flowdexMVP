@@ -21,6 +21,7 @@ type MapProps = {
   }>;
   lineColor?: string;
   mapColor?: string;
+  blendMode?: 'multiply' | 'screen';
 };
 
 export default function WorldMap({
@@ -29,6 +30,7 @@ export default function WorldMap({
   dots = [],
   lineColor = '#8FA6C8',
   mapColor = 'rgba(143, 166, 200, 0.5)',
+  blendMode = 'screen',
 }: MapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -47,7 +49,10 @@ export default function WorldMap({
     <div className={cn('relative w-full bg-transparent font-sans', className)}>
       <Image
         alt="world map"
-        className="pointer-events-none h-full w-full select-none opacity-90 mix-blend-screen [mask-image:linear-gradient(to_bottom,rgba(255,255,255,0.78),white_14%,white_90%,rgba(255,255,255,0.64))]"
+        className={cn(
+          'pointer-events-none h-full w-full select-none opacity-90 [mask-image:linear-gradient(to_bottom,rgba(255,255,255,0.78),white_14%,white_90%,rgba(255,255,255,0.64))]',
+          blendMode === 'multiply' ? 'mix-blend-multiply' : 'mix-blend-screen',
+        )}
         draggable={false}
         height={495}
         src={`data:image/svg+xml;utf8,${encodeURIComponent(svgMap)}`}

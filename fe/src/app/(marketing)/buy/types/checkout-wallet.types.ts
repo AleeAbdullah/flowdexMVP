@@ -1,4 +1,7 @@
-import type { IPaymentWalletTransactionRequest } from '@/dal/app/payments/payments.types';
+import type {
+  IPaymentWalletTransactionRequest,
+  ITronUnsignedTransaction,
+} from '@/dal/app/payments/payments.types';
 
 export type CheckoutChain = 'ETHEREUM' | 'SOLANA' | 'BITCOIN' | 'TRON';
 
@@ -40,6 +43,7 @@ export type TronPreparedWalletAction = {
   feeLimitSun: string;
   payerAddress: string;
   payerAddressHex: string;
+  unsignedTransaction: ITronUnsignedTransaction;
   expiresAt: string;
 };
 

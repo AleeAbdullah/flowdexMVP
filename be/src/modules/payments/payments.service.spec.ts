@@ -89,6 +89,7 @@ function buildService(input: {
   };
   const paymentWalletActionsRepository = {
     findOne: jest.fn().mockResolvedValue(action),
+    save: jest.fn(async (value: unknown) => value),
   };
   const manager = {
     findOne: jest.fn(async (entity: unknown, options: { where: Record<string, unknown> }) => {
@@ -112,22 +113,43 @@ function buildService(input: {
   };
   const registry = { get: jest.fn(() => executor) };
   const stateService = { assertIntentTransition: jest.fn() };
+  const alchemyService = {
+    broadcastTronTransaction: jest.fn(),
+  };
+  const tronPaymentExecutionService = {
+    assertTxIdFormat: jest.fn(),
+    parsePreparedTransfer: jest.fn(),
+    assertSignedTransactionMatchesPrepared: jest.fn(),
+  };
   const service = new PaymentsService(
     paymentIntentsRepository as never,
     paymentsRepository as never,
     paymentWalletActionsRepository as never,
     dataSource as never,
+    alchemyService as never,
     {} as never,
     {} as never,
     {} as never,
     {} as never,
-    {} as never,
+    tronPaymentExecutionService as never,
     stateService as never,
     registry as never,
     new PaymentCheckoutCapabilityService(),
   );
 
-  return { service, intent, action, paymentIntentsRepository, paymentsRepository, manager, executor, stateService };
+  return {
+    service,
+    intent,
+    action,
+    paymentIntentsRepository,
+    paymentsRepository,
+    paymentWalletActionsRepository,
+    manager,
+    executor,
+    stateService,
+    alchemyService,
+    tronPaymentExecutionService,
+  };
 }
 
 describe('PaymentsService wallet checkout', () => {
@@ -190,14 +212,68 @@ describe('PaymentsService wallet checkout', () => {
     })).rejects.toThrow('Invalid payment checkout token');
   });
 
-  it('advertises Bitcoin/Xverse and TRON/TronLink checkout capability records', () => {
+  it('advertises Bitcoin/Xverse and TRON/Reown checkout capability records', () => {
     const { service } = buildService({});
 
     const capabilities = service.getCheckoutCapabilities();
 
     expect(capabilities.items).toEqual(expect.arrayContaining([
       expect.objectContaining({ chain: PaymentChain.BITCOIN, asset: PaymentAsset.BTC, walletProvider: 'xverse' }),
-      expect.objectContaining({ chain: PaymentChain.TRON, asset: PaymentAsset.USDT_TRC20, walletProvider: 'tronlink' }),
+      expect.objectContaining({ chain: PaymentChain.TRON, asset: PaymentAsset.USDT_TRC20, walletProvider: 'reown' }),
     ]));
+  });
+
+  it('validates and broadcasts a signed prepared TRON transaction idempotently', async () => {
+    const txId = 'a'.repeat(64);
+    const unsignedTransaction = {
+      visible: true,
+      txID: txId,
+      raw_data: { fee_limit: 100_000_000 },
+      raw_data_hex: 'deadbeef',
+    };
+    const intent = buildIntent({
+      chain: PaymentChain.TRON,
+      asset: PaymentAsset.USDT_TRC20,
+      senderAddress: 'TPayer',
+      receiverAddress: 'TReceiver',
+    });
+    const action = buildAction(intent, {
+      chain: PaymentChain.TRON,
+      actionKind: PaymentWalletActionKind.TRON_TRANSACTION,
+      requestJson: { kind: 'tron_transaction', unsignedTransaction },
+    });
+    const {
+      service,
+      alchemyService,
+      paymentWalletActionsRepository,
+      tronPaymentExecutionService,
+    } = buildService({ intent, action });
+    tronPaymentExecutionService.parsePreparedTransfer.mockReturnValue({ unsignedTransaction });
+    alchemyService.broadcastTronTransaction.mockResolvedValue(txId);
+    const signedTransaction = {
+      ...unsignedTransaction,
+      signature: ['b'.repeat(130)],
+    };
+
+    await expect(service.broadcastPreparedTronTransaction(
+      intent.id,
+      action.id,
+      CHECKOUT_TOKEN,
+      { signedTransaction },
+    )).resolves.toEqual({ txId });
+    expect(tronPaymentExecutionService.assertSignedTransactionMatchesPrepared).toHaveBeenCalled();
+    expect(alchemyService.broadcastTronTransaction).toHaveBeenCalledWith(signedTransaction);
+    expect(paymentWalletActionsRepository.save).toHaveBeenCalledWith(expect.objectContaining({
+      txId,
+      txIdKind: PaymentWalletTxIdKind.TRON_TX_HASH,
+    }));
+
+    await expect(service.broadcastPreparedTronTransaction(
+      intent.id,
+      action.id,
+      CHECKOUT_TOKEN,
+      { signedTransaction },
+    )).resolves.toEqual({ txId });
+    expect(alchemyService.broadcastTronTransaction).toHaveBeenCalledTimes(1);
   });
 });

@@ -20,7 +20,7 @@ export function AdminTransactionRow(props: {
         <button
           type="button"
           onClick={props.onToggle}
-          className="min-w-0 flex-1 space-y-2 text-left"
+          className="min-w-0 flex-1 space-y-2 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
         >
           <div className="flex flex-wrap items-center gap-3">
             <div className="font-semibold text-[var(--text)]">{item.asset} on {item.chain}</div>

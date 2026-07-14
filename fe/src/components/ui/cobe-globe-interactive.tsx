@@ -218,7 +218,7 @@ export function GlobeInteractive({
           key={marker.id}
           type="button"
           aria-label={`${marker.name}: ${marker.users.toLocaleString()} ${label}`}
-          className="absolute flex flex-col items-center border border-white/10 bg-[rgba(7,18,34,0.78)] text-[var(--text)] shadow-[0_14px_38px_rgba(0,0,0,0.38)] backdrop-blur-xl"
+          className="absolute flex flex-col items-center border border-[var(--visual-glass-border)] bg-[var(--visual-glass-surface-strong)] text-[var(--text)] shadow-[0_14px_38px_var(--visual-deep-shadow)] backdrop-blur-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
           onClick={() => setExpanded(expanded === marker.id ? null : marker.id)}
           style={{
             '--marker-visible': `var(--cobe-visible-${marker.id}, 0)`,

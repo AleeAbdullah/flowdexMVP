@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -14,7 +14,6 @@ import {
 import {
   TronPaymentExecutionService,
 } from '../services/tron-payment-execution.service';
-import { PaymentStateService } from '../services/payment-state.service';
 import { assertWalletIntentIsUsable } from './wallet-checkout.guards';
 import type {
   WalletActionExecutor,
@@ -31,8 +30,7 @@ export class TronWalletActionExecutor implements WalletActionExecutor {
     @InjectRepository(PaymentWalletActionEntity)
     private readonly paymentWalletActionsRepository: Repository<PaymentWalletActionEntity>,
     private readonly tronPaymentExecutionService: TronPaymentExecutionService,
-    private readonly _alchemyService: AlchemyService,
-    private readonly _stateService: PaymentStateService,
+    private readonly alchemyService: AlchemyService,
   ) {}
 
   async prepare(input: WalletActionPrepareInput): Promise<PreparedWalletActionDto> {
@@ -42,11 +40,22 @@ export class TronWalletActionExecutor implements WalletActionExecutor {
 
     assertWalletIntentIsUsable(input.intent, input.senderAddress, PaymentChain.TRON);
 
-    const prepared = this.tronPaymentExecutionService.buildPreparedTransfer({
+    const transfer = this.tronPaymentExecutionService.buildPreparedTransfer({
       payerAddress: input.senderAddress,
       recipientAddress: input.intent.receiverAddress,
       amountBaseUnits: input.intent.expectedAmountBaseUnits,
     });
+    const unsignedTransaction = await this.alchemyService.createTronSmartContractTransaction({
+      ownerAddress: transfer.payerAddress,
+      contractAddress: transfer.contractAddress,
+      functionSelector: transfer.functionSelector,
+      parameter: this.tronPaymentExecutionService.buildSmartContractParameter(transfer),
+      feeLimitSun: Number(transfer.feeLimitSun),
+    });
+    if (!unsignedTransaction) {
+      throw new ServiceUnavailableException('Unable to prepare the TRON wallet transaction');
+    }
+    const prepared = this.tronPaymentExecutionService.toPreparedTransfer(transfer, unsignedTransaction);
     const expiresAt = new Date(Date.now() + PAYMENT_WALLET_ACTION_TTL_MS);
     const action = await this.paymentWalletActionsRepository.save(
       this.paymentWalletActionsRepository.create({

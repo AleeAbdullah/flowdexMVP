@@ -2,6 +2,7 @@
 
 import { type ReactNode, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useTheme } from 'next-themes';
 import {
   ArrowRight,
   Boxes,
@@ -69,8 +70,12 @@ const heroGlobeArcs: GlobeArc[] = [
 ];
 const heroGlobeBaseColor: [number, number, number] = [0.08, 0.19, 0.32];
 const heroGlobeGlowColor: [number, number, number] = [0.24, 0.78, 0.91];
+const heroGlobeLightBaseColor: [number, number, number] = [0.72, 0.86, 0.92];
+const heroGlobeLightGlowColor: [number, number, number] = [0.06, 0.45, 0.6];
 
 export function LandingHeroGlobeVisual(props: VisualProps) {
+  const { resolvedTheme } = useTheme();
+  const isLightTheme = resolvedTheme === 'light';
   const globeAccentColor = useMemo(() => hexToCobeColor(props.accentColor), [props.accentColor]);
 
   return (
@@ -85,8 +90,8 @@ export function LandingHeroGlobeVisual(props: VisualProps) {
           markers={heroGlobeMarkers}
           arcs={heroGlobeArcs}
           accentColor={globeAccentColor}
-          baseColor={heroGlobeBaseColor}
-          glowColor={heroGlobeGlowColor}
+          baseColor={isLightTheme ? heroGlobeLightBaseColor : heroGlobeBaseColor}
+          glowColor={isLightTheme ? heroGlobeLightGlowColor : heroGlobeGlowColor}
           label="markets"
           speed={props.isActive ? 0.0028 : 0}
           className="w-full max-w-[31.5rem] opacity-95 drop-shadow-[0_28px_90px_rgba(60,200,232,0.16)] xl:max-w-[34rem]"
@@ -147,14 +152,14 @@ export function LandingHeroCardsVisual(props: VisualProps) {
         style={{ background: `radial-gradient(circle, ${props.glowColor} 0%, transparent 78%)` }}
       />
 
-      <div className="absolute z-0 left-[32%] top-[14%] h-[10rem] w-[15rem] rotate-[11deg] rounded-[1.9rem] border border-white/8 bg-[linear-gradient(160deg,rgba(255,255,255,0.1),rgba(255,255,255,0.03))] opacity-38 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-2xl" />
+      <div className="absolute z-0 left-[32%] top-[14%] h-[10rem] w-[15rem] rotate-[11deg] rounded-[1.9rem] border border-[var(--visual-glass-border)] bg-[var(--visual-glass-surface)] opacity-38 shadow-[0_24px_80px_var(--visual-deep-shadow)] backdrop-blur-2xl" />
 
 
       {cardVariants.map((card, index) => (
         <motion.div
           key={card.title}
           className={cn(
-            'absolute z-10 h-[9.75rem] w-[13.5rem] rounded-[1.7rem] border border-white/10 bg-[linear-gradient(160deg,rgba(255,255,255,0.16),rgba(255,255,255,0.04))] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.4)] backdrop-blur-2xl',
+            'absolute z-10 h-[9.75rem] w-[13.5rem] rounded-[1.7rem] border border-[var(--visual-glass-border)] bg-[var(--visual-glass-surface)] p-4 shadow-[0_24px_80px_var(--visual-deep-shadow)] backdrop-blur-2xl',
             card.className,
           )}
           initial={{ opacity: 0, x: 30, y: 30 }}
@@ -199,6 +204,9 @@ export function LandingHeroSceneVisual(props: VisualProps) {
 }
 
 function FlowchainScene(props: VisualProps) {
+  const { resolvedTheme } = useTheme();
+  const isLightTheme = resolvedTheme === 'light';
+
   return (
     <div className="relative h-full w-full overflow-visible">
       <div
@@ -211,7 +219,8 @@ function FlowchainScene(props: VisualProps) {
           className="h-full bg-transparent dark:bg-transparent"
           dots={flowchainMapRoutes}
           lineColor={props.accentColor}
-          mapColor="rgba(143, 166, 200, 0.5)"
+          mapColor={isLightTheme ? 'rgba(95, 119, 146, 0.42)' : 'rgba(143, 166, 200, 0.5)'}
+          blendMode={isLightTheme ? 'multiply' : 'screen'}
         />
       </div>
 
@@ -239,16 +248,16 @@ function StakingScene(props: VisualProps) {
       />
       <div className={sceneMetricOrbClassName}>
         <motion.div
-          className="absolute h-[86%] w-[86%] rounded-full border border-white/14"
+          className="absolute h-[86%] w-[86%] rounded-full border border-[var(--visual-orbit-border)]"
           animate={props.isActive ? { rotate: 360 } : { rotate: 0 }}
           transition={{ duration: 26, ease: 'linear', repeat: Number.POSITIVE_INFINITY }}
         />
         <motion.div
-          className="absolute h-[66%] w-[66%] rounded-full border border-white/12"
+          className="absolute h-[66%] w-[66%] rounded-full border border-[var(--visual-orbit-border)]"
           animate={props.isActive ? { rotate: -360 } : { rotate: 0 }}
           transition={{ duration: 20, ease: 'linear', repeat: Number.POSITIVE_INFINITY }}
         />
-        <div className="absolute h-[50%] w-[50%] rounded-full border border-white/10 bg-[radial-gradient(circle,rgba(255,255,255,0.12),rgba(255,255,255,0.02))]" />
+        <div className="absolute h-[50%] w-[50%] rounded-full border border-[var(--visual-glass-border)] bg-[var(--visual-glass-surface)]" />
         <div className="relative z-10 mx-auto max-w-[22rem] px-8 text-center">
           <div className="text-[10px] font-bold tracking-[0.3em] text-[var(--muted)] uppercase">Staker Share</div>
           <div className="font-heading mt-3 text-7xl font-bold text-[var(--text)]">40%</div>
@@ -285,11 +294,11 @@ function CommunityScene(props: VisualProps) {
       <div
         className={cn(
           communityMetricOrbClassName,
-          'rounded-full border border-white/10 bg-[radial-gradient(circle,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] shadow-[0_28px_80px_rgba(0,0,0,0.45)]',
+          'rounded-full border border-[var(--visual-glass-border)] bg-[var(--visual-glass-surface)] shadow-[0_28px_80px_var(--visual-deep-shadow)]',
         )}
       >
-        <div className="absolute inset-[11%] rounded-full border border-dashed border-white/12" />
-        <div className="absolute inset-[24%] rounded-full border border-white/10" />
+        <div className="absolute inset-[11%] rounded-full border border-dashed border-[var(--visual-orbit-border)]" />
+        <div className="absolute inset-[24%] rounded-full border border-[var(--visual-glass-border)]" />
         <div className="relative z-10 text-center">
           <div className="text-[10px] font-bold tracking-[0.3em] text-[var(--muted)] uppercase">Community Facing</div>
           <div className="font-heading mt-3 text-6xl font-bold text-[var(--text)]">75%</div>
@@ -303,7 +312,7 @@ function CommunityScene(props: VisualProps) {
         return (
           <motion.div
             key={badge.label}
-            className={cn('absolute z-10 rounded-full border border-white/10 bg-[rgba(7,18,34,0.72)] px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur-xl', badge.className)}
+            className={cn('absolute z-10 rounded-full border border-[var(--visual-glass-border)] bg-[var(--visual-glass-surface-strong)] px-4 py-3 shadow-[0_18px_50px_var(--visual-deep-shadow)] backdrop-blur-xl', badge.className)}
             animate={props.isActive ? { y: [0, -10, 0] } : undefined}
             transition={{ duration: 4 + index * 0.4, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
           >
@@ -382,7 +391,7 @@ function HeroVisualPanelItems(props: {
       <div className={cn('grid', props.compact ? 'gap-2' : 'gap-3')}>
         {props.items.map(item => (
           <div key={item.label} className={cn(
-            'rounded-[1.2rem] border border-white/10 bg-[rgba(255,255,255,0.03)]',
+            'rounded-[1.2rem] border border-[var(--visual-glass-border)] bg-[var(--visual-glass-surface)]',
             props.compact ? 'px-3 py-2' : 'px-4 py-3',
           )}>
             <div className="flex items-baseline justify-between gap-4">
@@ -403,7 +412,7 @@ function HeroVisualPanelItems(props: {
 
   if (props.layout === 'signal') {
     return (
-      <div className="divide-y divide-white/8 rounded-[1.25rem] border border-white/10 bg-[rgba(255,255,255,0.03)]">
+      <div className="divide-y divide-[var(--visual-glass-border)] rounded-[1.25rem] border border-[var(--visual-glass-border)] bg-[var(--visual-glass-surface)]">
         {props.items.map(item => (
           <div key={item.label} className="space-y-2 px-4 py-3">
             <div className="flex items-center justify-between gap-3">
@@ -425,7 +434,7 @@ function HeroVisualPanelItems(props: {
         <div
           key={item.label}
           className={cn(
-            'border border-white/10 bg-[rgba(255,255,255,0.03)]',
+            'border border-[var(--visual-glass-border)] bg-[var(--visual-glass-surface)]',
             props.compact ? 'rounded-[1rem] px-3.5 py-2.5' : 'rounded-[1.2rem] px-4 py-3',
           )}
         >

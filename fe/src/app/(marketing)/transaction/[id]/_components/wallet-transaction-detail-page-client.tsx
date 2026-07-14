@@ -136,7 +136,7 @@ export function WalletTransactionDetailPageClient(props: {
 
               <GlassPanel className="p-6">
                 {transaction.failureReason ? (
-                  <div className="rounded-[1rem] border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+                  <div className="rounded-[1rem] border border-[var(--status-error-border)] bg-[var(--status-error-surface)] px-4 py-3 text-sm text-[var(--status-error-text)]">
                     Issue: {transaction.failureReason}
                   </div>
                 ) : (

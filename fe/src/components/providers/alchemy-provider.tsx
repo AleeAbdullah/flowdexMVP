@@ -10,7 +10,6 @@ import {
   buildWalletSupportRegistry,
   getAccountKitWalletOrder,
   getFeaturedWalletCount,
-  getWalletSupportRuntime,
 } from '@/constants/wallet-support';
 import { Env } from '@/libs/Env';
 
@@ -25,12 +24,8 @@ export function AlchemyProvider(props: {
       return null;
     }
 
-    const walletSupportRuntime = getWalletSupportRuntime({
-      alchemyApiKey: apiKey,
-    });
-
     const walletSupportRegistry = buildWalletSupportRegistry({
-      walletConnectEnabled: walletSupportRuntime.walletConnectEnabled,
+      walletConnectEnabled: false,
     });
     const accountKitWalletOrder = getAccountKitWalletOrder(walletSupportRegistry);
     const featuredWalletCount = getFeaturedWalletCount(walletSupportRegistry);
@@ -38,7 +33,6 @@ export function AlchemyProvider(props: {
     const externalWalletConfig = configForExternalWallets({
       wallets: accountKitWalletOrder,
       chainType: ['evm'],
-      walletConnectProjectId: walletSupportRuntime.walletConnectProjectId ?? undefined,
       hideMoreButton,
       numFeaturedWallets: featuredWalletCount,
     });
@@ -78,9 +72,9 @@ export function AlchemyProvider(props: {
           sections: [[{
             type: 'external_wallets',
             ...externalWalletConfig.uiConfig,
-            walletConnectProjectId: walletSupportRuntime.walletConnectProjectId ?? undefined,
           }]],
         },
+        modalBaseClassName: 'flowdex-account-kit-modal',
       },
     );
   }, [apiKey]);

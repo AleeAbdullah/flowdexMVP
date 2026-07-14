@@ -25,6 +25,8 @@ import {
   AdminPaymentFiltersDto,
 } from './dto/admin-payments.dto';
 import {
+  BroadcastPreparedTronTransactionDto,
+  BroadcastPreparedTronTransactionResponseDto,
   CreatePaymentIntentDto,
   PaymentCheckoutCapabilitiesDto,
   PaymentCheckoutSessionDto,
@@ -50,7 +52,9 @@ import {
   PaymentChain,
   PaymentIntentStatus,
   PaymentStatus,
+  PaymentWalletActionKind,
   PaymentWalletActionStatus,
+  PaymentWalletTxIdKind,
   TERMINAL_PAYMENT_INTENT_STATUSES,
 } from './payments.types';
 import { WalletActionExecutorRegistry } from './wallet-action-executors/wallet-action-executor.registry';
@@ -61,6 +65,7 @@ import { EvmPaymentExecutionService } from './services/evm-payment-execution.ser
 import { PaymentPricingService } from './services/payment-pricing.service';
 import { PaymentStateService } from './services/payment-state.service';
 import { SolanaPaymentExecutionService } from './services/solana-payment-execution.service';
+import { TronPaymentExecutionService } from './services/tron-payment-execution.service';
 
 type MatchResult = {
   status: PaymentStatus;
@@ -118,6 +123,7 @@ export class PaymentsService {
     private readonly btcAddressService: BtcAddressService,
     private readonly evmPaymentExecutionService: EvmPaymentExecutionService,
     private readonly solanaPaymentExecutionService: SolanaPaymentExecutionService,
+    private readonly tronPaymentExecutionService: TronPaymentExecutionService,
     private readonly stateService: PaymentStateService,
     private readonly walletActionExecutorRegistry: WalletActionExecutorRegistry,
     private readonly checkoutCapabilityService: PaymentCheckoutCapabilityService,
@@ -223,7 +229,7 @@ export class PaymentsService {
         {
           chain: PaymentChain.TRON,
           asset: PaymentAsset.USDT_TRC20,
-          walletProvider: 'tronlink',
+          walletProvider: 'reown',
           network: 'mainnet',
           decimals: PAYMENT_ASSET_DECIMALS[PaymentAsset.USDT_TRC20],
           enabled: Boolean(env.tronTreasuryAddress.trim()),
@@ -362,6 +368,63 @@ export class PaymentsService {
     });
 
     return this.toStatusDto(result.intent, result.payment ?? await this.findPaymentByIntent(result.intent.id));
+  }
+
+  async broadcastPreparedTronTransaction(
+    intentId: string,
+    preparedActionId: string,
+    checkoutToken: string,
+    input: BroadcastPreparedTronTransactionDto,
+  ): Promise<BroadcastPreparedTronTransactionResponseDto> {
+    const intent = await this.paymentIntentsRepository.findOne({ where: { id: intentId } });
+    if (!intent) {
+      throw new NotFoundException('Payment intent not found');
+    }
+    this.checkoutCapabilityService.assertCanSubmit(intent, checkoutToken);
+    if (intent.chain !== PaymentChain.TRON) {
+      throw new BadRequestException('Prepared wallet action is not a TRON payment');
+    }
+
+    const action = await this.paymentWalletActionsRepository.findOne({
+      where: { id: preparedActionId, paymentIntentId: intent.id },
+    });
+    if (!action) {
+      throw new NotFoundException('Prepared wallet action not found');
+    }
+    if (
+      action.chain !== PaymentChain.TRON
+      || action.actionKind !== PaymentWalletActionKind.TRON_TRANSACTION
+      || action.senderAddress !== intent.senderAddress
+    ) {
+      throw new BadRequestException('Prepared TRON wallet action does not match payment intent');
+    }
+
+    if (action.txId) {
+      this.tronPaymentExecutionService.assertTxIdFormat(action.txId);
+      return { txId: action.txId };
+    }
+
+    assertWalletActionIsUsable(action, action.senderAddress, PaymentChain.TRON);
+    const prepared = this.tronPaymentExecutionService.parsePreparedTransfer(action.requestJson);
+    this.tronPaymentExecutionService.assertSignedTransactionMatchesPrepared(
+      prepared,
+      input.signedTransaction,
+    );
+
+    const txId = await this.alchemyService.broadcastTronTransaction(input.signedTransaction);
+    if (!txId) {
+      throw new ServiceUnavailableException('TRON wallet transaction broadcast failed');
+    }
+    this.tronPaymentExecutionService.assertTxIdFormat(txId);
+    if (txId !== prepared.unsignedTransaction.txID) {
+      throw new BadRequestException('Broadcast TRON transaction id does not match the prepared payment');
+    }
+
+    action.txId = txId;
+    action.txIdKind = PaymentWalletTxIdKind.TRON_TX_HASH;
+    await this.paymentWalletActionsRepository.save(action);
+
+    return { txId };
   }
 
   async processEthereumAlchemyWebhook(input: {

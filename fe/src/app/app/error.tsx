@@ -8,9 +8,9 @@ export default function AppError(props: {
   reset: () => void;
 }) {
   return (
-    <GlassPanel className="space-y-4 border border-rose-400/20 bg-rose-500/10 p-6">
+    <GlassPanel className="space-y-4 border border-[var(--status-error-border)] bg-[var(--status-error-surface)] p-6">
       <div className="text-lg font-bold text-[var(--text)]">Protected app unavailable</div>
-      <p className="text-sm leading-7 text-rose-100">
+      <p className="text-sm leading-7 text-[var(--status-error-text)]">
         {props.error.message || 'Something went wrong while loading the protected app.'}
       </p>
       <Button variant="glass" onClick={() => props.reset()}>

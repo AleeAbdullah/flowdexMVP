@@ -15,7 +15,7 @@ export function ThemeToggle() {
     setMounted(true);
   }, []);
 
-  const resolvedTheme: ThemeMode = theme === 'light' ? 'light' : 'dark';
+  const resolvedTheme: ThemeMode = mounted && theme === 'light' ? 'light' : 'dark';
 
   function toggleTheme() {
     const nextTheme: ThemeMode = resolvedTheme === 'dark' ? 'light' : 'dark';

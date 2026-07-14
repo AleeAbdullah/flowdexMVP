@@ -3,6 +3,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useTheme } from 'next-themes';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight } from '@/icons';
@@ -36,6 +37,7 @@ export function LandingHeroCarousel(props: {
   const [visualIndex, setVisualIndex] = useState(() => props.slides.length > 1 ? 1 : 0);
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const [manualAdvanceKey, setManualAdvanceKey] = useState(0);
+  const { resolvedTheme } = useTheme();
   const autoplayTimerRef = useRef<number | null>(null);
   const autoplayGenerationRef = useRef(0);
   const isTransitioningRef = useRef(false);
@@ -182,6 +184,9 @@ export function LandingHeroCarousel(props: {
       >
         {carouselSlides.map((slide, index) => {
           const theme = heroAccentTheme[slide.accent];
+          const accentColor = resolvedTheme === 'light'
+            ? heroAccentLightColors[slide.accent]
+            : heroAccentDarkColors[slide.accent];
           const slideIndex = getRealSlideIndex(index, props.slides.length, canRotate);
 
           return (
@@ -207,16 +212,16 @@ export function LandingHeroCarousel(props: {
               <div className="relative z-10 mx-auto grid min-h-[92svh] w-full max-w-7xl items-start overflow-visible px-5 pb-10 pt-36 md:px-8 md:pb-12 md:pt-36 lg:min-h-[100svh] lg:grid-cols-[minmax(0,1.18fr)_minmax(320px,0.74fr)] lg:items-center lg:gap-6 lg:px-24 xl:grid-cols-[minmax(0,1.24fr)_minmax(340px,0.76fr)] xl:gap-10">
                 <div className="relative z-20 max-w-5xl space-y-4 md:space-y-5">
                   <Badge variant="brand" className="gap-2 px-5 py-2">
-                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: theme.accentColor }} />
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: accentColor }} />
                     {slide.badge}
                   </Badge>
 
                   <div className="space-y-3 md:space-y-5">
                     <h1 className="font-heading max-w-5xl text-balance text-[clamp(2.2rem,9.2vw,3.25rem)] font-bold leading-[0.96] tracking-normal text-[var(--text)] md:hidden">
-                      <HighlightText text={getCompactHeroTitle(slide)} emphasis={slide.emphasis} accentColor={theme.accentColor} />
+                      <HighlightText text={getCompactHeroTitle(slide)} emphasis={slide.emphasis} accentColor={accentColor} />
                     </h1>
                     <h1 className="font-heading hidden max-w-5xl text-balance text-[4rem] font-bold leading-[0.96] tracking-normal text-[var(--text)] md:block lg:text-[4.35rem] xl:text-[4.7rem]">
-                      <HighlightText text={slide.title} emphasis={slide.emphasis} accentColor={theme.accentColor} />
+                      <HighlightText text={slide.title} emphasis={slide.emphasis} accentColor={accentColor} />
                     </h1>
                     <p className="max-h-16 max-w-2xl overflow-hidden text-sm leading-7 text-[color-mix(in_srgb,var(--text)_78%,transparent)] sm:text-base md:max-h-none md:text-lg md:leading-8 xl:text-xl">
                       {slide.description}
@@ -263,7 +268,7 @@ export function LandingHeroCarousel(props: {
                   <Suspense fallback={<HeroVisualFallback glowColor={theme.glowColor} />}>
                     <SlideVisual
                       slide={slide}
-                      accentColor={theme.accentColor}
+                      accentColor={accentColor}
                       glowColor={theme.glowColor}
                       isActive={activeSlide === slideIndex}
                       isMounted={isSlideVisualMounted(slideIndex, activeSlide, props.slides.length)}
@@ -285,7 +290,7 @@ export function LandingHeroCarousel(props: {
               size="icon"
               onClick={() => shiftSlide(-1)}
               aria-label="Show previous hero slide"
-              className="pointer-events-auto h-12 w-12 rounded-full bg-[rgba(7,18,34,0.54)]"
+              className="pointer-events-auto h-12 w-12 rounded-full bg-[var(--visual-control-surface)]"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -295,7 +300,7 @@ export function LandingHeroCarousel(props: {
               size="icon"
               onClick={() => shiftSlide(1)}
               aria-label="Show next hero slide"
-              className="pointer-events-auto h-12 w-12 rounded-full bg-[rgba(7,18,34,0.54)]"
+              className="pointer-events-auto h-12 w-12 rounded-full bg-[var(--visual-control-surface)]"
             >
               <ArrowRight className="h-5 w-5" />
             </Button>
@@ -330,12 +335,12 @@ function SlideVisual(props: {
 
 function HeroVisualFallback(props: { glowColor: string }) {
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-[2rem] border border-white/8 bg-[rgba(7,18,34,0.42)]">
+    <div className="relative h-full w-full overflow-hidden rounded-[2rem] border border-[var(--visual-glass-border)] bg-[var(--visual-glass-surface-strong)]">
       <div
         className="absolute inset-[8%] rounded-[2rem] blur-3xl"
         style={{ background: `radial-gradient(circle, ${props.glowColor} 0%, transparent 74%)` }}
       />
-      <div className="absolute inset-[10%] rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))]" />
+      <div className="absolute inset-[10%] rounded-[2rem] border border-[var(--visual-glass-border)] bg-[var(--visual-glass-surface)]" />
     </div>
   );
 }
@@ -382,7 +387,6 @@ function getCompactHeroTitle(slide: LandingHeroSlide) {
 }
 
 const heroAccentTheme: Record<LandingHeroAccent, {
-  accentColor: string;
   background: string;
   glowColor: string;
   secondaryGlow: string;
@@ -390,7 +394,6 @@ const heroAccentTheme: Record<LandingHeroAccent, {
   statBorder: string;
 }> = {
   cyan: {
-    accentColor: '#3CC8E8',
     background: 'var(--hero-cyan-bg)',
     glowColor: 'var(--hero-cyan-glow)',
     secondaryGlow: 'var(--hero-cyan-secondary-glow)',
@@ -398,7 +401,6 @@ const heroAccentTheme: Record<LandingHeroAccent, {
     statBorder: 'var(--hero-cyan-stat-border)',
   },
   gold: {
-    accentColor: '#D2B46C',
     background: 'var(--hero-gold-bg)',
     glowColor: 'var(--hero-gold-glow)',
     secondaryGlow: 'var(--hero-cyan-secondary-glow)',
@@ -406,7 +408,6 @@ const heroAccentTheme: Record<LandingHeroAccent, {
     statBorder: 'var(--hero-gold-stat-border)',
   },
   slate: {
-    accentColor: '#8FA6C8',
     background: 'var(--hero-slate-bg)',
     glowColor: 'var(--hero-slate-glow)',
     secondaryGlow: 'var(--hero-cyan-secondary-glow)',
@@ -414,7 +415,6 @@ const heroAccentTheme: Record<LandingHeroAccent, {
     statBorder: 'var(--hero-slate-stat-border)',
   },
   green: {
-    accentColor: '#4DBA7D',
     background: 'var(--hero-green-bg)',
     glowColor: 'var(--hero-green-glow)',
     secondaryGlow: 'var(--hero-cyan-secondary-glow)',
@@ -422,13 +422,28 @@ const heroAccentTheme: Record<LandingHeroAccent, {
     statBorder: 'var(--hero-green-stat-border)',
   },
   rose: {
-    accentColor: '#CC7079',
     background: 'var(--hero-rose-bg)',
     glowColor: 'var(--hero-rose-glow)',
     secondaryGlow: 'var(--hero-gold-secondary-glow)',
     statBackground: 'var(--hero-stat-bg)',
     statBorder: 'var(--hero-rose-stat-border)',
   },
+};
+
+const heroAccentDarkColors: Record<LandingHeroAccent, string> = {
+  cyan: '#3CC8E8',
+  gold: '#D2B46C',
+  slate: '#8FA6C8',
+  green: '#4DBA7D',
+  rose: '#CC7079',
+};
+
+const heroAccentLightColors: Record<LandingHeroAccent, string> = {
+  cyan: '#0F7FA1',
+  gold: '#A8822C',
+  slate: '#5F7792',
+  green: '#218A55',
+  rose: '#B15561',
 };
 
 function HighlightText(props: {

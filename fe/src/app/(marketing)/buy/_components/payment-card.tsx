@@ -57,11 +57,13 @@ export function PaymentCard(props: {
               aria-label="Payment asset"
               className="h-11 w-auto min-w-28 shrink-0 gap-2 border-[var(--card-border)] bg-[var(--surface-elevated)] px-3 font-bold text-[var(--text)] focus:ring-[var(--cyan)]"
             >
-              <span className="flex items-center gap-2">
+              <span className="!flex flex-nowrap items-center gap-2 whitespace-nowrap">
                 {selectedAssetIcon ? (
                   <Image src={selectedAssetIcon} alt="" width={22} height={22} className="h-5.5 w-5.5" aria-hidden="true" unoptimized />
                 ) : null}
-                <SelectValue placeholder="Asset" />
+                <SelectValue placeholder="Asset">
+                  {selectedAsset?.code}
+                </SelectValue>
               </span>
             </SelectTrigger>
             <SelectContent>
@@ -108,16 +110,16 @@ export function PaymentCard(props: {
             type="button"
             onClick={props.actions.disconnectWallet}
             disabled={walletStatus.isDisconnecting}
-            className="shrink-0 text-xs font-bold text-[var(--cyan)] transition hover:text-[var(--text)] disabled:opacity-50"
+            className="shrink-0 rounded-sm text-xs font-bold text-[var(--cyan)] transition hover:text-[var(--text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] disabled:opacity-50"
           >
             {walletStatus.isDisconnecting ? 'Disconnecting' : 'Change'}
           </button>
         </div>
       ) : null}
 
-      {props.order.error ? <p className="mt-5 rounded-md border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-100">{props.order.error}</p> : null}
+      {props.order.error ? <p className="mt-5 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-surface)] px-4 py-3 text-sm text-[var(--status-error-text)]">{props.order.error}</p> : null}
       {!props.order.error && walletStatus.connectionErrorMessage ? (
-        <p className="mt-5 rounded-md border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-100">
+        <p className="mt-5 rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-surface)] px-4 py-3 text-sm text-[var(--status-warning-text)]">
           {walletStatus.connectionErrorMessage}
         </p>
       ) : null}

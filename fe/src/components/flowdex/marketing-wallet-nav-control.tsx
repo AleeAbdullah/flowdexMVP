@@ -83,12 +83,12 @@ export function MarketingWalletNavControl(props: {
               </DropdownMenuItem>
             ))
           ) : (
-            <div className="rounded-md border border-amber-300/20 bg-amber-300/10 px-3 py-3 text-sm leading-5 text-amber-100">
+            <div className="rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-surface)] px-3 py-3 text-sm leading-5 text-[var(--status-warning-text)]">
               No supported wallet connectors are available in this browser.
             </div>
           )}
           {provider.connectionErrorMessage ? (
-            <div className="mt-2 rounded-md border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs leading-5 text-rose-100">
+            <div className="mt-2 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-surface)] px-3 py-2 text-xs leading-5 text-[var(--status-error-text)]">
               {provider.connectionErrorMessage}
             </div>
           ) : null}

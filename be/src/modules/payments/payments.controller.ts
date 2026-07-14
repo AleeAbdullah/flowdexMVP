@@ -4,6 +4,8 @@ import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 
 import {
+  BroadcastPreparedTronTransactionDto,
+  BroadcastPreparedTronTransactionResponseDto,
   CreatePaymentIntentDto,
   PaymentCheckoutCapabilitiesDto,
   PaymentCheckoutSessionDto,
@@ -66,6 +68,22 @@ export class PaymentsController {
     @Body() body: SubmitPaymentTxResultDto,
   ): Promise<PaymentIntentStatusDto> {
     return this.paymentsService.submitWalletTxResult(intentId, checkoutToken ?? '', body);
+  }
+
+  @Post('intents/:intentId/wallet-actions/:preparedActionId/tron-broadcast')
+  @Throttle({ walletTronBroadcast: { limit: 10, ttl: 60_000 } })
+  broadcastPreparedTronTransaction(
+    @Param('intentId') intentId: string,
+    @Param('preparedActionId') preparedActionId: string,
+    @Headers('x-payment-checkout-token') checkoutToken: string | undefined,
+    @Body() body: BroadcastPreparedTronTransactionDto,
+  ): Promise<BroadcastPreparedTronTransactionResponseDto> {
+    return this.paymentsService.broadcastPreparedTronTransaction(
+      intentId,
+      preparedActionId,
+      checkoutToken ?? '',
+      body,
+    );
   }
 
   @Get('portfolio')

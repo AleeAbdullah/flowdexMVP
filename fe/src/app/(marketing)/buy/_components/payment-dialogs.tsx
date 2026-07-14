@@ -70,7 +70,7 @@ export function PaymentDialogs(props: {
 
           {isRecoverableFailure ? (
             <div className="mt-5 space-y-4">
-              <div className="rounded-lg border border-rose-500/25 bg-rose-500/10 p-4 text-sm text-rose-700 dark:text-rose-100">
+              <div className="rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-surface)] p-4 text-sm text-[var(--status-error-text)]">
                 {props.wallet.paymentWalletError ?? 'The wallet checkout could not be completed.'}
               </div>
               <div className="flex justify-end">
@@ -131,7 +131,7 @@ function PaymentTracking(props: { payment: BuyPaymentView; onStartNewPayment: ()
             {props.payment.isCheckingStatus ? <Loader2 className="h-4 w-4 animate-spin text-[var(--cyan)]" /> : null}
           </div>
         ) : null}
-        {props.payment.statusError ? <p className="mt-3 text-xs text-amber-700 dark:text-amber-100">{props.payment.statusError}</p> : null}
+        {props.payment.statusError ? <p className="mt-3 text-xs text-[var(--status-warning-text)]">{props.payment.statusError}</p> : null}
       </GlassPanel>
       <Button type="button" variant="glass" onClick={props.onStartNewPayment}>Buy again</Button>
     </div>

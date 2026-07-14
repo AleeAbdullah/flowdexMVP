@@ -28,7 +28,6 @@ import { useMarketingWalletSync } from '@/hooks/use-marketing-wallet-sync';
 import { usePricing } from '@/dal/market/pricing/pricing.services';
 import { usePresaleConfig, usePresaleStats, usePresaleTiers } from '@/dal/market/presale/presale.services';
 import { extractAxiosError } from '@/lib/axios';
-import { TRON_MAINNET_WALLET_CHAIN_ID } from '../constants/tronlink';
 import {
   initialWalletCheckoutState,
   walletCheckoutReducer,
@@ -65,15 +64,13 @@ import { getWalletConnectSessionCapabilities } from '../utils/walletconnect-sess
 import type { BuyWalletProvider, UnsupportedReason } from '../utils/buy-transaction.types';
 import { createEvmCheckoutWalletAdapter } from '../wallet-adapters/checkout-wallet-adapter';
 import { useBitcoinAppKitCheckoutWallet } from '../wallet-adapters/bitcoin-appkit-checkout-wallet';
+import { TRON_MAINNET_WALLET_CHAIN_ID } from '../constants/tron';
+import { useReownCheckoutTheme } from '../wallet-adapters/reown-checkout-appkit';
+import { useTronAppKitCheckoutWallet } from '../wallet-adapters/tron-appkit-checkout-wallet';
 import {
   createSolanaMetaMaskCheckoutWalletAdapter,
   initialSolanaCheckoutWalletAdapterState,
 } from '../wallet-adapters/solana-metamask-checkout-wallet-adapter';
-import {
-  createTronLinkCheckoutWalletAdapter,
-  initialTronCheckoutWalletAdapterState,
-  isTronLinkAvailable,
-} from '../wallet-adapters/tronlink-checkout-wallet-adapter';
 
 const DEFAULT_BUY_AMOUNT = '1.7544';
 const PAYMENT_STATUS_POLL_INTERVAL_MS = 12_000;
@@ -116,7 +113,9 @@ export function useBuyCheckoutController() {
   const submitPaymentIntentTxResult = useSubmitPaymentIntentTxResult();
   const marketingWallet = useMarketingWalletSync();
   const { openAuthModal } = useAuthModal();
+  useReownCheckoutTheme();
   const bitcoinWallet = useBitcoinAppKitCheckoutWallet();
+  const tronWallet = useTronAppKitCheckoutWallet();
   const walletProvider = useMarketingWalletStore((state: MarketingWalletStore) => state.provider);
   const walletVerification = useMarketingWalletStore((state: MarketingWalletStore) => state.verification);
 
@@ -129,29 +128,17 @@ export function useBuyCheckoutController() {
   const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
   const [checkout, dispatch] = useReducer(walletCheckoutReducer, initialWalletCheckoutState);
   const [solanaWalletState, setSolanaWalletState] = useState(initialSolanaCheckoutWalletAdapterState);
-  const [tronWalletState, setTronWalletState] = useState(initialTronCheckoutWalletAdapterState);
   const solanaWalletStateRef = useRef(solanaWalletState);
-  const tronWalletStateRef = useRef(tronWalletState);
 
   useEffect(() => {
     solanaWalletStateRef.current = solanaWalletState;
   }, [solanaWalletState]);
-  useEffect(() => {
-    tronWalletStateRef.current = tronWalletState;
-  }, [tronWalletState]);
 
   const solanaWalletAdapter = useMemo(() => createSolanaMetaMaskCheckoutWalletAdapter({
     getState: () => solanaWalletStateRef.current,
     setState: state => {
       solanaWalletStateRef.current = state;
       setSolanaWalletState(state);
-    },
-  }), []);
-  const tronWalletAdapter = useMemo(() => createTronLinkCheckoutWalletAdapter({
-    getState: () => tronWalletStateRef.current,
-    setState: state => {
-      tronWalletStateRef.current = state;
-      setTronWalletState(state);
     },
   }), []);
   useEffect(() => {
@@ -189,17 +176,14 @@ export function useBuyCheckoutController() {
   const selectedChainLabel = selectedAsset ? getChainLabel(selectedAsset.chain) : 'Wallet';
   const requiredChainId = selectedAsset?.chain === PAYMENT_CHAINS.ETHEREUM ? selectedAsset.chainId : null;
   const isWrongNetwork = Boolean(
-    (requiredChainId && walletProvider.address && walletProvider.chainId !== requiredChainId)
-    || (selectedAsset?.chain === PAYMENT_CHAINS.TRON
-      && tronWalletState.address
-      && tronWalletState.walletChainId !== TRON_MAINNET_WALLET_CHAIN_ID),
+    requiredChainId && walletProvider.address && walletProvider.chainId !== requiredChainId,
   );
   const selectedWalletAddress = selectedAsset?.chain === PAYMENT_CHAINS.BITCOIN
     ? bitcoinWallet.address
     : selectedAsset?.chain === PAYMENT_CHAINS.SOLANA
       ? solanaWalletState.address
       : selectedAsset?.chain === PAYMENT_CHAINS.TRON
-        ? tronWalletState.address
+        ? tronWallet.address
         : walletProvider.address;
 
   useEffect(() => {
@@ -249,10 +233,6 @@ export function useBuyCheckoutController() {
   async function requestNetworkSwitch() {
     setIsSwitchingNetwork(true);
     try {
-      if (selectedAsset?.chain === PAYMENT_CHAINS.TRON) {
-        await tronWalletAdapter.switchNetwork?.();
-        return;
-      }
       if (requiredChainId) {
         const result = await marketingWallet.switchToChain(requiredChainId);
         if (!result.ok) {
@@ -298,7 +278,7 @@ export function useBuyCheckoutController() {
   async function runWalletCheckout(input: {
     senderAddress: string;
     walletChainId?: string | number;
-    send: (action: IPreparedWalletAction) => Promise<WalletTxResult>;
+    send: (action: IPreparedWalletAction, checkoutToken: string) => Promise<WalletTxResult>;
   }) {
     if (!selectedAsset) {
       throw new Error('Choose a payment asset first.');
@@ -329,7 +309,7 @@ export function useBuyCheckoutController() {
     });
 
     dispatch({ type: 'AWAITING_APPROVAL' });
-    const txResult = await input.send(prepared).catch(error => {
+    const txResult = await input.send(prepared, session.checkoutToken).catch(error => {
       throw toCheckoutStepError('wallet_approval', selectedAsset.chain, error);
     });
     dispatch({ type: 'TX_BROADCAST', txResult });
@@ -369,8 +349,8 @@ export function useBuyCheckoutController() {
 
     dispatch({ type: 'CONNECTING' });
     if (selectedAsset.chain === PAYMENT_CHAINS.TRON) {
-      await tronWalletAdapter.connect();
-      dispatch({ type: 'WALLET_READY' });
+      dispatch({ type: 'CLOSE' });
+      await tronWallet.openSelector();
       return;
     }
 
@@ -425,14 +405,20 @@ export function useBuyCheckoutController() {
       }
 
       if (selectedAsset.chain === PAYMENT_CHAINS.TRON) {
-        const address = tronWalletStateRef.current.address;
+        const address = tronWallet.address;
         if (!address) {
-          throw new Error('Connect TronLink before continuing.');
+          throw new Error('Connect a supported TRON wallet before continuing.');
+        }
+        if (!tronWallet.isReady) {
+          throw new Error('Choose TronLink, OKX, Trust Wallet, or MetaMask TRON for this payment.');
         }
         await runWalletCheckout({
           senderAddress: address,
           walletChainId: TRON_MAINNET_WALLET_CHAIN_ID,
-          send: action => tronWalletAdapter.sendPreparedAction(mapTronPreparedWalletAction(action)),
+          send: (action, checkoutToken) => tronWallet.sendPreparedAction(
+            mapTronPreparedWalletAction(action),
+            checkoutToken,
+          ),
         });
         return;
       }
@@ -504,7 +490,8 @@ export function useBuyCheckoutController() {
     : null;
   const checkoutStage = checkout.stage as BuyCheckoutStage;
   const needsWalletConnection = !selectedWalletAddress
-    || (selectedAsset?.chain === PAYMENT_CHAINS.BITCOIN && !bitcoinWallet.isReady);
+    || (selectedAsset?.chain === PAYMENT_CHAINS.BITCOIN && !bitcoinWallet.isReady)
+    || (selectedAsset?.chain === PAYMENT_CHAINS.TRON && !tronWallet.isReady);
   const isPrimaryActionBusy = isSwitchingNetwork
     || checkoutStage === 'connecting_wallet'
     || checkoutStage === 'preparing_wallet_action'
@@ -604,19 +591,33 @@ export function useBuyCheckoutController() {
           }
         : selectedAsset?.chain === PAYMENT_CHAINS.TRON
           ? {
-              providerStatus: tronWalletState.isConnected ? 'connected' as const : 'disconnected' as const,
-              address: tronWalletState.address,
+              providerStatus: tronWallet.isConnecting
+                ? 'checking' as const
+                : tronWallet.isConnected
+                  ? 'connected' as const
+                  : 'disconnected' as const,
+              address: tronWallet.address,
               chainId: null,
-              walletChainId: tronWalletState.walletChainId,
-              connectorName: tronWalletState.address ? 'tronlink' : null,
-              pendingConnectorName: checkout.stage === 'connecting_wallet' ? 'tronlink' : null,
-              availableConnectorNames: isTronLinkAvailable() ? ['tronlink'] : [],
-              executionReadiness: tronWalletState.isReady ? 'ready' as const : 'checking' as const,
-              unsupportedReason: isTronLinkAvailable() ? null : 'missing_provider' as const,
-              connectionErrorMessage: tronWalletState.error,
-              verificationStatus: tronWalletState.address ? 'verified' as const : 'unverified' as const,
-              verifiedWalletAddress: tronWalletState.address,
-              verificationError: tronWalletState.error,
+              walletChainId: tronWallet.walletChainId,
+              connectorName: tronWallet.connectorName,
+              pendingConnectorName: tronWallet.isConnecting ? 'TRON wallet' : null,
+              availableConnectorNames: tronWallet.isConfigured
+                ? ['TronLink', 'OKX Wallet', 'Trust Wallet', 'MetaMask TRON']
+                : [],
+              executionReadiness: tronWallet.isReady
+                ? 'ready' as const
+                : tronWallet.address
+                  ? 'unsupported' as const
+                  : 'checking' as const,
+              unsupportedReason: !tronWallet.isConfigured || (tronWallet.address && !tronWallet.isReady)
+                ? 'missing_provider' as const
+                : null,
+              connectionErrorMessage: tronWallet.isConfigured
+                ? null
+                : 'TRON wallet connection is not configured.',
+              verificationStatus: tronWallet.address ? 'verified' as const : 'unverified' as const,
+              verifiedWalletAddress: tronWallet.address,
+              verificationError: null,
               isDisconnecting: false,
               isVerifying: false,
             }
@@ -688,7 +689,6 @@ export function useBuyCheckoutController() {
           void connectSelectedWallet().catch(error => {
             const message = error instanceof Error ? error.message : 'Could not connect this wallet.';
             dispatch({ type: 'FAILED', error: message });
-            toast.error('Wallet connection failed', { description: message });
           });
           return;
         }
@@ -703,7 +703,7 @@ export function useBuyCheckoutController() {
           return;
         }
         if (selectedAsset?.chain === PAYMENT_CHAINS.TRON) {
-          void tronWalletAdapter.disconnect?.();
+          void tronWallet.disconnect();
           return;
         }
         if (selectedAsset?.chain === PAYMENT_CHAINS.SOLANA) {
@@ -774,6 +774,7 @@ function mapTronPreparedWalletAction(action: IPreparedWalletAction): TronPrepare
     feeLimitSun: action.tron.feeLimitSun,
     payerAddress: action.tron.payerAddress,
     payerAddressHex: action.tron.payerAddressHex,
+    unsignedTransaction: action.tron.unsignedTransaction,
     expiresAt: action.expiresAt,
   };
 }

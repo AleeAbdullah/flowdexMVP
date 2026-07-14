@@ -70,6 +70,17 @@ export type TronTransactionInfo = {
   raw: Record<string, unknown>;
 };
 
+export type TronUnsignedTransaction = {
+  visible: boolean;
+  txID: string;
+  raw_data: Record<string, unknown>;
+  raw_data_hex: string;
+};
+
+export type TronSignedTransaction = TronUnsignedTransaction & {
+  signature: string[];
+};
+
 type TransactionByHashResult = {
   hash: string;
   from: string;
@@ -237,6 +248,56 @@ export class AlchemyService {
     });
 
     return this.toTronTransactionInfo(payload);
+  }
+
+  async createTronSmartContractTransaction(input: {
+    ownerAddress: string;
+    contractAddress: string;
+    functionSelector: string;
+    parameter: string;
+    feeLimitSun: number;
+  }): Promise<TronUnsignedTransaction | null> {
+    if (!this.hasApiKey()) {
+      return null;
+    }
+
+    const payload = await this.callTronRest('/wallet/triggersmartcontract', {
+      owner_address: input.ownerAddress,
+      contract_address: input.contractAddress,
+      function_selector: input.functionSelector,
+      parameter: input.parameter,
+      fee_limit: input.feeLimitSun,
+      call_value: 0,
+      visible: true,
+    });
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+
+    const response = payload as Record<string, unknown>;
+    const result = response.result && typeof response.result === 'object'
+      ? response.result as Record<string, unknown>
+      : null;
+    if (result?.result !== true) {
+      return null;
+    }
+
+    return this.toTronUnsignedTransaction(response.transaction);
+  }
+
+  async broadcastTronTransaction(transaction: TronSignedTransaction): Promise<string | null> {
+    if (!this.hasApiKey()) {
+      return null;
+    }
+
+    const payload = await this.callTronRest('/wallet/broadcasttransaction', transaction);
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+
+    const response = payload as Record<string, unknown>;
+    const accepted = response.result === true || response.code === 'DUP_TRANSACTION_ERROR';
+    return accepted ? transaction.txID : null;
   }
 
   private toBitcoinAddressTransaction(tx: Record<string, unknown>): BitcoinAddressTransaction {
@@ -572,6 +633,29 @@ export class AlchemyService {
           data: typeof log.data === 'string' ? log.data : null,
         })),
       raw: this.redactPayload(tx),
+    };
+  }
+
+  private toTronUnsignedTransaction(input: unknown): TronUnsignedTransaction | null {
+    if (!input || typeof input !== 'object') {
+      return null;
+    }
+
+    const transaction = input as Record<string, unknown>;
+    const txID = typeof transaction.txID === 'string' ? transaction.txID : '';
+    const rawDataHex = typeof transaction.raw_data_hex === 'string' ? transaction.raw_data_hex : '';
+    const rawData = transaction.raw_data && typeof transaction.raw_data === 'object'
+      ? transaction.raw_data as Record<string, unknown>
+      : null;
+    if (!/^[a-fA-F0-9]{64}$/u.test(txID) || !/^[a-fA-F0-9]+$/u.test(rawDataHex) || !rawData) {
+      return null;
+    }
+
+    return {
+      visible: transaction.visible === true,
+      txID,
+      raw_data: rawData,
+      raw_data_hex: rawDataHex,
     };
   }
 

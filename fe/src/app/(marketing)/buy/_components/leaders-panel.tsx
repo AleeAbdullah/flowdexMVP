@@ -20,7 +20,7 @@ export function LeadersPanel(props: {
       </div>
 
       {props.isError ? (
-        <div className="mt-7 rounded-md border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-100">
+        <div className="mt-7 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-surface)] px-4 py-3 text-sm text-[var(--status-error-text)]">
           Could not load leaders right now.
         </div>
       ) : null}

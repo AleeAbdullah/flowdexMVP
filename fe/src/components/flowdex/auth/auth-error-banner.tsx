@@ -4,7 +4,7 @@ export function AuthErrorBanner(props: {
   return (
     <div
       role="alert"
-      className="rounded-2xl border border-rose-400/20 bg-rose-500/8 px-4 py-3 text-sm text-rose-100"
+      className="rounded-2xl border border-[var(--status-error-border)] bg-[var(--status-error-surface)] px-4 py-3 text-sm text-[var(--status-error-text)]"
     >
       {props.message}
     </div>

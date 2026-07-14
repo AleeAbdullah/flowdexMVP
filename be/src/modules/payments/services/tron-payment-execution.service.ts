@@ -1,16 +1,21 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { TronWeb } from 'tronweb';
 
 import { env } from '../../../infrastructure/config/env';
-import type { TronTransactionInfo } from '../../alchemy/alchemy.service';
+import type {
+  TronSignedTransaction,
+  TronTransactionInfo,
+  TronUnsignedTransaction,
+} from '../../alchemy/alchemy.service';
 
 export const TRON_MAINNET_WALLET_CHAIN_ID = '0x2b6653dc';
 export const TRON_TRANSFER_TOPIC = 'ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const TRON_TX_HASH_PATTERN = /^[a-fA-F0-9]{64}$/;
 const DEFAULT_TRON_FEE_LIMIT_SUN = '100000000';
 
-export type TronPreparedTransfer = {
+export type TronTransferRequest = {
   kind: 'tron_transaction';
   network: 'mainnet';
   chainId: typeof TRON_MAINNET_WALLET_CHAIN_ID;
@@ -22,6 +27,10 @@ export type TronPreparedTransfer = {
   feeLimitSun: string;
   payerAddress: string;
   payerAddressHex: string;
+};
+
+export type TronPreparedTransfer = TronTransferRequest & {
+  unsignedTransaction: TronUnsignedTransaction;
 };
 
 export type TronTxReconciliationResult =
@@ -50,7 +59,7 @@ export class TronPaymentExecutionService {
     amountBaseUnits: string;
     contractAddress?: string;
     walletActionId?: string;
-  }): TronPreparedTransfer {
+  }): TronTransferRequest {
     if (!/^[0-9]+$/.test(input.amountBaseUnits) || BigInt(input.amountBaseUnits) <= 0n) {
       throw new BadRequestException('USDT amount must be a positive base-unit integer');
     }
@@ -75,6 +84,73 @@ export class TronPaymentExecutionService {
       payerAddress,
       payerAddressHex: this.toTronAddressHex(payerAddress, 'payerAddress'),
     };
+  }
+
+  buildSmartContractParameter(prepared: TronTransferRequest): string {
+    const recipientHex = this.toTronAddressHex(prepared.recipientAddress, 'recipientAddress')
+      .replace(/^41/iu, '')
+      .padStart(64, '0');
+    const amountHex = BigInt(prepared.amountBaseUnits).toString(16).padStart(64, '0');
+
+    return `${recipientHex}${amountHex}`;
+  }
+
+  toPreparedTransfer(
+    request: TronTransferRequest,
+    unsignedTransaction: TronUnsignedTransaction,
+  ): TronPreparedTransfer {
+    return { ...request, unsignedTransaction };
+  }
+
+  parsePreparedTransfer(value: Record<string, unknown>): TronPreparedTransfer {
+    const unsigned = value.unsignedTransaction;
+    if (!unsigned || typeof unsigned !== 'object') {
+      throw new BadRequestException('Prepared TRON transaction is missing');
+    }
+
+    const transaction = unsigned as Record<string, unknown>;
+    const rawData = transaction.raw_data;
+    if (
+      value.kind !== 'tron_transaction'
+      || typeof value.contractAddress !== 'string'
+      || typeof value.recipientAddress !== 'string'
+      || typeof value.amountBaseUnits !== 'string'
+      || typeof value.feeLimitSun !== 'string'
+      || typeof value.payerAddress !== 'string'
+      || transaction.visible !== true
+      || typeof transaction.txID !== 'string'
+      || !/^[a-fA-F0-9]{64}$/u.test(transaction.txID)
+      || typeof transaction.raw_data_hex !== 'string'
+      || !/^[a-fA-F0-9]+$/u.test(transaction.raw_data_hex)
+      || !rawData
+      || typeof rawData !== 'object'
+    ) {
+      throw new BadRequestException('Prepared TRON transaction is invalid');
+    }
+
+    return value as TronPreparedTransfer;
+  }
+
+  assertSignedTransactionMatchesPrepared(
+    prepared: TronPreparedTransfer,
+    signed: TronSignedTransaction,
+  ): void {
+    const expected = prepared.unsignedTransaction;
+    const hasValidSignature = Array.isArray(signed.signature)
+      && signed.signature.length > 0
+      && signed.signature.every(signature => /^[a-fA-F0-9]{130}$/u.test(signature));
+    if (!hasValidSignature) {
+      throw new BadRequestException('Signed TRON transaction is missing a valid signature');
+    }
+
+    if (
+      signed.visible !== expected.visible
+      || signed.txID !== expected.txID
+      || signed.raw_data_hex !== expected.raw_data_hex
+      || !isDeepStrictEqual(signed.raw_data, expected.raw_data)
+    ) {
+      throw new BadRequestException('Signed TRON transaction does not match the prepared payment');
+    }
   }
 
   normalizeWalletChainId(value?: string | null): string {

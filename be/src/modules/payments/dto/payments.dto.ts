@@ -1,6 +1,20 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsIn, IsInt, IsOptional, IsString, Matches, Max, Min } from 'class-validator';
+import {
+  ArrayNotEmpty,
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsObject,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 
 import {
   PaymentAsset,
@@ -120,8 +134,8 @@ export class PaymentCheckoutCapabilityDto {
   @ApiProperty({ enum: PaymentAsset })
   asset!: PaymentAsset;
 
-  @ApiProperty({ enum: ['metamask', 'metamask_solana', 'xverse', 'tronlink'] })
-  walletProvider!: 'metamask' | 'metamask_solana' | 'xverse' | 'tronlink';
+  @ApiProperty({ enum: ['metamask', 'metamask_solana', 'xverse', 'reown'] })
+  walletProvider!: 'metamask' | 'metamask_solana' | 'xverse' | 'reown';
 
   @ApiProperty({ enum: ['mainnet', 'mainnet-beta'] })
   network!: 'mainnet' | 'mainnet-beta';
@@ -257,6 +271,58 @@ export class PreparedTronWalletTransferDto {
 
   @ApiProperty()
   payerAddressHex!: string;
+
+  @ApiProperty({ type: () => TronUnsignedTransactionDto })
+  unsignedTransaction!: TronUnsignedTransactionDto;
+}
+
+export class TronUnsignedTransactionDto {
+  @ApiProperty()
+  visible!: boolean;
+
+  @ApiProperty()
+  txID!: string;
+
+  @ApiProperty({ type: Object })
+  raw_data!: Record<string, unknown>;
+
+  @ApiProperty()
+  raw_data_hex!: string;
+}
+
+export class SignedTronTransactionDto extends TronUnsignedTransactionDto {
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsString({ each: true })
+  @Matches(/^[a-fA-F0-9]{130}$/u, { each: true })
+  signature!: string[];
+
+  @IsBoolean()
+  declare visible: boolean;
+
+  @IsString()
+  @Matches(/^[a-fA-F0-9]{64}$/u)
+  declare txID: string;
+
+  @IsObject()
+  declare raw_data: Record<string, unknown>;
+
+  @IsString()
+  @Matches(/^[a-fA-F0-9]+$/u)
+  declare raw_data_hex: string;
+}
+
+export class BroadcastPreparedTronTransactionDto {
+  @ApiProperty({ type: SignedTronTransactionDto })
+  @ValidateNested()
+  @Type(() => SignedTronTransactionDto)
+  signedTransaction!: SignedTronTransactionDto;
+}
+
+export class BroadcastPreparedTronTransactionResponseDto {
+  @ApiProperty()
+  txId!: string;
 }
 
 export class PreparedBitcoinWalletTransferDto {

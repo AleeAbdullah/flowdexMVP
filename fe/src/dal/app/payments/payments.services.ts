@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, extractAxiosError } from '@/lib/axios';
 import { toast } from 'sonner';
 import type {
+  BroadcastPreparedTronTransactionInput,
+  BroadcastPreparedTronTransactionResponse,
   CreatePaymentIntentInput,
   IPaymentCheckoutCapabilitiesResponse,
   IPaymentCheckoutSession,
@@ -154,6 +156,21 @@ export const paymentsService = {
       },
     );
     return response;
+  },
+  async broadcastPreparedTronTransaction(
+    intentId: string,
+    preparedActionId: string,
+    checkoutToken: string,
+    input: BroadcastPreparedTronTransactionInput,
+  ): Promise<BroadcastPreparedTronTransactionResponse> {
+    return api.post<BroadcastPreparedTronTransactionResponse>(
+      API_ROUTES.public.payments.intentTronBroadcast(intentId, preparedActionId),
+      input,
+      {
+        ...browserPublicProxyConfig,
+        headers: { 'x-payment-checkout-token': checkoutToken },
+      },
+    );
   },
 };
 

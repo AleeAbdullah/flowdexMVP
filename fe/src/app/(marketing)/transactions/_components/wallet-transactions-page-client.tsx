@@ -102,7 +102,7 @@ export function WalletTransactionsPageClient() {
         ) : null}
 
         {paymentsQuery.isError ? (
-          <div className="px-6 py-5 text-sm text-rose-200">
+          <div className="border-y border-[var(--status-error-border)] bg-[var(--status-error-surface)] px-6 py-5 text-sm text-[var(--status-error-text)]">
             {paymentsQuery.error instanceof Error ? paymentsQuery.error.message : 'Could not load wallet payments.'}
           </div>
         ) : null}

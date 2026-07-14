@@ -66,20 +66,20 @@ export function DataKicker(props: {
 }
 
 const statusToneMap: Record<string, string> = {
-  [PAYMENT_INTENT_STATUSES.WAITING]: 'border-amber-400/20 bg-amber-400/10 text-amber-100',
-  [PAYMENT_INTENT_STATUSES.DETECTED]: 'border-cyan-400/20 bg-cyan-400/10 text-cyan-100',
-  [PAYMENT_INTENT_STATUSES.CONFIRMING]: 'border-sky-400/20 bg-sky-400/10 text-sky-100',
-  [PAYMENT_INTENT_STATUSES.CONFIRMED]: 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100',
-  [PAYMENT_INTENT_STATUSES.FAILED]: 'border-rose-400/20 bg-rose-500/10 text-rose-100',
-  [PAYMENT_INTENT_STATUSES.UNDERPAID]: 'border-amber-400/20 bg-amber-400/10 text-amber-100',
-  [PAYMENT_INTENT_STATUSES.OVERPAID]: 'border-amber-400/20 bg-amber-400/10 text-amber-100',
-  [PAYMENT_INTENT_STATUSES.EXPIRED]: 'border-slate-400/20 bg-slate-400/10 text-slate-200',
-  [PAYMENT_INTENT_STATUSES.LATE_PAID]: 'border-amber-400/20 bg-amber-400/10 text-amber-100',
-  PENDING: 'border-amber-400/20 bg-amber-400/10 text-amber-100',
-  APPROVED: 'border-cyan-400/20 bg-cyan-400/10 text-cyan-100',
-  SENT: 'border-sky-400/20 bg-sky-400/10 text-sky-100',
-  DROPPED: 'border-slate-400/20 bg-slate-400/10 text-slate-200',
-  SUBMITTED: 'border-amber-400/20 bg-amber-400/10 text-amber-100',
+  [PAYMENT_INTENT_STATUSES.WAITING]: 'border-[var(--status-warning-border)] bg-[var(--status-warning-surface)] text-[var(--status-warning-text)]',
+  [PAYMENT_INTENT_STATUSES.DETECTED]: 'border-[var(--status-info-border)] bg-[var(--status-info-surface)] text-[var(--status-info-text)]',
+  [PAYMENT_INTENT_STATUSES.CONFIRMING]: 'border-[var(--status-info-border)] bg-[var(--status-info-surface)] text-[var(--status-info-text)]',
+  [PAYMENT_INTENT_STATUSES.CONFIRMED]: 'border-[var(--status-success-border)] bg-[var(--status-success-surface)] text-[var(--status-success-text)]',
+  [PAYMENT_INTENT_STATUSES.FAILED]: 'border-[var(--status-error-border)] bg-[var(--status-error-surface)] text-[var(--status-error-text)]',
+  [PAYMENT_INTENT_STATUSES.UNDERPAID]: 'border-[var(--status-warning-border)] bg-[var(--status-warning-surface)] text-[var(--status-warning-text)]',
+  [PAYMENT_INTENT_STATUSES.OVERPAID]: 'border-[var(--status-warning-border)] bg-[var(--status-warning-surface)] text-[var(--status-warning-text)]',
+  [PAYMENT_INTENT_STATUSES.EXPIRED]: 'border-[var(--status-neutral-border)] bg-[var(--status-neutral-surface)] text-[var(--status-neutral-text)]',
+  [PAYMENT_INTENT_STATUSES.LATE_PAID]: 'border-[var(--status-warning-border)] bg-[var(--status-warning-surface)] text-[var(--status-warning-text)]',
+  PENDING: 'border-[var(--status-warning-border)] bg-[var(--status-warning-surface)] text-[var(--status-warning-text)]',
+  APPROVED: 'border-[var(--status-info-border)] bg-[var(--status-info-surface)] text-[var(--status-info-text)]',
+  SENT: 'border-[var(--status-info-border)] bg-[var(--status-info-surface)] text-[var(--status-info-text)]',
+  DROPPED: 'border-[var(--status-neutral-border)] bg-[var(--status-neutral-surface)] text-[var(--status-neutral-text)]',
+  SUBMITTED: 'border-[var(--status-warning-border)] bg-[var(--status-warning-surface)] text-[var(--status-warning-text)]',
 };
 
 export function StatusPill(props: {
@@ -90,7 +90,7 @@ export function StatusPill(props: {
     <span
       className={cn(
         'inline-flex rounded-full border px-3 py-1 text-[10px] font-bold tracking-[0.24em] uppercase',
-        statusToneMap[props.status] ?? 'border-white/10 bg-white/5 text-slate-200',
+        statusToneMap[props.status] ?? 'border-[var(--status-neutral-border)] bg-[var(--status-neutral-surface)] text-[var(--status-neutral-text)]',
         props.className,
       )}
     >

@@ -31,7 +31,7 @@ export async function MarketingShell({
         <div className="border-b border-[var(--accent-border)] bg-[var(--accent-bg)] backdrop-blur-xl">
           <div className="section-shell flex min-h-9 items-center justify-center gap-x-6 gap-y-2 py-2 text-[11px] font-medium text-[var(--muted)] max-lg:flex-wrap">
             <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-              <Badge variant="success" className="gap-2 text-emerald-300">
+              <Badge variant="success" className="gap-2">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--green)] shadow-[0_0_14px_var(--green)]" />
                 {marketingShellBanner.status}
               </Badge>

@@ -10,9 +10,9 @@ export default function AdminTransactionDetailError(props: {
   reset: () => void;
 }) {
   return (
-    <GlassPanel className="space-y-4 border border-rose-400/20 bg-rose-500/10 p-6">
+    <GlassPanel className="space-y-4 border border-[var(--status-error-border)] bg-[var(--status-error-surface)] p-6">
       <div className="text-lg font-bold text-[var(--text)]">Admin payment detail unavailable</div>
-      <p className="text-sm leading-7 text-rose-100">
+      <p className="text-sm leading-7 text-[var(--status-error-text)]">
         {props.error.message || 'This legacy detail route could not be loaded. Open the payments list and expand a row for full payment details.'}
       </p>
       <div className="flex flex-wrap gap-3">

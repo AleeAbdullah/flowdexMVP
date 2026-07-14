@@ -60,7 +60,7 @@ export function BuyPageContent() {
         <div className="mt-7">
           <div className="h-8 overflow-hidden rounded-full bg-[var(--track)]">
             <div
-              className="h-full rounded-r-none bg-[linear-gradient(90deg,#19d7e8,#118cf2)]"
+              className="h-full rounded-r-none bg-[image:var(--buy-progress-gradient)]"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -116,9 +116,10 @@ export function BuyPageContent() {
               <button
                 key={tab}
                 type="button"
+                aria-pressed={activeTab === tab}
                 onClick={() => setActiveTab(tab)}
                 className={cn(
-                  'px-3 py-3 text-sm font-bold transition',
+                  'px-3 py-3 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-strong)] focus-visible:ring-inset',
                   activeTab === tab
                     ? 'rounded-md border border-[var(--accent-border)] bg-[var(--accent-bg)] text-[var(--cyan)]'
                     : 'text-[var(--muted)] hover:text-[var(--text)]',
@@ -144,7 +145,7 @@ export function BuyPageContent() {
 
             {activeTab === 'Referral' ? (
               <div className="text-center">
-                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-md border border-cyan-200/25 bg-cyan-300/10 text-cyan-200">
+                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-md border border-[var(--status-info-border)] bg-[var(--status-info-surface)] text-[var(--status-info-text)]">
                   <UserRound className="h-6 w-6" />
                 </div>
                 <h2 className="mt-6 text-2xl font-black text-(--text)">Referral Coming Soon</h2>

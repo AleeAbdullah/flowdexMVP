@@ -57,7 +57,7 @@ export function RoadmapPage() {
               <Card key={item.phase}>
                 <CardHeader className="md:flex-row md:items-start md:justify-between">
                   <div>
-                    <div className="text-[10px] font-bold tracking-[0.28em] text-cyan-300 uppercase">
+                    <div className="text-[10px] font-bold tracking-[0.28em] text-[var(--cyan)] uppercase">
                       {item.phase}
                     </div>
                     <CardTitle className="mt-3">{item.title}</CardTitle>

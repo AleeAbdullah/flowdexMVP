@@ -9,7 +9,7 @@ import {
 import {
   TRON_MAINNET_WALLET_CHAIN_ID,
   TRON_WALLET_NETWORK_ID,
-} from '../constants/tronlink';
+} from '../constants/tron';
 import type { SupportedAssetOption } from '../types/buy-view-model';
 
 const enabledAssets: PaymentAsset[] = [
