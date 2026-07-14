@@ -7,6 +7,7 @@ import type {
   BroadcastPreparedTronTransactionResponse,
   CreatePaymentIntentInput,
   IPaymentCheckoutCapabilitiesResponse,
+  IPaymentBuyConfigResponse,
   IPaymentCheckoutSession,
   IPreparedWalletAction,
   IPaymentLeadersResponse,
@@ -23,6 +24,7 @@ import type {
 } from './payments.types';
 
 export const paymentsQueryKeys = {
+  buyConfig: ['app', 'payments', 'buy-config'] as const,
   checkoutCapabilities: ['app', 'payments', 'checkout-capabilities'] as const,
   intentStatus: (intentId: string | null | undefined) => ['app', 'payments', 'intent-status', intentId ?? 'none'] as const,
   history: (walletAddress: string | null | undefined) => ['app', 'payments', 'history', walletAddress ?? 'none'] as const,
@@ -100,6 +102,12 @@ export const paymentsService = {
   getCheckoutCapabilities() {
     return api.get<IPaymentCheckoutCapabilitiesResponse>(
       API_ROUTES.public.payments.checkoutCapabilities,
+      browserPublicProxyConfig,
+    );
+  },
+  getBuyConfig() {
+    return api.get<IPaymentBuyConfigResponse>(
+      API_ROUTES.public.payments.buyConfig,
       browserPublicProxyConfig,
     );
   },
@@ -237,11 +245,22 @@ export function usePaymentCheckoutCapabilities() {
   });
 }
 
+export function usePaymentBuyConfig(enabled = true) {
+  return useQuery({
+    queryKey: paymentsQueryKeys.buyConfig,
+    queryFn: paymentsService.getBuyConfig,
+    staleTime: 60_000,
+    retry: false,
+    enabled,
+  });
+}
+
 export function usePaymentLeaders(limit = 10) {
   return useQuery({
     queryKey: paymentsQueryKeys.leaders(limit),
     queryFn: () => paymentsService.getPaymentLeaders(limit),
     staleTime: 30_000,
+    retry: false,
   });
 }
 

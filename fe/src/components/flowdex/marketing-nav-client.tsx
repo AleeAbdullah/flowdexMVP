@@ -51,6 +51,7 @@ export function MarketingNavClient(props: {
             <div className="flex min-w-0 items-center gap-3">
               <Link
                 href={ROUTES.MARKETING.HOME}
+                prefetch={false}
                 className="shrink-0"
                 aria-label="FlowDex home"
                 onClick={() => setMenuState(false)}
@@ -88,6 +89,7 @@ export function MarketingNavClient(props: {
                   <li key={item.href} className="relative">
                     <Link
                       href={item.href}
+                      prefetch={false}
                       className={cn(
                         'block font-medium transition-[color] duration-150',
                         isActive
@@ -114,7 +116,7 @@ export function MarketingNavClient(props: {
               </Suspense>
             ) : (
               <Button variant="brand" size="sm" asChild>
-                <Link href={props.primaryAction.href}>{props.primaryAction.label}</Link>
+                <Link href={props.primaryAction.href} prefetch={false}>{props.primaryAction.label}</Link>
               </Button>
             )}
           </div>
@@ -128,6 +130,7 @@ export function MarketingNavClient(props: {
                   <li key={item.href}>
                     <Link
                       href={item.href}
+                      prefetch={false}
                       onClick={() => setMenuState(false)}
                       className={cn(
                         'block font-semibold transition-[color] duration-150',
@@ -151,7 +154,7 @@ export function MarketingNavClient(props: {
                 </Suspense>
               ) : (
                 <Button variant="brand" size="sm" asChild className="sm:flex-1">
-                  <Link href={props.primaryAction.href} onClick={() => setMenuState(false)}>
+                  <Link href={props.primaryAction.href} prefetch={false} onClick={() => setMenuState(false)}>
                     {props.primaryAction.label}
                   </Link>
                 </Button>

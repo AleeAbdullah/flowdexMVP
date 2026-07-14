@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useQueryState } from 'nuqs';
 import { GlassPanel } from '@/components/glass-panel';
 import { usePaymentLeaders } from '@/dal/app/payments/payments.services';
@@ -20,6 +21,11 @@ import { MarketScenarios } from './market-scenarios';
 import { PaymentCard } from './payment-card';
 import { PaymentDialogs } from './payment-dialogs';
 import { PortfolioPanel } from './portfolio-panel';
+
+const ReownCheckoutRuntime = dynamic(
+  () => import('../wallet-adapters/reown-checkout-runtime').then(module => module.ReownCheckoutRuntime),
+  { ssr: false },
+);
 
 export function BuyPageContent() {
   const { market, order, payment, wallet, actions } = useBuyCheckoutController();
@@ -43,14 +49,21 @@ export function BuyPageContent() {
 
   return (
     <main className="section-shell section-pad">
+      {wallet.shouldLoadReown ? <ReownCheckoutRuntime /> : null}
       <PaymentDialogs wallet={wallet} payment={payment} actions={actions} />
 
       <GlassPanel as="section" className="rounded-[1.15rem] bg-[var(--buy-panel)] p-6 md:p-8">
         <div className="grid gap-6 md:grid-cols-3 md:items-center">
           <div>
             <div className="flex items-center gap-2 text-sm font-bold tracking-wide text-[var(--cyan)] uppercase">
-              Tier {market.currentTier} - Live
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              {market.isLoading
+                ? 'Loading live presale data'
+                : market.hasError
+                  ? 'Live presale data unavailable'
+                  : `Tier ${market.currentTier} - Live`}
+              {!market.isLoading && !market.hasError ? (
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              ) : null}
             </div>
           </div>
           <BuyMetric label="Raised Amount" value={market.raisedDisplay} note={`/ ${market.targetRaisedDisplay}`} />
@@ -65,7 +78,9 @@ export function BuyPageContent() {
             />
           </div>
           <div className="-mt-8 flex h-8 items-center justify-center text-[10px] font-bold tracking-[0.2em] text-[var(--text)] uppercase">
-            {market.remainingTokensDisplay} FDN Remaining
+            {market.remainingTokensDisplay === '—'
+              ? 'Live total unavailable'
+              : `${market.remainingTokensDisplay} FDN Remaining`}
           </div>
         </div>
 
@@ -89,7 +104,7 @@ export function BuyPageContent() {
 
         <div className="mt-10">
           <div className="text-[10px] font-semibold tracking-[0.28em] text-[color-mix(in_srgb,var(--text)_44%,transparent)] uppercase">
-            Tier {market.currentTier} Vesting
+            {market.currentTier > 0 ? `Tier ${market.currentTier}` : 'Presale'} Vesting
           </div>
           <div className="mt-4 grid h-10 overflow-hidden rounded-sm md:grid-cols-[0.07fr_0.35fr_0.6fr]">
             <div className="flex items-center justify-center bg-[var(--cyan)] text-[13px] font-black text-[var(--primary-foreground-solid)]">5% TGE</div>

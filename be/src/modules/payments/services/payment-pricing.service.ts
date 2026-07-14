@@ -15,6 +15,10 @@ type CachedQuote = {
   expiresAt: Date;
 };
 
+export type PaymentAssetQuote = CachedQuote & {
+  cacheStatus: 'fresh' | 'cached' | 'fixed';
+};
+
 const QUOTE_TTL_MS = 60_000;
 const INTENT_QUOTE_TTL_MS = 5 * 60_000;
 
@@ -91,22 +95,30 @@ export class PaymentPricingService {
     return { tokenPriceUsd: normalizeFixed(fallbackRows[0].tokenPriceUsd) };
   }
 
-  private async getFreshAssetQuote(asset: PaymentAsset): Promise<CachedQuote> {
+  async getAssetQuote(asset: PaymentAsset): Promise<PaymentAssetQuote> {
+    return this.getFreshAssetQuote(asset);
+  }
+
+  private async getFreshAssetQuote(asset: PaymentAsset): Promise<PaymentAssetQuote> {
     if (asset === PaymentAsset.USDT_TRC20) {
       return {
         priceUsd: '1',
         quotedAt: new Date(),
         expiresAt: new Date(Date.now() + QUOTE_TTL_MS),
+        cacheStatus: 'fixed',
       };
     }
 
     const cached = this.quoteCache.get(asset);
     if (cached && cached.expiresAt > new Date()) {
-      return cached;
+      return { ...cached, cacheStatus: 'cached' };
     }
 
     const priceUsd = await this.marketsService.getCryptoSpotPriceUsd(asset);
     if (!priceUsd || parseFixed(priceUsd) <= 0n) {
+      if (cached) {
+        return { ...cached, cacheStatus: 'cached' };
+      }
       throw new ServiceUnavailableException('PRICE_UNAVAILABLE');
     }
 
@@ -116,7 +128,7 @@ export class PaymentPricingService {
       expiresAt: new Date(Date.now() + QUOTE_TTL_MS),
     };
     this.quoteCache.set(asset, quote);
-    return quote;
+    return { ...quote, cacheStatus: 'fresh' };
   }
 
   private usdToAssetBaseUnits(input: { usdAmount: string; priceUsd: string; decimals: number }): string {

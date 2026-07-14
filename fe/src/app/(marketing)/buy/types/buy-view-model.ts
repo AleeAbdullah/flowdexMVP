@@ -53,6 +53,8 @@ export type MarketScenario = {
 };
 
 export type BuyMarketView = {
+  isLoading: boolean;
+  hasError: boolean;
   currentTier: number;
   tokenPriceUsd: number;
   listingReferenceUsd: number;
@@ -120,6 +122,7 @@ export type BuyWalletStatusView = {
 };
 
 export type BuyWalletView = {
+  shouldLoadReown: boolean;
   checkoutStage: BuyCheckoutStage;
   paymentWalletError: string | null;
   canUseWalletCheckout: boolean;

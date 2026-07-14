@@ -181,6 +181,28 @@ export type IPaymentCheckoutCapabilitiesResponse = {
   items: IPaymentCheckoutCapability[];
 };
 
+export type IPaymentBuyAsset = IPaymentCheckoutCapability & {
+  priceUsd: string;
+  quotedAt: string;
+  cacheStatus: 'fresh' | 'cached' | 'fixed';
+};
+
+export type IPaymentBuyConfigResponse = {
+  presale: {
+    currentTier: number;
+    tokenPriceUsd: string;
+    nextTierTokenPriceUsd: string | null;
+    fundsRaisedUsd: string;
+    tokensSold: string;
+    currentTierTokenCap: string;
+    aggregateTokenCap: string;
+    targetRaisedUsd: string;
+    updatedAt: string;
+  };
+  assets: IPaymentBuyAsset[];
+  servedAt: string;
+};
+
 export type PaymentHistoryFilters = {
   walletAddress: string;
 };

@@ -30,7 +30,6 @@ export const API_ROUTES = {
     },
   },
   public: {
-    pricing: '/pricing',
     markets: {
       crypto: (params: { quote: string; limit: number }) => {
         const searchParams = new URLSearchParams({
@@ -42,6 +41,7 @@ export const API_ROUTES = {
     },
     payments: {
       root: '/payments',
+      buyConfig: '/payments/buy-config',
       checkoutCapabilities: '/payments/checkout-capabilities',
       intents: '/payments/intents',
       intentStatus: (intentId: string) => `/payments/intents/${intentId}/status`,
@@ -62,11 +62,6 @@ export const API_ROUTES = {
         });
         return `/payments/leaders?${searchParams.toString()}`;
       },
-    },
-    presale: {
-      stats: '/presale/stats',
-      tiers: '/presale/tiers',
-      config: '/presale/config',
     },
   },
   backend: {

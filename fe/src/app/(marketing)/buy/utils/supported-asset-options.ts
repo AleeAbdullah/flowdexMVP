@@ -1,9 +1,8 @@
-import type { BuySnapshot } from '@/components/flowdex/buy-page-types';
-import { buildBuyMarketModel } from '@/components/flowdex/buy-page-market';
 import {
   PAYMENT_ASSETS,
   PAYMENT_CHAINS,
   type IPaymentCheckoutCapability,
+  type IPaymentBuyConfigResponse,
   type PaymentAsset,
 } from '@/dal/app/payments/payments.types';
 import {
@@ -38,13 +37,6 @@ const assetConfig: Record<PaymentAsset, {
   },
 };
 
-const fallbackPrices: Record<PaymentAsset, number> = {
-  ETH: 2850,
-  SOL: 190,
-  BTC: 65000,
-  USDT_TRC20: 1,
-};
-
 const decimals: Record<PaymentAsset, number> = {
   ETH: 18,
   SOL: 9,
@@ -59,16 +51,8 @@ const labels: Record<PaymentAsset, string> = {
   USDT_TRC20: 'USDT TRC20',
 };
 
-function getAssetPrice(snapshot: BuySnapshot, asset: PaymentAsset) {
-  const market = buildBuyMarketModel(snapshot);
-  const marketOption = market.assetOptions.find(option => option.code.toUpperCase() === asset);
-  return marketOption?.usdPrice && marketOption.usdPrice > 0
-    ? marketOption.usdPrice
-    : fallbackPrices[asset];
-}
-
 export function buildSupportedAssetOptions(
-  snapshot: BuySnapshot,
+  buyConfig: IPaymentBuyConfigResponse,
   capabilities?: IPaymentCheckoutCapability[],
 ): SupportedAssetOption[] {
   return enabledAssets.flatMap((asset) => {
@@ -87,7 +71,7 @@ export function buildSupportedAssetOptions(
       walletNetworkId,
       walletCheckoutEnabled: walletCheckoutEnabled && (capability?.enabled ?? true),
       decimals: capability?.decimals ?? decimals[asset],
-      usdPrice: getAssetPrice(snapshot, asset),
+      usdPrice: Number(buyConfig.assets.find(item => item.asset === asset)?.priceUsd ?? 0),
     };
   });
 }

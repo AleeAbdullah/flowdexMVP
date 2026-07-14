@@ -1,15 +1,14 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { CircleAlert, icons } from '@/icons';
 import {
-  marketingShellBanner,
   marketingShellFooter,
 } from './marketing-data';
 import { MarketingNav } from './marketing-nav';
 import { FlowdexWordmark } from './primitives';
+import { MarketingStatusBanner } from './marketing-status-banner';
 
 export async function MarketingShell({
   children,
@@ -28,21 +27,7 @@ export async function MarketingShell({
       </a>
 
       <header className="fixed inset-x-0 top-0 z-50">
-        <div className="border-b border-[var(--accent-border)] bg-[var(--accent-bg)] backdrop-blur-xl">
-          <div className="section-shell flex min-h-9 items-center justify-center gap-x-6 gap-y-2 py-2 text-[11px] font-medium text-[var(--muted)] max-lg:flex-wrap">
-            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-              <Badge variant="success" className="gap-2">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--green)] shadow-[0_0_14px_var(--green)]" />
-                {marketingShellBanner.status}
-              </Badge>
-              {marketingShellBanner.stats.map(stat => (
-                <span key={stat.label} className="hidden sm:inline">
-                  {stat.label}: <span className={`font-data font-bold ${stat.label === 'Current Tier' ? 'text-[var(--accent-strong)]' : 'text-[var(--text)]'}`}>{stat.value}</span>
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
+        <MarketingStatusBanner />
         <MarketingNav />
       </header>
 
@@ -115,6 +100,7 @@ function FooterColumn(props: {
           <Link
             key={item.label}
             href={item.href}
+            prefetch={false}
             className="block text-sm text-[color-mix(in_srgb,var(--text)_72%,transparent)] hover:text-[var(--accent-strong)]"
           >
             {item.label}
