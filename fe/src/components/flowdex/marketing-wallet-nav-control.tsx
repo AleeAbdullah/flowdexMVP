@@ -23,8 +23,8 @@ function getConnectorLabel(connectorName: string) {
       return 'MetaMask';
     case 'coinbasewallet':
       return 'Coinbase Wallet';
-    case 'walletconnect':
-      return 'WalletConnect';
+    case 'metamaskbitcoin':
+      return 'MetaMask Bitcoin';
     default:
       return connectorName;
   }

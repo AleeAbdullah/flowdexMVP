@@ -92,10 +92,7 @@ Buy route utilities:
 
 - `utils/get-buy-execution-readiness.ts`
   - Decides whether the connected wallet can use checkout.
-  - Supports MetaMask, Coinbase Wallet, and WalletConnect only when the connected session proves support.
-
-- `utils/walletconnect-session-capabilities.ts`
-  - Reads WalletConnect approved namespaces, methods, accounts, and chain capability.
+  - Supports direct injected EVM connectors surfaced by Account Kit.
 
 - `utils/buy-transaction-validation.ts`
   - Validates backend simulation RPC fields.
@@ -277,7 +274,6 @@ Important files:
 
 - Checkout coordinator: `src/app/(marketing)/buy/hooks/use-buy-checkout-controller.ts`
 - Readiness gate: `src/app/(marketing)/buy/utils/get-buy-execution-readiness.ts`
-- WalletConnect capability gate: `src/app/(marketing)/buy/utils/walletconnect-session-capabilities.ts`
 - Simulation validation: `src/app/(marketing)/buy/utils/buy-transaction-validation.ts`
 - Wallet send: `src/app/(marketing)/buy/utils/send-buy-transaction.ts`
 - Transaction DAL: `src/dal/app/transactions/transactions.services.ts`
@@ -301,15 +297,6 @@ Injected wallet checkout can proceed only when:
 - The active chain is known.
 - The active chain equals the selected asset chain.
 - The provider exposes an EIP-1193-style `request`.
-
-WalletConnect checkout can proceed only when the connected session proves:
-
-- It has an `eip155` namespace.
-- It approved `eth_sendTransaction`.
-- It approved the active account and active chain.
-- It can use the required chain, or it exposes enough switch capability for the route to keep checking readiness.
-
-If WalletConnect metadata is missing or inconclusive, the route must block checkout. Do not "try anyway". The final send path still re-reads `eth_chainId` and blocks if the wallet is not actually on the simulation chain.
 
 ## Hard Transaction Invariants
 
@@ -441,7 +428,6 @@ Good first tasks:
 Tasks that require extra review:
 
 - Changing simulation request shape.
-- Changing WalletConnect readiness.
 - Adding a new wallet connector.
 - Changing payment status transitions.
 - Changing treasury or network mapping.
@@ -494,7 +480,6 @@ Wallet connects but cannot checkout:
 - Check `walletStatus.executionReadiness`.
 - Check `unsupportedReason`.
 - Check connector name normalization.
-- For WalletConnect, inspect approved `session.namespaces.eip155`.
 
 Wallet verification fails:
 

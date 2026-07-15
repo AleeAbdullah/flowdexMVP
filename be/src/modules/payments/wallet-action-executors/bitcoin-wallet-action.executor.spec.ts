@@ -34,7 +34,7 @@ function buildIntent(): PaymentIntentEntity {
 }
 
 describe('BitcoinWalletActionExecutor', () => {
-  it('builds an Xverse-safe mainnet sats transfer', async () => {
+  it('builds a mainnet sats transfer for compatible Bitcoin wallets', async () => {
     const repository = {
       create: jest.fn(value => ({ id: 'bitcoin-action-id', ...value })),
       save: jest.fn(async value => value),

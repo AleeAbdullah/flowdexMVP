@@ -7,14 +7,14 @@ export type EvmExecutionReadiness =
   | {
       status: 'ready';
       sendMode: 'provider_send_transaction';
-      walletKind: 'injected' | 'walletconnect';
+      walletKind: 'injected';
       supportsSwitchChain: boolean;
       capabilityKey: string | null;
     }
   | {
       status: 'unsupported';
       reason: UnsupportedReason;
-      walletKind: 'injected' | 'walletconnect' | null;
+      walletKind: 'injected' | null;
       capabilityKey: string | null;
     };
 
@@ -36,11 +36,4 @@ export type NormalizedBuySendError = {
 
 export type BuyWalletProvider = {
   request: (args: { method: string; params?: unknown[] | object }) => Promise<unknown>;
-  session?: {
-    topic?: string;
-    namespaces?: Record<string, {
-      methods?: string[];
-      accounts?: string[];
-    }>;
-  };
 };

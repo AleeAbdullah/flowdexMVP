@@ -1,10 +1,5 @@
 function getHydrationConnectorName(name: string | null | undefined) {
-  const normalized = (name ?? '').trim().toLowerCase().replace(/\s+/g, '');
-  if (normalized === 'wallet_connect' || normalized === 'walletconnect') {
-    return 'walletconnect';
-  }
-
-  return normalized;
+  return (name ?? '').trim().toLowerCase().replace(/\s+/g, '');
 }
 
 type HydrationConnectorBase = {
@@ -18,7 +13,7 @@ export async function readAuthorizedInjectedConnector<TConnector extends Hydrati
 }) {
   for (const connector of input.connectors) {
     const connectorName = getHydrationConnectorName(connector.name ?? connector.id ?? null);
-    if (!connectorName || connectorName === 'walletconnect') {
+    if (!connectorName) {
       continue;
     }
 

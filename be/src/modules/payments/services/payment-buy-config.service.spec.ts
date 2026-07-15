@@ -38,7 +38,7 @@ describe('PaymentBuyConfigService', () => {
       {
         chain: PaymentChain.TRON,
         asset: PaymentAsset.USDT_TRC20,
-        walletProvider: 'reown',
+        walletProvider: 'tronlink',
         network: 'mainnet',
         decimals: 6,
         enabled: true,
@@ -46,7 +46,7 @@ describe('PaymentBuyConfigService', () => {
       {
         chain: PaymentChain.BITCOIN,
         asset: PaymentAsset.BTC,
-        walletProvider: 'xverse',
+        walletProvider: 'bitcoin',
         network: 'mainnet',
         decimals: 8,
         enabled: false,

@@ -96,6 +96,30 @@ export function PaymentCard(props: {
         <SummaryRow label="Potential ROI" value={props.order.roiDisplay} accent />
       </div>
 
+      {selectedAsset?.chain === 'BITCOIN' && !walletStatus.address && walletStatus.availableConnectorNames.length > 1 ? (
+        <div className="mt-6 grid grid-cols-2 gap-2 rounded-[0.75rem] border border-[var(--card-border)] bg-[var(--buy-panel-soft)] p-1">
+          {walletStatus.availableConnectorNames.map(connectorName => {
+            const isSelected = walletStatus.selectedConnectorName === connectorName;
+            return (
+              <button
+                key={connectorName}
+                type="button"
+                aria-pressed={isSelected}
+                onClick={() => props.actions.selectWalletConnector(connectorName)}
+                className={cn(
+                  'min-h-10 rounded-sm px-3 text-xs font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-strong)]',
+                  isSelected
+                    ? 'bg-[var(--accent-bg)] text-[var(--cyan)]'
+                    : 'text-[var(--muted)] hover:text-[var(--text)]',
+                )}
+              >
+                {connectorName}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
       {walletStatus.address ? (
         <div className="mt-6 flex items-center justify-between gap-4 rounded-[0.75rem] border border-[var(--card-border)] bg-[var(--buy-panel-soft)] px-4 py-3">
           <div className="min-w-0">

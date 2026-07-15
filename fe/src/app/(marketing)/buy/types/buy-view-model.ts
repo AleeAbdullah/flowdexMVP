@@ -109,6 +109,7 @@ export type BuyWalletStatusView = {
   chainId: number | null;
   walletChainId: string | null;
   connectorName: string | null;
+  selectedConnectorName: string | null;
   pendingConnectorName: string | null;
   availableConnectorNames: string[];
   executionReadiness: MarketingWalletExecutionReadiness;
@@ -122,7 +123,6 @@ export type BuyWalletStatusView = {
 };
 
 export type BuyWalletView = {
-  reownRuntime: 'tron' | null;
   checkoutStage: BuyCheckoutStage;
   paymentWalletError: string | null;
   canUseWalletCheckout: boolean;
@@ -133,6 +133,7 @@ export type BuyWalletView = {
 
 export type BuyActions = {
   selectAsset: (assetId: string) => void;
+  selectWalletConnector: (connectorName: string) => void;
   changeAmount: (value: string) => void;
   buy: () => void;
   closeCheckout: () => void;

@@ -51,19 +51,17 @@
 15. Backend marks transaction confirmed.
 16. User sees payment confirmed.
 
-## Future production payment rails
+## Production payment rails
 
-The current `/buy` checkout implementation is EVM-only and uses provider-managed
-`eth_sendTransaction` on configured EVM testnets. Do not wire production treasury
-addresses into Sepolia checkout.
+The `/buy` checkout implementation uses provider-managed wallet sends:
+EVM uses `eth_sendTransaction`, Solana uses MetaMask Solana, Bitcoin uses
+MetaMask Bitcoin or Xverse, and TRON uses TronLink.
 
-Reserved production/mainnet receiving addresses for the future payment rail work:
+Reserved production/mainnet receiving addresses:
 
 - Bitcoin mainnet: `bc1q7n84slhqfvm980lfrmr886nydq5024qy2crs8k`
 - Ethereum mainnet: `0xeB95d66Bd0C149eEe0AACA006Fb00228235DcE81`
 - Solana mainnet: `FEFZwPZy6r7Ni95AktZ8jd6m9TLUUEVPGnheUXx49GpL`
 
-Next implementation step for BTC/SOL should add first-class payment rail types
-such as `EVM`, `BTC`, and `SOL`, plus explicit treasury env vars. BTC/SOL v1
-should use address checkout with copy/QR/manual reconciliation before adding
-browser wallet-send support.
+Keep production treasury env vars explicit per chain and verify each wallet path
+against its matching mainnet receiver before enabling a new asset.

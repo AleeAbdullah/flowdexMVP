@@ -134,8 +134,8 @@ export class PaymentCheckoutCapabilityDto {
   @ApiProperty({ enum: PaymentAsset })
   asset!: PaymentAsset;
 
-  @ApiProperty({ enum: ['metamask', 'metamask_solana', 'xverse', 'reown'] })
-  walletProvider!: 'metamask' | 'metamask_solana' | 'xverse' | 'reown';
+  @ApiProperty({ enum: ['metamask', 'metamask_solana', 'bitcoin', 'tronlink'] })
+  walletProvider!: 'metamask' | 'metamask_solana' | 'bitcoin' | 'tronlink';
 
   @ApiProperty({ enum: ['mainnet', 'mainnet-beta'] })
   network!: 'mainnet' | 'mainnet-beta';

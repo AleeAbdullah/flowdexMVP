@@ -24,9 +24,7 @@ export function AlchemyProvider(props: {
       return null;
     }
 
-    const walletSupportRegistry = buildWalletSupportRegistry({
-      walletConnectEnabled: false,
-    });
+    const walletSupportRegistry = buildWalletSupportRegistry();
     const accountKitWalletOrder = getAccountKitWalletOrder(walletSupportRegistry);
     const featuredWalletCount = getFeaturedWalletCount(walletSupportRegistry);
     const hideMoreButton = accountKitWalletOrder.length <= featuredWalletCount;

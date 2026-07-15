@@ -28,7 +28,7 @@ export class BitcoinWalletActionExecutor implements WalletActionExecutor {
   async prepare(input: WalletActionPrepareInput): Promise<PreparedWalletActionDto> {
     const walletChainId = typeof input.dto.walletChainId === 'string' ? input.dto.walletChainId.trim() : '';
     if (walletChainId && walletChainId !== 'mainnet') {
-      throw new BadRequestException('Xverse must be connected to Bitcoin mainnet');
+      throw new BadRequestException('Bitcoin wallet must be connected to mainnet');
     }
 
     assertWalletIntentIsUsable(input.intent, input.senderAddress, PaymentChain.BITCOIN);

@@ -44,12 +44,7 @@ function normalizeWalletAddress(address: string | null | undefined) {
 }
 
 function normalizeMarketingWalletConnectorName(name: string | null | undefined) {
-  const normalized = (name ?? '').trim().toLowerCase().replace(/\s+/g, '');
-  if (normalized === 'wallet_connect' || normalized === 'walletconnect') {
-    return 'walletconnect';
-  }
-
-  return normalized;
+  return (name ?? '').trim().toLowerCase().replace(/\s+/g, '');
 }
 
 function getWalletConnectorName(connector: unknown) {
@@ -58,7 +53,7 @@ function getWalletConnectorName(connector: unknown) {
   }
 
   if (typeof connector === 'function') {
-    return 'walletconnect';
+    return '';
   }
 
   if (typeof connector === 'object') {
@@ -80,7 +75,7 @@ function getConnectorKind(connectorName: string | null): MarketingWalletConnecto
     return null;
   }
 
-  return connectorName === 'walletconnect' ? 'walletconnect' : 'injected';
+  return 'injected';
 }
 
 function getProviderAccountSnapshotKey(wagmiConfig: {
@@ -256,10 +251,6 @@ export function useMarketingWalletSync() {
         ? getWalletConnectorName(providerAccount.connector)
         : null;
       const connectorKind = getConnectorKind(connectorName);
-      const provider = providerAccount.isConnected && providerAccount.connector
-        ? await providerAccount.connector.getProvider().catch(() => null) as { session?: { topic?: string } } | null
-        : null;
-
       if (canceled) {
         return;
       }
@@ -283,7 +274,6 @@ export function useMarketingWalletSync() {
         chainId: nextChainId,
         connectorKind,
         connectorName,
-        walletConnectTopic: provider?.session?.topic ?? null,
         availableConnectorNames,
         pendingConnectorName: connectWallet.isPending ? pendingConnectorName : null,
       });
@@ -423,9 +413,7 @@ export function useMarketingWalletSync() {
     if (!availableConnectorNames.includes(normalizedConnectorName)) {
       setProviderConnectionIssue({
         code: 'connector_unavailable',
-        message: normalizedConnectorName === 'walletconnect'
-          ? 'WalletConnect is not available right now.'
-          : 'This wallet is not available in the current browser.',
+        message: 'This wallet is not available in the current browser.',
       });
       return;
     }

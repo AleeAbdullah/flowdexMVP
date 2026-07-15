@@ -6,8 +6,6 @@ import {
   buildWalletSupportRegistry,
   getDirectWalletSupportCopy,
   getPrimaryWalletSupportCopy,
-  getWalletConnectCompatibilityCopy,
-  getWalletSupportRuntime,
 } from '@/constants/wallet-support';
 import { GlassPanel } from '@/components/glass-panel';
 import { DataKicker, SectionHeading, StatusPill } from '@/components/flowdex/primitives';
@@ -25,12 +23,9 @@ export function WalletTransactionDetailPageClient(props: {
   const marketingWallet = useMarketingWalletSync();
   const provider = useMarketingWalletStore((state) => state.provider);
   const verification = useMarketingWalletStore((state) => state.verification);
-  const walletSupportRegistry = buildWalletSupportRegistry({
-    walletConnectEnabled: getWalletSupportRuntime().walletConnectEnabled,
-  });
+  const walletSupportRegistry = buildWalletSupportRegistry();
   const primaryWalletSupportCopy = getPrimaryWalletSupportCopy(walletSupportRegistry);
   const directWalletSupportCopy = getDirectWalletSupportCopy(walletSupportRegistry);
-  const walletConnectCompatibilityCopy = getWalletConnectCompatibilityCopy(walletSupportRegistry);
   const isWalletConnected = provider.status === 'connected';
   const isWalletVerified = verification.status === 'verified' && Boolean(verification.walletAddress);
 
@@ -65,7 +60,6 @@ export function WalletTransactionDetailPageClient(props: {
             <AuthCard className="flowdex-account-kit" />
             <div className="space-y-2 text-sm leading-6 text-[var(--muted)]">
               <p>{directWalletSupportCopy}</p>
-              <p>{walletConnectCompatibilityCopy}</p>
             </div>
           </div>
         </GlassPanel>

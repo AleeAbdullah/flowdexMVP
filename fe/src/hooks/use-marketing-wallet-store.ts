@@ -19,7 +19,6 @@ const initialProviderState: MarketingWalletProviderState = {
   chainId: null,
   connectorKind: null,
   connectorName: null,
-  walletConnectTopic: null,
   executionReadiness: 'checking',
   unsupportedReason: null,
   availableConnectorNames: [],
@@ -55,7 +54,6 @@ export type MarketingWalletStore = {
   setProviderExecutionState: (input: {
     executionReadiness: MarketingWalletExecutionReadiness;
     unsupportedReason?: MarketingWalletUnsupportedReason | null;
-    walletConnectTopic?: string | null;
   }) => void;
   setProviderConnectionIssue: (input: {
     code: MarketingWalletConnectionErrorCode;
@@ -114,7 +112,6 @@ export const useMarketingWalletStore = create<MarketingWalletStore>((set) => ({
         && state.provider.chainId === nextProvider.chainId
         && state.provider.connectorKind === nextProvider.connectorKind
         && state.provider.connectorName === nextProvider.connectorName
-        && state.provider.walletConnectTopic === nextProvider.walletConnectTopic
         && state.provider.executionReadiness === nextProvider.executionReadiness
         && state.provider.unsupportedReason === nextProvider.unsupportedReason
         && state.provider.pendingConnectorName === nextProvider.pendingConnectorName
@@ -135,11 +132,9 @@ export const useMarketingWalletStore = create<MarketingWalletStore>((set) => ({
   },
   setProviderExecutionState(input) {
     set((state) => {
-      const nextWalletConnectTopic = input.walletConnectTopic ?? state.provider.walletConnectTopic;
       if (
         state.provider.executionReadiness === input.executionReadiness
         && state.provider.unsupportedReason === (input.unsupportedReason ?? null)
-        && state.provider.walletConnectTopic === nextWalletConnectTopic
       ) {
         return state;
       }
@@ -150,7 +145,6 @@ export const useMarketingWalletStore = create<MarketingWalletStore>((set) => ({
           ...state.provider,
           executionReadiness: input.executionReadiness,
           unsupportedReason: input.unsupportedReason ?? null,
-          walletConnectTopic: nextWalletConnectTopic,
         },
       };
     });

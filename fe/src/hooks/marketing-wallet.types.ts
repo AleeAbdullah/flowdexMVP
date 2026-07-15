@@ -3,9 +3,6 @@ import type { IWalletTransactionSimulationResult } from '@/dal/app/transactions/
 export type MarketingWalletUnsupportedReason =
   | 'missing_provider'
   | 'unsupported_injected_provider'
-  | 'unsupported_walletconnect_session'
-  | 'inconclusive_walletconnect_session'
-  | 'missing_walletconnect_eth_sendTransaction'
   | 'missing_switch_chain'
   | 'wrong_chain'
   | 'account_mismatch'
@@ -15,7 +12,7 @@ export type MarketingWalletExecutionReadiness = 'checking' | 'ready' | 'unsuppor
 
 export type MarketingWalletProviderStatus = 'disconnected' | 'connected' | 'checking';
 
-export type MarketingWalletConnectorKind = 'injected' | 'walletconnect';
+export type MarketingWalletConnectorKind = 'injected';
 
 export type MarketingWalletConnectionErrorCode =
   | 'connector_unavailable'
@@ -53,7 +50,6 @@ export type MarketingWalletProviderState = {
   chainId: number | null;
   connectorKind: MarketingWalletConnectorKind | null;
   connectorName: string | null;
-  walletConnectTopic: string | null;
   executionReadiness: MarketingWalletExecutionReadiness;
   unsupportedReason: MarketingWalletUnsupportedReason | null;
   availableConnectorNames: string[];

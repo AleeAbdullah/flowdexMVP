@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
 import { useQueryState } from 'nuqs';
 import { GlassPanel } from '@/components/glass-panel';
 import { usePaymentLeaders } from '@/dal/app/payments/payments.services';
@@ -21,11 +20,6 @@ import { MarketScenarios } from './market-scenarios';
 import { PaymentCard } from './payment-card';
 import { PaymentDialogs } from './payment-dialogs';
 import { PortfolioPanel } from './portfolio-panel';
-
-const TronReownCheckoutRuntime = dynamic(
-  () => import('../wallet-adapters/reown-tron-checkout-runtime').then(module => module.TronReownCheckoutRuntime),
-  { ssr: false },
-);
 
 export function BuyPageContent() {
   const { market, order, payment, wallet, actions } = useBuyCheckoutController();
@@ -49,7 +43,6 @@ export function BuyPageContent() {
 
   return (
     <main className="section-shell section-pad">
-      {wallet.reownRuntime === 'tron' ? <TronReownCheckoutRuntime /> : null}
       <PaymentDialogs wallet={wallet} payment={payment} actions={actions} />
 
       <GlassPanel as="section" className="rounded-[1.15rem] bg-[var(--buy-panel)] p-6 md:p-8">

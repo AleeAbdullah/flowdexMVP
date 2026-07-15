@@ -221,7 +221,7 @@ export class PaymentsService {
         {
           chain: PaymentChain.BITCOIN,
           asset: PaymentAsset.BTC,
-          walletProvider: 'xverse',
+          walletProvider: 'bitcoin',
           network: 'mainnet',
           decimals: PAYMENT_ASSET_DECIMALS[PaymentAsset.BTC],
           enabled: env.btcPaymentsEnabled,
@@ -229,7 +229,7 @@ export class PaymentsService {
         {
           chain: PaymentChain.TRON,
           asset: PaymentAsset.USDT_TRC20,
-          walletProvider: 'reown',
+          walletProvider: 'tronlink',
           network: 'mainnet',
           decimals: PAYMENT_ASSET_DECIMALS[PaymentAsset.USDT_TRC20],
           enabled: Boolean(env.tronTreasuryAddress.trim()),

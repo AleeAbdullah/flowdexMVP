@@ -171,7 +171,7 @@ export type IPaymentCheckoutSession = {
 export type IPaymentCheckoutCapability = {
   chain: PaymentChain;
   asset: PaymentAsset;
-  walletProvider: 'metamask' | 'metamask_solana' | 'xverse' | 'reown';
+  walletProvider: 'metamask' | 'metamask_solana' | 'bitcoin' | 'tronlink';
   network: 'mainnet' | 'mainnet-beta';
   decimals: number;
   enabled: boolean;
