@@ -65,7 +65,7 @@ import {
   initialSolanaCheckoutWalletAdapterState,
 } from '../wallet-adapters/solana-metamask-checkout-wallet-adapter';
 import { useBitcoinCheckoutWallet } from '../wallet-adapters/bitcoin-checkout-wallet';
-import { useTronLinkCheckoutWallet } from '../wallet-adapters/tronlink-checkout-wallet';
+import { useTronCheckoutWallet } from '../wallet-adapters/tron-checkout-wallet';
 
 const DEFAULT_BUY_AMOUNT = '1.7544';
 const PAYMENT_STATUS_POLL_INTERVAL_MS = 12_000;
@@ -112,7 +112,7 @@ export function useBuyCheckoutController() {
   const marketingWallet = useMarketingWalletSync();
   const { openAuthModal } = useAuthModal();
   const bitcoinWallet = useBitcoinCheckoutWallet();
-  const tronWallet = useTronLinkCheckoutWallet();
+  const tronWallet = useTronCheckoutWallet();
   const walletProvider = useMarketingWalletStore((state: MarketingWalletStore) => state.provider);
   const walletVerification = useMarketingWalletStore((state: MarketingWalletStore) => state.verification);
 
@@ -264,7 +264,7 @@ export function useBuyCheckoutController() {
     }
   }
 
-  async function assertEvmCheckoutProviderReady(requiredEvmChainId: number) {
+  async function assertEvmCheckoutProviderReady(_requiredEvmChainId: number) {
     const connector = marketingWallet.providerAccount.connector;
     if (!connector) {
       throw new Error(evmCheckoutUnsupportedMessages.missing_provider);
@@ -358,7 +358,7 @@ export function useBuyCheckoutController() {
       setIsTronConnectAttempted(true);
       await openWalletSelector(
         () => tronWallet.openSelector(),
-        'TronLink did not open. Try again or make sure the extension is enabled.',
+        'TRON wallet did not open. Try again or make sure the extension is enabled.',
       );
       dispatch({ type: 'CLOSE' });
       return;
@@ -420,7 +420,7 @@ export function useBuyCheckoutController() {
           throw new Error('Connect a supported TRON wallet before continuing.');
         }
         if (!tronWallet.isReady) {
-          throw new Error('Connect TronLink before continuing.');
+          throw new Error('Connect MetaMask TRON or TronLink before continuing.');
         }
         await runWalletCheckout({
           senderAddress: address,
@@ -623,9 +623,9 @@ export function useBuyCheckoutController() {
               chainId: null,
               walletChainId: tronWallet.walletChainId,
               connectorName: tronWallet.connectorName,
-              selectedConnectorName: 'TronLink',
-              pendingConnectorName: tronWallet.isConnecting ? 'TRON wallet' : null,
-              availableConnectorNames: tronWallet.isConfigured ? ['TronLink'] : [],
+              selectedConnectorName: tronWallet.selectedConnectorName,
+              pendingConnectorName: tronWallet.isConnecting ? tronWallet.selectedConnectorName : null,
+              availableConnectorNames: tronWallet.availableConnectorNames,
               executionReadiness: tronWallet.isReady
                 ? 'ready' as const
                 : tronWallet.address
@@ -637,7 +637,7 @@ export function useBuyCheckoutController() {
                 ? 'missing_provider' as const
                 : null,
               connectionErrorMessage: isTronConnectAttempted && !tronWallet.isConfigured
-                ? 'Install or enable TronLink to pay with USDT TRC20.'
+                ? 'Install or enable MetaMask with TRON support or TronLink to pay with USDT TRC20.'
                 : null,
               verificationStatus: tronWallet.address ? 'verified' as const : 'unverified' as const,
               verifiedWalletAddress: tronWallet.address,
@@ -693,6 +693,10 @@ export function useBuyCheckoutController() {
       selectWalletConnector(connectorName: string) {
         if (selectedAsset?.chain === PAYMENT_CHAINS.BITCOIN) {
           bitcoinWallet.selectConnector(connectorName);
+          return;
+        }
+        if (selectedAsset?.chain === PAYMENT_CHAINS.TRON) {
+          tronWallet.selectConnector(connectorName);
         }
       },
       changeAmount(value: string) {

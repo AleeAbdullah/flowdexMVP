@@ -55,7 +55,7 @@
 
 The `/buy` checkout implementation uses provider-managed wallet sends:
 EVM uses `eth_sendTransaction`, Solana uses MetaMask Solana, Bitcoin uses
-MetaMask Bitcoin or Xverse, and TRON uses TronLink.
+MetaMask Bitcoin or Xverse, and TRON uses MetaMask TRON with TronLink as a direct fallback.
 
 Reserved production/mainnet receiving addresses:
 

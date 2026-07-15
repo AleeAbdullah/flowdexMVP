@@ -212,14 +212,14 @@ describe('PaymentsService wallet checkout', () => {
     })).rejects.toThrow('Invalid payment checkout token');
   });
 
-  it('advertises Bitcoin wallet and TronLink checkout capability records', () => {
+  it('advertises Bitcoin wallet and MetaMask TRON checkout capability records', () => {
     const { service } = buildService({});
 
     const capabilities = service.getCheckoutCapabilities();
 
     expect(capabilities.items).toEqual(expect.arrayContaining([
       expect.objectContaining({ chain: PaymentChain.BITCOIN, asset: PaymentAsset.BTC, walletProvider: 'bitcoin' }),
-      expect.objectContaining({ chain: PaymentChain.TRON, asset: PaymentAsset.USDT_TRC20, walletProvider: 'tronlink' }),
+      expect.objectContaining({ chain: PaymentChain.TRON, asset: PaymentAsset.USDT_TRC20, walletProvider: 'metamask_tron' }),
     ]));
   });
 

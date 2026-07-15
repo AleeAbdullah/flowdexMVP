@@ -279,8 +279,8 @@ function parseSatoshiAmount(value: string): number {
 }
 
 async function getSatsConnectWallet(provider: unknown): Promise<SatsConnectWallet> {
-  const module = await import('sats-connect');
-  const wallet = module.default as unknown as SatsConnectWallet;
+  const satsConnectModule = await import('sats-connect');
+  const wallet = satsConnectModule.default as unknown as SatsConnectWallet;
   const bitcoinWindow = window as BitcoinProviderWindow;
   bitcoinWindow[METAMASK_SATS_PROVIDER_WINDOW_KEY] = provider;
   wallet.providerId = METAMASK_SATS_PROVIDER_WINDOW_KEY;

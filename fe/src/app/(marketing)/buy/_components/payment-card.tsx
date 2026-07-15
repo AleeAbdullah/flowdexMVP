@@ -35,6 +35,10 @@ export function PaymentCard(props: {
   const selectedAsset = props.order.selectedAsset;
   const selectedAssetIcon = getCryptoAssetIconSrc(selectedAsset?.code);
   const walletStatus = props.wallet.walletStatus;
+  const canChooseWalletConnector = (
+    selectedAsset?.chain === 'BITCOIN'
+    || selectedAsset?.chain === 'TRON'
+  ) && !walletStatus.address && walletStatus.availableConnectorNames.length > 1;
 
   return (
     <section>
@@ -96,7 +100,7 @@ export function PaymentCard(props: {
         <SummaryRow label="Potential ROI" value={props.order.roiDisplay} accent />
       </div>
 
-      {selectedAsset?.chain === 'BITCOIN' && !walletStatus.address && walletStatus.availableConnectorNames.length > 1 ? (
+      {canChooseWalletConnector ? (
         <div className="mt-6 grid grid-cols-2 gap-2 rounded-[0.75rem] border border-[var(--card-border)] bg-[var(--buy-panel-soft)] p-1">
           {walletStatus.availableConnectorNames.map(connectorName => {
             const isSelected = walletStatus.selectedConnectorName === connectorName;

@@ -229,7 +229,7 @@ export class PaymentsService {
         {
           chain: PaymentChain.TRON,
           asset: PaymentAsset.USDT_TRC20,
-          walletProvider: 'tronlink',
+          walletProvider: 'metamask_tron',
           network: 'mainnet',
           decimals: PAYMENT_ASSET_DECIMALS[PaymentAsset.USDT_TRC20],
           enabled: Boolean(env.tronTreasuryAddress.trim()),

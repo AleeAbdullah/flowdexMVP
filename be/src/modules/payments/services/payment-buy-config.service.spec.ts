@@ -38,7 +38,7 @@ describe('PaymentBuyConfigService', () => {
       {
         chain: PaymentChain.TRON,
         asset: PaymentAsset.USDT_TRC20,
-        walletProvider: 'tronlink',
+        walletProvider: 'metamask_tron',
         network: 'mainnet',
         decimals: 6,
         enabled: true,
