@@ -81,47 +81,47 @@ export const marketingRoadmap = [
 export const marketingFaqs = [
   {
     question: 'What exactly is FlowDex Protocol?',
-    answer: 'FlowDex is a non-custodial Universal Exchange. It allows you to trade crypto, tokenized real-world stocks, forex pairs, and commodities directly from your decentralized wallet.',
+    answer: 'FlowDex is a non-custodial Universal Exchange. It allows you to trade crypto, tokenized real-world stocks like Tesla and Nvidia, forex pairs, and commodities directly from your decentralized wallet. Think of it as combining a Wall Street prime brokerage with the absolute ownership of DeFi.',
   },
   {
     question: 'Is FlowDex custodial? Do I need to deposit my funds?',
-    answer: 'No. FlowDex is completely non-custodial. Your assets remain in your own crypto wallet until the moment a trade is executed on-chain.',
+    answer: 'No. FlowDex is completely non-custodial. Your assets always remain safely in your own crypto wallet until the exact millisecond a trade is executed on-chain. There are no broker accounts, no deposit wait times, and zero counterparty risk.',
   },
   {
     question: 'What is the Blockchain Intelligence Layer?',
-    answer: 'It is a built-in conversational AI terminal that uses retrieval-augmented generation, live blockchain data, and connected wallet context to provide trading analysis in plain English.',
+    answer: 'It is a built-in, conversational AI terminal that functions like a crypto Bloomberg Terminal. Because it uses Retrieval-Augmented Generation (RAG), it reads live blockchain data and your connected wallet to give you tailored trading advice in plain English. You can even go from an AI recommendation to an executed trade in a single step.',
   },
   {
     question: 'How can I participate in the presale?',
-    answer: 'You can participate through the official Presale Portal by connecting an Ethereum-compatible wallet and exchanging ETH or stablecoins for $FDP.',
+    answer: 'You can participate directly through our official Presale Portal by connecting an Ethereum-compatible wallet like MetaMask or Trust Wallet and exchanging ETH or stablecoins (USDT/USDC) for $FDP.',
   },
   {
     question: 'Why does the presale have 8 different tiers?',
-    answer: 'The tiered structure is designed to reward earliest supporters. Tier 1 starts at $0.001, and each new tier increases until the target listing price of $0.05.',
+    answer: 'The tiered structure is designed to reward our earliest supporters. Tier 1 starts at a 98% discount ($0.001) relative to the final exchange listing price ($0.05). As each tier hits its funding cap, the price automatically increases to the next tier.',
   },
   {
     question: 'What is the Per-Tier TGE model and how does it protect me?',
-    answer: 'Each presale tier has its own independent vesting clock that begins when that tier fills and closes, staggering unlock pressure instead of concentrating it on one launch day.',
+    answer: 'Instead of unlocking everyone\'s tokens at the same exact time on launch day (which causes massive price crashes), each tier has its own independent vesting clock. Your specific tier\'s cliff and vesting schedule begin the moment your tier fills and closes. Tokens are delivered directly to your wallet via secure Merkle claims but remain non-transferable until the public listing, ensuring a highly stable and healthy market launch.',
   },
   {
     question: 'Are there any venture capital investors?',
-    answer: 'No. FlowDex is positioned as 100% community-funded with zero venture capital allocations.',
+    answer: 'No. FlowDex is 100% community-funded. There are zero venture capital allocations. This ensures that predatory institutional dumps cannot happen at launch, keeping the ecosystem entirely aligned with retail participants.',
   },
   {
     question: 'How do I earn money by holding $FDP?',
-    answer: 'By staking $FDP, holders are positioned to receive 40% of platform transaction fees collected across supported asset classes.',
+    answer: 'FlowDex features a real revenue-sharing model. By staking your $FDP tokens, you natively receive 40% of all transaction fees collected by the exchange across all asset classes (crypto, stocks, forex, etc.).',
   },
   {
     question: 'Is the token supply inflationary?',
-    answer: 'No. $FDP has a fixed supply of 10 billion tokens. The protocol narrative also includes a 10% fee-funded buyback-and-burn mechanism.',
+    answer: 'No. $FDP has a strictly fixed supply of 10 billion tokens that can never be increased. Furthermore, the protocol is actively deflationary: 10% of all platform transaction fees are systematically used to buy back and permanently burn $FDP tokens, removing them from circulation forever.',
   },
   {
     question: 'How does staking affect my access to the AI terminal?',
-    answer: 'Staking unlocks tiered access to the Blockchain Intelligence Layer, from Basic through Standard, Premium, and Institutional levels.',
+    answer: 'Staking unlocks tiered access to the Blockchain Intelligence Layer. Holding any $FDP gets you Basic access, while scaling up your staked tokens unlocks Standard, Premium, and ultimately Institutional tiers, which grant access to predictive signals, whale-tracking data, and advanced algorithmic APIs.',
   },
   {
     question: 'Has the smart contract been audited?',
-    answer: 'Comprehensive audits are described as scheduled and planned with security firms including Trail of Bits, OpenZeppelin, and Zellic, plus formal verification before public transfers are finalized.',
+    answer: 'Yes. Comprehensive audits are actively scheduled and planned with premier security firms including Trail of Bits, OpenZeppelin, and Zellic, alongside mathematical formal verification by Certora before any public token transfers are finalized.',
   },
 ];
 
@@ -129,10 +129,10 @@ export const marketingTokenomics = [
   { label: 'Community & Ecosystem', share: '30%', note: '3.00B tokens distributed over 4 years through ecosystem growth initiatives, grants, and partnerships.' },
   { label: 'Public Presale', share: '22.5%', note: '2.25B tokens allocated across the transparent 8-tier early participant framework.' },
   { label: 'Staking Rewards', share: '12.5%', note: '1.25B tokens managed through a 10-year declining emission schedule.' },
-  { label: 'Core Contributors', share: '12%', note: '1.20B tokens locked for 1 year, followed by strict 4-year linear vesting.' },
   { label: 'Genesis Airdrop', share: '10%', note: '1.00B tokens distributed to early users and testnet participants, fully unlocked at TGE.' },
+  { label: 'Core Contributors', share: '12%', note: '1.20B tokens locked entirely for 1 year, followed by a strict 4-year linear vesting schedule.' },
   { label: 'Treasury / DAO', share: '8%', note: '0.80B tokens governed by on-chain community proposals.' },
-  { label: 'Initial Liquidity', share: '5%', note: '0.50B tokens allocated to AMM pools and top-tier CEXs for day-one liquidity.' },
+  { label: 'Initial Liquidity', share: '5%', note: '0.50B tokens allocated directly to AMM pools and top-tier CEXs to guarantee deep day-one liquidity.' },
 ];
 
 export const marketingBlogPosts = [

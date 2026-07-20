@@ -1,77 +1,92 @@
 type AboutOpportunityIcon = 'globe' | 'wallet' | 'layers';
 
 export const aboutPageMeta = [
+  { label: 'Section', value: 'About FlowDex Protocol' },
   { label: 'Market Surface', value: 'Universal Exchange' },
   { label: 'Custody Model', value: 'Non-Custodial' },
-  { label: 'Asset Coverage', value: 'Crypto, Stocks, Forex, Commodities' },
   { label: 'Public Presale', value: '8 Tiers, $80M Target' },
 ];
 
 export const aboutPageToc = [
-  { id: 'mission', label: 'Mission' },
-  { id: 'opportunity', label: 'Opportunity' },
-  { id: 'assets', label: 'What Users Can Trade' },
-  { id: 'principles', label: 'Product Principles' },
-  { id: 'whitepaper', label: 'Whitepaper' },
-  { id: 'phases', label: 'Development Phases' },
+  { id: 'vision', label: 'Our Vision' },
+  { id: 'fueling', label: 'Fueling the Universal Exchange' },
+  { id: 'pillars', label: 'Core Pillars' },
+  { id: 'utility', label: '$FDP Utility' },
+  { id: 'evolution', label: 'Network Evolution' },
+  { id: 'community', label: 'Community-First' },
 ];
 
 export const aboutPagePrinciples = [
-  'Universal, non-custodial trading across crypto-native tokens and real-world assets.',
-  'A Blockchain Intelligence Layer that uses conversational AI and retrieval-augmented analysis.',
-  'Next-generation routing across liquidity paths on multiple chains and regulated RWA providers.',
-  'Private, security-forward architecture using zero-knowledge proofs, post-quantum cryptography, and routing optimization research.',
+  {
+    title: 'Universal, Non-Custodial Trading',
+    body: 'Trade across crypto-native tokens and real-world assets (RWAs) like equities, forex, and commodities. Your keys, your crypto, your assets. Funds never leave your wallet until the exact millisecond of on-chain execution.',
+  },
+  {
+    title: 'The Blockchain Intelligence Layer',
+    body: 'Access a conversational AI terminal powered by Retrieval-Augmented Generation (RAG). FlowDex reads live blockchain data, monitors sentiment, and assesses your specific portfolio risk to give you analyst-grade advice in plain English, and lets you execute recommended trades in a single step.',
+  },
+  {
+    title: 'Next-Generation Execution',
+    body: 'Our smart order routing engine scans thousands of liquidity paths across 10+ blockchains, 50+ DEXs, and top-tier regulated RWA providers to execute your trades at the absolute lowest cost and slippage.',
+  },
+  {
+    title: 'Quantum-Ready & Private Architecture',
+    body: 'Defend and optimize with cutting-edge tech. We utilize zero-knowledge proofs (zkSNARKs) to eliminate front-running and MEV bots, secure our ecosystem with post-quantum cryptography (PQC), and harness quantum computing protocols (QAOA) for unprecedented routing optimization.',
+  },
 ];
 
-export const aboutPageAssetClasses = [
-  'Crypto across 10+ blockchains',
-  'Tokenized stocks such as Apple, Tesla, and Nvidia',
-  'Forex pairs including major global currency markets',
-  'Commodities including gold and silver',
-  'ETFs and indices through tokenized traditional asset rails',
-  '500+ aggregate tradeable assets as the network matures',
+export const aboutPageUtilityItems = [
+  {
+    title: 'Real Revenue Sharing',
+    body: 'Alignment is rewarded. 40% of all platform transaction fees collected across crypto, stocks, forex, and commodities are distributed directly back to $FDP stakers.',
+  },
+  {
+    title: 'Gated AI Intelligence',
+    body: 'Staking $FDP unlocks access to the Blockchain Intelligence Layer, our real-time, conversational AI terminal that lets you analyze markets and execute trades in plain English.',
+  },
+  {
+    title: 'Programmatic Deflation',
+    body: 'A native buyback-and-burn protocol uses 10% of all platform transaction fees to permanently destroy $FDP, creating constant deflationary pressure as trading volume scales.',
+  },
+  {
+    title: 'Network Sovereignty',
+    body: '$FDP drives a Quadratic Voting DAO, ensuring that long-term community members, not just deep-pocketed whales, shape the future of global asset routing.',
+  },
 ];
 
 export const aboutPageOpportunityStats = [
-  { label: 'Asset Accounts', value: '1 Wallet', note: 'A single interface for markets that usually require separate accounts and custodians.' },
-  { label: 'Public Presale', value: '$80M', note: 'An 8-tier public presale designed to fund development, audits, and liquidity partnerships.' },
-  { label: 'Community Supply', value: '75%', note: 'Community, ecosystem, and public presale categories dominate the token model.' },
+  { label: 'Public Presale', value: '$80,000,000', note: 'An 8-Tier Public Presale to fund core development, tier-1 security audits, and institutional liquidity partnerships.' },
+  { label: 'VC Involvement', value: '0%', note: 'Built with a strict community-first ethos and zero venture capital involvement.' },
+  { label: 'Genesis Incentive', value: '$0.001 to $0.05', note: 'The presale scales from Tier 1 up to the listing price of Tier 8.' },
 ];
 
 export const aboutPageOpportunityCards = [
-  { icon: 'globe' as AboutOpportunityIcon, title: 'Universal Exchange', body: 'Crypto, tokenized stocks, forex, commodities, ETFs, and indices are framed as one borderless trading surface.' },
-  { icon: 'wallet' as AboutOpportunityIcon, title: 'Wallet-First Trust', body: 'Funds remain in the user wallet until the moment of execution instead of sitting inside a broker silo.' },
-  { icon: 'layers' as AboutOpportunityIcon, title: 'Liquidity Intelligence', body: 'The routing engine is positioned around liquidity aggregation, lower slippage, and multi-chain execution paths.' },
-];
-
-export const aboutPageComparisonRows = [
-  { label: 'Asset Breadth', values: ['Crypto plus tokenized stocks, forex, commodities, ETFs, and indices', 'Mostly crypto spot and derivatives'] },
-  { label: 'Custody Model', values: ['Non-custodial and wallet-driven', 'Usually custodial'] },
-  { label: 'Intelligence Layer', values: ['Conversational AI terminal tied to live chain and wallet context', 'Separate analytics tools or generic dashboards'] },
-  { label: 'Token Utility', values: ['Fee sharing, AI access, burn mechanics, and quadratic governance', 'Platform discounts or centralized loyalty tokens'] },
+  { icon: 'globe' as AboutOpportunityIcon, title: 'The Genesis Incentive', body: 'The presale scales from Tier 1 ($0.001) up to the listing price of Tier 8 ($0.05), heavily rewarding early participants.' },
+  { icon: 'wallet' as AboutOpportunityIcon, title: 'Anti-Dump Architecture', body: 'Each tier features a unique, smart-contract-enforced vesting schedule that begins the moment that specific tier closes, natively staggering sell pressure over a 12+ month horizon.' },
+  { icon: 'layers' as AboutOpportunityIcon, title: 'Fixed-Supply Utility', body: 'The entire platform is powered by $FDP, a fixed-supply utility token designed to align the incentives of traders, stakers, and developers.' },
 ];
 
 export const aboutPagePhases = [
   {
     label: 'Phase 1',
     value: 'Ethereum Foundation',
-    note: 'Core routing across Ethereum DEXs, initial RWA pools, and $FDP staking activation.',
+    note: 'Core routing across 20+ Ethereum DEXs, initial stock/forex RWA pools, and $FDP staking activation.',
   },
   {
     label: 'Phase 2',
     value: 'Multi-Chain Expansion',
-    note: 'Native deployment across Solana, BSC, Arbitrum, Polygon, and Avalanche while scaling toward 500+ assets.',
+    note: 'Native deployment across Solana, BSC, Arbitrum, Polygon, and Avalanche, scaling target selection to 500+ assets.',
   },
   {
     label: 'Phase 3',
-    value: 'FlowChain',
-    note: 'A custom appchain direction for faster execution, clearer settlement, and cross-asset margin support.',
+    value: 'FlowChain Ecosystem',
+    note: 'Migration to our dedicated, custom appchain built for 50,000+ TPS, sub-500ms finality, and cross-asset margin support.',
   },
 ];
 
 export const aboutPageCtaContent = {
   title: 'Ready to trade without boundaries?',
-  body: 'Read the whitepaper for the long-form protocol thesis, join the community, or continue into the presale portal when you are ready to participate.',
+  body: 'FlowDex is entirely community-owned. 75% of the total 10 billion $FDP token supply is dedicated to the community, ecosystem, and public presale, with absolutely zero venture capital involvement.',
   primary: { href: '/whitepaper', label: 'Read the Whitepaper' },
   secondary: { href: '/buy', label: 'Enter Presale Portal' },
 };

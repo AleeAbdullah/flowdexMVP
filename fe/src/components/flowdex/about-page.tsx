@@ -1,10 +1,8 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, FileText, Globe2, Layers3, Wallet } from '@/icons';
+import { ArrowRight, Globe2, Layers3, Wallet } from '@/icons';
 import { ROUTES } from '@/routes';
 import {
-  aboutPageAssetClasses,
-  aboutPageComparisonRows,
   aboutPageCtaContent,
   aboutPageMeta,
   aboutPageOpportunityCards,
@@ -12,11 +10,10 @@ import {
   aboutPagePhases,
   aboutPagePrinciples,
   aboutPageToc,
+  aboutPageUtilityItems,
 } from './about-page.data';
 import {
   MarketingBody,
-  MarketingBulletList,
-  MarketingComparisonTable,
   MarketingContentShell,
   MarketingCtaBand,
   MarketingPageHero,
@@ -34,9 +31,9 @@ export function AboutPage() {
   return (
     <div className="pb-12">
       <MarketingPageHero
-        eyebrow="About FlowDex"
+        eyebrow="About FlowDex Protocol"
         title="The Intelligence Layer of Global Markets."
-        description="FlowDex Protocol bridges blockchain and traditional finance through a non-custodial Universal Exchange where crypto, tokenized stocks, forex, commodities, ETFs, and indices can be traded from one wallet-first market surface."
+        description="Bridging Blockchain and Traditional Finance."
         meta={aboutPageMeta}
         actions={(
           <>
@@ -55,27 +52,34 @@ export function AboutPage() {
 
       <MarketingContentShell toc={aboutPageToc}>
         <MarketingSection
-          id="mission"
+          id="vision"
           eyebrow="Our Vision"
-          title="The financial world is fractured. FlowDex is built to eliminate those boundaries."
-          description="A modern investor should not need separate accounts, custodians, funding rails, and portfolio views just to trade Bitcoin, Apple stock, the Euro, and gold."
+          title="The financial world is fundamentally fractured."
         >
           <MarketingBody>
             <p>
-              FlowDex is building a non-custodial Universal Exchange: a single decentralized platform where crypto, tokenized stocks, forex, commodities, ETFs, and indices can be traded directly from a connected wallet.
+              To trade Bitcoin, Apple stock, the Euro, and Gold, a modern investor is forced to navigate four separate accounts, deal with four different custodians, split their capital, and manage fragmented portfolios across isolated platforms.
             </p>
             <p>
-              The philosophy is simple: users should not have to choose between the asset coverage of a Wall Street prime brokerage and the sovereign ownership of decentralized finance. FlowDex is designed to combine both without reintroducing custodial risk.
+              FlowDex Protocol completely eliminates these boundaries. We are building the world&apos;s first non-custodial Universal Exchange, a single decentralized platform where you can trade crypto, tokenized stocks, forex, commodities, ETFs, and indices instantly from your wallet. By merging advanced multi-chain liquidity aggregation with traditional asset tokenization rails, FlowDex delivers a frictionless, borderless, 24/7 trading ecosystem with absolute security and no custodial risk.
+            </p>
+            <p>
+              Our Philosophy: You shouldn&apos;t have to choose between the asset coverage of a Wall Street prime brokerage and the sovereign ownership of decentralized finance. With FlowDex, you get both.
             </p>
           </MarketingBody>
         </MarketingSection>
 
         <MarketingSection
-          id="opportunity"
+          id="fueling"
           eyebrow="Fueling the Universal Exchange"
-          title="$FDP aligns traders, stakers, and developers around the product surface."
-          description="The fixed-supply utility token is tied to a public presale, staking utility, fee participation, and long-term community ownership."
+          title="The entire platform is powered by $FDP."
+          description="$FDP is a fixed-supply utility token designed to align the incentives of traders, stakers, and developers."
         >
+          <MarketingBody className="mb-6">
+            <p>
+              To fund core development, tier-1 security audits, and institutional liquidity partnerships, FlowDex is launching an 8-Tier Public Presale to raise $80,000,000. Built with a strict community-first ethos, there is 0% venture capital involvement, giving early adopters the ultimate advantage.
+            </p>
+          </MarketingBody>
           <MarketingStatsGrid items={aboutPageOpportunityStats} />
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             {aboutPageOpportunityCards.map(item => {
@@ -94,70 +98,59 @@ export function AboutPage() {
         </MarketingSection>
 
         <MarketingSection
-          id="assets"
-          eyebrow="What Users Can Trade"
-          title="A multi-asset product direction, not a crypto-only exchange surface."
-          description="The FlowDex product direction spans crypto-native markets and tokenized real-world assets under one wallet-first interface."
+          id="pillars"
+          eyebrow="The Core Pillars"
+          title="What sets us apart."
         >
-          <MarketingBulletList items={aboutPageAssetClasses} columns={2} />
-          <MarketingComparisonTable
-            columns={['FlowDex', 'Typical Crypto Exchange']}
-            rows={aboutPageComparisonRows}
-          />
-        </MarketingSection>
-
-        <MarketingSection
-          id="principles"
-          eyebrow="Core Pillars"
-          title="What sets FlowDex apart."
-          description="The public product story is built around universal non-custodial trading, AI-assisted market intelligence, routing depth, and security-first architecture."
-        >
-          <MarketingBulletList items={aboutPagePrinciples} columns={2} />
-        </MarketingSection>
-
-        <MarketingSection
-          id="whitepaper"
-          eyebrow="Whitepaper"
-          title="The concise product story is here. The full operating thesis lives in the whitepaper."
-          description="Use the whitepaper for the longer treatment of the problem, architecture, token model, presale structure, roadmap, and risk framing."
-        >
-          <div className="grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
-            <MarketingBody>
-              <p>
-                The About page explains what FlowDex is and why it exists. The whitepaper goes deeper into how the platform is expected to evolve from Ethereum launch posture into a broader multi-chain exchange and, later, the FlowChain infrastructure direction.
-              </p>
-              <p>
-                It also consolidates tokenomics, presale structure, governance, market opportunity, and risk framing into one route so serious buyers do not need to reconstruct the product narrative from scattered sections.
-              </p>
-            </MarketingBody>
-
-            <div className="rounded-[1.15rem] border border-[var(--card-border)] bg-[var(--card-bg)] p-5">
-              <div className="inline-flex rounded-2xl border border-[var(--accent-border)] bg-[var(--accent-bg)] p-3 text-[var(--accent-strong)]">
-                <FileText aria-hidden="true" className="h-5 w-5" />
+          <div className="grid gap-4 md:grid-cols-2">
+            {aboutPagePrinciples.map(item => (
+              <div key={item.title} className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--card-bg)] px-4 py-3">
+                <div className="text-sm font-bold text-[var(--text)]">{item.title}</div>
+                <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.body}</p>
               </div>
-              <div className="mt-4 text-lg font-bold text-[var(--text)]">Whitepaper v7.1</div>
-              <div className="mt-2 text-sm leading-7 text-[var(--muted)]">
-                Public release covering architecture, token utility, roadmap, market thesis, and launch framing.
-              </div>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <Button variant="brand" size="sm" asChild>
-                  <Link href={ROUTES.MARKETING.WHITEPAPER}>
-                    Open Whitepaper
-                    <ArrowRight aria-hidden="true" className="h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
-            </div>
+            ))}
           </div>
         </MarketingSection>
 
         <MarketingSection
-          id="phases"
+          id="utility"
+          eyebrow="How $FDP Empowers the Ecosystem"
+          title="$FDP is the fundamental economic engine of the FlowDex network."
+          description="$FDP isn't just a governance token; it is the fundamental economic engine of the FlowDex network."
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            {aboutPageUtilityItems.map(item => (
+              <div key={item.title} className="rounded-[1rem] border border-[var(--card-border)] bg-[var(--card-bg)] px-4 py-3">
+                <div className="text-sm font-bold text-[var(--text)]">{item.title}</div>
+                <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{item.body}</p>
+              </div>
+            ))}
+          </div>
+        </MarketingSection>
+
+        <MarketingSection
+          id="evolution"
           eyebrow="The Network Evolution"
-          title="FlowDex scales systematically through a phased rollout."
-          description="The network path starts with an Ethereum foundation, expands into more chains and markets, then moves toward dedicated FlowChain infrastructure."
+          title="FlowDex scales systematically through a proven, phased rollout."
+          description="FlowDex doesn't just promise an ambitious future; we scale systematically through a proven, phased rollout."
         >
           <MarketingStatsGrid items={aboutPagePhases} />
+        </MarketingSection>
+
+        <MarketingSection
+          id="community"
+          eyebrow="Community-First & Sovereign"
+          title="FlowDex is entirely community-owned."
+          description="75% of the total 10 billion $FDP token supply is dedicated to the community, ecosystem, and public presale, with absolutely zero venture capital involvement."
+        >
+          <MarketingBody>
+            <p>
+              FlowDex is entirely community-owned. 75% of the total 10 billion $FDP token supply is dedicated to the community, ecosystem, and public presale, with absolutely zero venture capital involvement.
+            </p>
+            <p>
+              When you stake $FDP, you don&apos;t just secure the network or tier-up your access to the Blockchain Intelligence Layer; you claim a direct stake in the platform&apos;s success. 40% of all platform transaction fees across crypto, stocks, forex, and commodities flow back natively to the community of stakers.
+            </p>
+          </MarketingBody>
         </MarketingSection>
       </MarketingContentShell>
 

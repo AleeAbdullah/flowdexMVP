@@ -18,27 +18,27 @@ import { marketingTokenomics } from './marketing-data';
 const utilityCards = [
   {
     title: '40% Protocol Fee Sharing',
-    body: 'Stakers receive 40% of platform transaction fees generated across crypto, tokenized stocks, forex, commodities, ETFs, and futures.',
+    body: 'Stakers directly receive 40% of all platform transaction fees generated across crypto, tokenized stocks, forex, commodities, ETFs, and futures.',
     icon: Coins,
   },
   {
     title: 'Gated AI Terminal Access',
-    body: 'Staking balance unlocks access tiers for the Blockchain Intelligence Layer, from Basic through Institutional.',
+    body: 'Your staking balance dictates your tier on the Blockchain Intelligence Layer (Basic to Standard to Premium to Institutional), providing access to real-time predictive analytics and natural language trading.',
     icon: Vote,
   },
   {
     title: '10% Programmatic Burn',
-    body: 'A native buyback-and-burn loop uses 10% of protocol fees to permanently remove $FDP from circulation.',
+    body: 'To introduce constant deflationary pressure, 10% of all protocol fees are automatically used to buy back and permanently destroy $FDP tokens from circulation.',
     icon: ShieldCheck,
   },
   {
     title: 'Quadratic Governance',
-    body: 'The DAO narrative uses quadratic voting so community influence scales with long-term commitment instead of raw wallet size.',
+    body: 'Shape the platform via the FlowDex DAO. Utilizing a quadratic voting model (Voting Power = sqrt(staked $FDP)), community influence scales with long-term commitment, protecting the network from whale manipulation.',
     icon: Vote,
   },
   {
     title: 'Priority Routing & Chain Security',
-    body: 'Stakers receive priority on high-frequency routes, with $FDP positioned to become the native gas and validation token for FlowChain.',
+    body: 'Stakers get optical priority on high-frequency routes. In Phase 3, $FDP transitions into the native gas and validation token securing the custom FlowChain appchain.',
     icon: ShieldCheck,
   },
 ];
@@ -47,9 +47,9 @@ const tokenMetrics = [
   { label: 'Token Name', value: 'FlowDex Protocol', note: 'Fixed-supply utility token powering ecosystem participation.' },
   { label: 'Ticker', value: '$FDP', note: 'Used for staking, governance, fee participation, and access tiers.' },
   { label: 'Token Standard', value: 'ERC-20', note: 'Ethereum Mainnet at launch.' },
-  { label: 'Total Fixed Supply', value: '10B', note: 'Immutable total supply of 10,000,000,000 tokens.' },
+  { label: 'Total Fixed Supply', value: '10,000,000,000', note: '10 Billion, immutable.' },
   { label: 'Target Listing Price', value: '$0.05', note: 'Public narrative listing reference.' },
-  { label: 'Target Listing FDV', value: '$500M', note: 'Implied by the fixed supply and target listing price.' },
+  { label: 'Target Listing FDV', value: '$500,000,000', note: 'Implied by the fixed supply and target listing price.' },
 ];
 
 const designIntentItems = [
@@ -65,8 +65,8 @@ export function TokenomicsPage() {
     <div className="pb-12">
       <MarketingPageHero
         eyebrow="Tokenomics"
-        title="Designed for sustained value."
-        description="$FDP is engineered around a hard-capped supply, ecosystem utility, fee participation, and deflationary mechanics that tie token value back to Universal Exchange activity."
+        title="Designed for Sustained Value."
+        description="Unlike inflationary rewards tokens, $FDP is engineered around genuine, non-speculative utility. With a hard-capped supply and a multi-channel revenue sharing loop, the value of $FDP scales directly with the trading volume of the Universal Exchange."
         meta={[
           { label: 'Ticker', value: '$FDP' },
           { label: 'Fixed Supply', value: '10B' },
@@ -91,40 +91,25 @@ export function TokenomicsPage() {
       <MarketingContentShell
         toc={[
           { id: 'metrics', label: 'Metrics' },
-          { id: 'allocation', label: 'Allocation' },
           { id: 'utility', label: 'Utility' },
+          { id: 'allocation', label: 'Allocation' },
           { id: 'vesting', label: 'Vesting' },
         ]}
       >
         <MarketingSection
           id="metrics"
           eyebrow="Key Token Metrics"
-          title="A fixed-supply, revenue-generating economic engine."
-          description="The token model starts from a hard cap and maps utility to staking, governance, access, routing, and fee participation."
+          title="A Fixed-Supply, Revenue-Generating Economic Engine."
+          description="Key Token Metrics - Grid / Counter Layout"
         >
           <MarketingStatsGrid items={tokenMetrics} />
         </MarketingSection>
 
         <MarketingSection
-          id="allocation"
-          eyebrow="Allocation"
-          title="Built by the community, for the community."
-          description="With 75% of all tokens allocated to community-facing categories and 0% venture capital involvement, the public narrative centers a fair launch."
-        >
-          <MarketingStatsGrid
-            items={marketingTokenomics.map(item => ({
-              label: item.label,
-              value: item.share,
-              note: item.note,
-            }))}
-          />
-        </MarketingSection>
-
-        <MarketingSection
           id="utility"
           eyebrow="Utility"
-          title="One asset. Five distinct functions."
-          description="Holding and staking $FDP unlocks ecosystem interactions designed to create product-linked demand."
+          title="One Asset. Five Distinct Functions."
+          description="Holding and staking $FDP unlocks native ecosystem interactions that create constant market demand."
         >
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {utilityCards.map(card => {
@@ -147,10 +132,25 @@ export function TokenomicsPage() {
         </MarketingSection>
 
         <MarketingSection
+          id="allocation"
+          eyebrow="Token Allocation Breakdown"
+          title="Built by the Community, For the Community."
+          description="With 75% of all tokens allocated to community-facing categories and absolutely 0% venture capital involvement, FlowDex guarantees a fair launch insulated from predatory institutional sell-off."
+        >
+          <MarketingStatsGrid
+            items={marketingTokenomics.map(item => ({
+              label: item.label,
+              value: item.share,
+              note: item.note,
+            }))}
+          />
+        </MarketingSection>
+
+        <MarketingSection
           id="vesting"
-          eyebrow="Staggered Locks"
-          title="The Per-Tier TGE model is designed to avoid day-one unlock pressure."
-          description="Each presale tier has its own independent vesting clock, starting when that specific tier fills its hard cap."
+          eyebrow="Staggered Locks vs. Day-One Dumps"
+          title="The Staggered Vesting Advantage."
+          description="FlowDex utilizes a unique Per-Tier TGE Model. Instead of unlocking everyone's liquidity simultaneously at launch, each presale tier features its own independent vesting clock that starts ticking the moment that specific tier fills its hard cap."
         >
           <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
             <MarketingBulletList items={designIntentItems} />
@@ -159,7 +159,7 @@ export function TokenomicsPage() {
                 Instead of unlocking everyone&apos;s liquidity at the same moment, FlowDex staggers cliffs and linear distribution schedules across a 12+ month horizon.
               </p>
               <p>
-                The goal is to distribute token sell pressure over time, preserve healthier listing dynamics, and align early buyers with the longer-term network path.
+                By staggering cliffs and linear distribution scales across a 12+ month horizon, the protocol distributes token sell pressure evenly over time, preserving a healthy and robust price floor at exchange listing.
               </p>
             </MarketingBody>
           </div>
@@ -169,9 +169,9 @@ export function TokenomicsPage() {
       <MarketingCtaBand
         content={{
           title: 'Claim your stake in the global intelligence layer.',
-          body: 'Review the full model in the whitepaper or continue to the buy page to secure launch-stage allocation.',
-          primary: { href: ROUTES.MARKETING.BUY, label: 'Secure Tier 1 Allocation' },
-          secondary: { href: ROUTES.MARKETING.WHITEPAPER, label: 'Read Whitepaper' },
+          body: 'Secure Tier 1 allocation at the launch-stage price or review the token smart contract before participating.',
+          primary: { href: ROUTES.MARKETING.BUY, label: 'Secure Tier 1 Allocation ($0.001)' },
+          secondary: { href: ROUTES.MARKETING.WHITEPAPER, label: 'View Token Smart Contract' },
         }}
       />
     </div>

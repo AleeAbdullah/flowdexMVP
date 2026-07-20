@@ -17,7 +17,7 @@ export function FaqPage() {
       <MarketingPageHero
         eyebrow="FAQ"
         title="Frequently asked questions."
-        description="Answers about FlowDex Protocol, non-custodial trading, the Blockchain Intelligence Layer, presale participation, $FDP utility, staking, supply, and security planning."
+        description="Answers about FlowDex Protocol, custody, the Blockchain Intelligence Layer, presale participation, tiering, Per-Tier TGE, venture capital involvement, $FDP utility, staking, token supply, and audits."
         meta={[
           { label: 'Audience', value: 'Prospective Buyers and Community' },
           { label: 'Scope', value: 'Product, Presale, Custody, Token Utility' },
@@ -60,9 +60,9 @@ export function FaqPage() {
       <MarketingCtaBand
         content={{
           title: 'Still have questions?',
-          body: 'Read the full whitepaper for the long-form protocol narrative, or continue into the public buy page when you are ready to participate.',
+          body: 'Read the full whitepaper or chat with us on Telegram.',
           primary: { href: ROUTES.MARKETING.WHITEPAPER, label: 'Read Whitepaper' },
-          secondary: { href: ROUTES.MARKETING.BUY, label: 'Buy Now' },
+          secondary: { href: 'https://t.me/flowdexprotocolofficial', label: 'Chat with Us on Telegram' },
         }}
       />
     </div>
