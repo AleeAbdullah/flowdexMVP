@@ -94,7 +94,7 @@ const competitiveRows = [
 ];
 
 const roadmapRows = [
-  { label: 'Phase 0', value: 'Q1 2026', note: 'Whitepaper v6.0, website and whitelist, community channels, security audits, RWA partnerships, strategic partnerships.' },
+  { label: 'Phase 0', value: 'Q1 2026', note: 'Whitepaper v7.1, website and whitelist, community channels, security audits, RWA partnerships, strategic partnerships.' },
   { label: 'Phase 1', value: 'Q2 2026', note: 'Buy flow, ERC-20 deployment, TGE, Ethereum aggregator, tokenized stocks, forex pairs, gold and commodities, staking, listings.' },
   { label: 'Phase 2', value: 'Q3–Q4 2026', note: 'Multi-chain rollout, 500+ assets, options and futures, cross-chain swaps, DAO, mobile app, institutional API.' },
   { label: 'Phase 3', value: '2027', note: 'FlowChain testnet, validator onboarding, token migration, faster execution, cross-asset margin, larger monthly volume goal.' },
@@ -115,11 +115,11 @@ export function WhitepaperPage() {
     <div className="pb-12">
       <MarketingPageHero
         eyebrow="Whitepaper"
-        title="FlowDex Network Whitepaper v6.0 rendered as a web-first public document."
-        description="This page translates the March 2026 whitepaper into a readable marketing and due-diligence surface. It preserves the main structure of the document while compressing dense tables into a cleaner web experience."
+        title="FlowDex Network Whitepaper v7.1 rendered as a web-first public document."
+        description="This page translates the current whitepaper into a readable marketing and due-diligence surface. It preserves the main structure of the document while the full v7.1 PDF remains available for download."
         meta={[
-          { label: 'Version', value: 'v6.0' },
-          { label: 'Date', value: 'March 2026' },
+          { label: 'Version', value: 'v7.1' },
+          { label: 'Format', value: '52-page PDF' },
           { label: 'Status', value: 'Public Release' },
           { label: 'Stage', value: 'Buy Flow Live' },
         ]}
@@ -132,7 +132,7 @@ export function WhitepaperPage() {
               </Link>
             </Button>
             <Button variant="glass" size="lg" asChild>
-              <a href={ROUTES.ASSETS.WHITEPAPER_DOC} download>
+              <a href={ROUTES.ASSETS.WHITEPAPER_PDF} download>
                 Download Full Whitepaper
               </a>
             </Button>

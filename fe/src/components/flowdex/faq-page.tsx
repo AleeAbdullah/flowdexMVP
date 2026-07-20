@@ -16,13 +16,13 @@ export function FaqPage() {
     <div className="pb-12">
       <MarketingPageHero
         eyebrow="FAQ"
-        title="Route-level answers to the launch questions people actually ask."
-        description="The FAQ no longer lives as a late-page section on the landing page. It now has its own route so the public site can answer product and buy-flow questions directly."
+        title="Frequently asked questions."
+        description="Answers about FlowDex Protocol, non-custodial trading, the Blockchain Intelligence Layer, presale participation, $FDP utility, staking, supply, and security planning."
         meta={[
           { label: 'Audience', value: 'Prospective Buyers and Community' },
-          { label: 'Scope', value: 'Product • Buy Flow • Custody • Market Positioning' },
+          { label: 'Scope', value: 'Product, Presale, Custody, Token Utility' },
           { label: 'Format', value: 'Dedicated Public FAQ' },
-          { label: 'Updated', value: 'April 2026' },
+          { label: 'Questions', value: '11' },
         ]}
         actions={(
           <>
@@ -42,8 +42,8 @@ export function FaqPage() {
       <MarketingContentShell>
         <MarketingSection
           eyebrow="Questions"
-          title="The public site should answer the obvious questions without making users hunt."
-          description="A dedicated FAQ route removes the need to scroll through a long landing page just to clarify the basics."
+          title="Still have questions?"
+          description="Start with the most common product, presale, token, staking, and security questions before moving into the whitepaper or community channels."
         >
           <Accordion type="single" collapsible className="space-y-3">
             {marketingFaqs.map(item => (
@@ -59,8 +59,8 @@ export function FaqPage() {
       {/* TODO(flowdex): Revisit MarketingCtaBand API once the shared marketing content refactor is scheduled. */}
       <MarketingCtaBand
         content={{
-          title: 'If the questions are resolved, the next step is either research or participation.',
-          body: 'Move into the whitepaper for the long-form version, or go to the public buy page if you already understand the product and purchase frame.',
+          title: 'Still have questions?',
+          body: 'Read the full whitepaper for the long-form protocol narrative, or continue into the public buy page when you are ready to participate.',
           primary: { href: ROUTES.MARKETING.WHITEPAPER, label: 'Read Whitepaper' },
           secondary: { href: ROUTES.MARKETING.BUY, label: 'Buy Now' },
         }}

@@ -36,8 +36,8 @@ export const marketingShellFooter = {
   legalLine: '© 2026 FlowDex Network. All rights reserved.',
   utilityLine: '$FDP is intended for access and utility across the FlowDex ecosystem.',
   socialLinks: [
-    { label: 'Telegram', href: 'https://t.me/flowdexnetwork', icon: 'Send' },
-    { label: 'Twitter/X', href: 'https://x.com/flowdexnetwork', icon: 'Twitter' },
+    { label: 'Telegram', href: 'https://t.me/flowdexprotocolofficial', icon: 'Send' },
+    { label: 'Twitter/X', href: 'https://x.com/flowdexprotocol', icon: 'Twitter' },
   ] satisfies Array<{ label: string; href: string; icon: IconName }>,
 };
 
@@ -80,32 +80,59 @@ export const marketingRoadmap = [
 
 export const marketingFaqs = [
   {
-    question: 'What makes FlowDex different from a crypto-only exchange?',
-    answer: 'FlowDex is positioned as a protocol for broader market access, not a crypto-only venue. The product direction spans crypto plus tokenized traditional markets such as stocks, forex, commodities, ETFs, and indices.',
+    question: 'What exactly is FlowDex Protocol?',
+    answer: 'FlowDex is a non-custodial Universal Exchange. It allows you to trade crypto, tokenized real-world stocks, forex pairs, and commodities directly from your decentralized wallet.',
   },
   {
-    question: 'Does FlowDex custody user funds?',
-    answer: 'No. FlowDex is designed around a non-custodial flow, so you connect and confirm actions from your own wallet.',
+    question: 'Is FlowDex custodial? Do I need to deposit my funds?',
+    answer: 'No. FlowDex is completely non-custodial. Your assets remain in your own crypto wallet until the moment a trade is executed on-chain.',
   },
   {
-    question: 'What does the token do in the product?',
-    answer: '$FDP is framed around ecosystem utility, including staking, governance, fee participation, and product-aligned community incentives.',
+    question: 'What is the Blockchain Intelligence Layer?',
+    answer: 'It is a built-in conversational AI terminal that uses retrieval-augmented generation, live blockchain data, and connected wallet context to provide trading analysis in plain English.',
   },
   {
-    question: 'Why split content into separate pages?',
-    answer: 'Each topic has its own page so it is easier to explore pricing, tokenomics, product details, and support information at your own pace.',
+    question: 'How can I participate in the presale?',
+    answer: 'You can participate through the official Presale Portal by connecting an Ethereum-compatible wallet and exchanging ETH or stablecoins for $FDP.',
   },
   {
-    question: 'Is the current buy flow already live?',
-    answer: 'Yes. You can connect a wallet, verify it, complete a purchase, and view your receipts from the public buy flow.',
+    question: 'Why does the presale have 8 different tiers?',
+    answer: 'The tiered structure is designed to reward earliest supporters. Tier 1 starts at $0.001, and each new tier increases until the target listing price of $0.05.',
+  },
+  {
+    question: 'What is the Per-Tier TGE model and how does it protect me?',
+    answer: 'Each presale tier has its own independent vesting clock that begins when that tier fills and closes, staggering unlock pressure instead of concentrating it on one launch day.',
+  },
+  {
+    question: 'Are there any venture capital investors?',
+    answer: 'No. FlowDex is positioned as 100% community-funded with zero venture capital allocations.',
+  },
+  {
+    question: 'How do I earn money by holding $FDP?',
+    answer: 'By staking $FDP, holders are positioned to receive 40% of platform transaction fees collected across supported asset classes.',
+  },
+  {
+    question: 'Is the token supply inflationary?',
+    answer: 'No. $FDP has a fixed supply of 10 billion tokens. The protocol narrative also includes a 10% fee-funded buyback-and-burn mechanism.',
+  },
+  {
+    question: 'How does staking affect my access to the AI terminal?',
+    answer: 'Staking unlocks tiered access to the Blockchain Intelligence Layer, from Basic through Standard, Premium, and Institutional levels.',
+  },
+  {
+    question: 'Has the smart contract been audited?',
+    answer: 'Comprehensive audits are described as scheduled and planned with security firms including Trail of Bits, OpenZeppelin, and Zellic, plus formal verification before public transfers are finalized.',
   },
 ];
 
 export const marketingTokenomics = [
-  { label: 'Community Allocation', share: '75%', note: 'The dominant share is reserved for community-facing ownership and participation.' },
-  { label: 'Protocol Treasury', share: '10%', note: 'Reserved for protocol operations, resilience, and long-term ecosystem support.' },
-  { label: 'Liquidity', share: '8%', note: 'Supports trading depth and launch-stage market operations.' },
-  { label: 'Growth + Airdrops', share: '7%', note: 'Covers market expansion, activation loops, and contributor incentives.' },
+  { label: 'Community & Ecosystem', share: '30%', note: '3.00B tokens distributed over 4 years through ecosystem growth initiatives, grants, and partnerships.' },
+  { label: 'Public Presale', share: '22.5%', note: '2.25B tokens allocated across the transparent 8-tier early participant framework.' },
+  { label: 'Staking Rewards', share: '12.5%', note: '1.25B tokens managed through a 10-year declining emission schedule.' },
+  { label: 'Core Contributors', share: '12%', note: '1.20B tokens locked for 1 year, followed by strict 4-year linear vesting.' },
+  { label: 'Genesis Airdrop', share: '10%', note: '1.00B tokens distributed to early users and testnet participants, fully unlocked at TGE.' },
+  { label: 'Treasury / DAO', share: '8%', note: '0.80B tokens governed by on-chain community proposals.' },
+  { label: 'Initial Liquidity', share: '5%', note: '0.50B tokens allocated to AMM pools and top-tier CEXs for day-one liquidity.' },
 ];
 
 export const marketingBlogPosts = [
@@ -124,7 +151,7 @@ export const marketingBlogPosts = [
   {
     category: 'Architecture',
     date: 'March 2026',
-    title: 'Whitepaper v6.0 expands on the path from Ethereum to FlowChain.',
+    title: 'Whitepaper v7.1 expands on the path from Ethereum to FlowChain.',
     summary: 'The current whitepaper outlines the broader market vision, product roadmap, token utility, and long-term network direction.',
   },
   {

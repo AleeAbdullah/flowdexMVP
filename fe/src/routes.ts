@@ -31,6 +31,6 @@ export const ROUTES = {
     transactionDetail: (id: string) => `/app/admin/transactions/${id}`,
   },
   ASSETS: {
-    WHITEPAPER_DOC: '/assets/whitepaper/FlowDex_Whitepaper.docx',
+    WHITEPAPER_PDF: '/assets/whitepaper/FlowDex_Whitepaper_v7-1_newlogo.pdf',
   },
 } as const;

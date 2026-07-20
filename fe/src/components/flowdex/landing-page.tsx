@@ -48,8 +48,8 @@ export function LandingPage() {
       <section id="market-thesis" className="section-shell section-pad scroll-mt-28">
         <SectionHeading
           eyebrow="Market Thesis"
-          title="The homepage should explain the conviction without forcing users through a single giant scroll."
-          description="FlowDex is positioned as a universal market surface: a clearer front door for the product thesis, with deeper routes for tokenomics, roadmap, FAQ, whitepaper, and the live buy flow."
+          title="One wallet interface. Endless global markets."
+          description="FlowDex delivers a unified, non-custodial market surface bringing decentralized crypto liquidity and institutional real-world asset tokenization under a single architecture. No custodial silos, no fragmented capital allocation."
         />
         <div className="mt-10 grid gap-4 md:grid-cols-4">
           {landingMarketStats.map(stat => (
@@ -89,8 +89,8 @@ export function LandingPage() {
       <section id="product-pillars" className="section-shell section-pad scroll-mt-28">
         <SectionHeading
           eyebrow="Product Pillars"
-          title="A sharper overview of what FlowDex is actually trying to build."
-          description="Keep the home page high-conviction and legible. The heavier detail belongs on route-level pages, not inside a bloated landing document."
+          title="Built for the sovereign investor."
+          description="Trade digital assets and traditional tokenized instruments side-by-side with sub-second execution speeds, automated routing intelligence, and native security layers."
         />
         <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           {marketingFeatureCards.map((feature, index) => (
@@ -114,8 +114,8 @@ export function LandingPage() {
       <section id="tokenomics" className="section-shell scroll-mt-28 py-12 md:py-14">
         <SectionHeading
           eyebrow="Tokenomics Snapshot"
-          title="The home page summarizes allocation and incentive logic. The route pages carry the detail."
-          description="The buy, tokenomics, and roadmap stories should align, but they should no longer duplicate each other line by line."
+          title="Value aligned with network volume."
+          description="The $FDP token utility loops directly back into platform adoption. Every trade across our universal asset ecosystem fuels staker revenue and deflationary mechanics."
         />
         <div className="mt-10 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <GlassPanel className="p-6">

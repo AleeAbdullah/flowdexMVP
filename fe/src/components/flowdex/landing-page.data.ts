@@ -56,10 +56,10 @@ function createNavCta(label: string, href: string): LandingHeroCta | undefined {
 export const landingHeroSlides: LandingHeroSlide[] = [
   {
     id: 'universal',
-    badge: 'Protocol Preview',
-    title: 'FlowDex Protocol for Crypto & Tokenized Global Markets.',
-    emphasis: 'FlowDex Protocol',
-    description: 'FlowDex is shaping a wallet-first market surface for crypto, tokenized equities, forex, commodities, and other real-world asset exposure.',
+    badge: 'Market Thesis',
+    title: 'One wallet interface. Endless global markets.',
+    emphasis: 'One wallet interface.',
+    description: 'FlowDex delivers a unified, non-custodial market surface bringing decentralized crypto liquidity and institutional real-world asset tokenization under a single architecture.',
     visualMode: 'globe',
     accent: 'cyan',
     primary: createNavCta('Buy Now', ROUTES.MARKETING.BUY),
@@ -72,7 +72,7 @@ export const landingHeroSlides: LandingHeroSlide[] = [
     visualPanel: {
       eyebrow: 'Global Market Surface',
       title: 'Market Reach',
-      body: 'A wallet-first front door for crypto-native users who want broader market access without falling back to custodial exchange assumptions.',
+      body: 'A wallet-first front door for crypto-native users who want broader market access without custodial silos or fragmented capital allocation.',
       badge: 'Live Thesis',
       layout: 'stack',
       items: [
@@ -203,8 +203,8 @@ export const landingMarketStats = [
 
 export const landingTrustSignals = [
   'Wallet-first execution posture',
-  'Dedicated routes for tokenomics, roadmap, FAQ, and whitepaper',
-  'Protected app already supports wallet linking and transaction tracking',
+  'Direct avenues for fee participation',
+  'Multi-chain routing framework with deep liquidity pools',
 ];
 
 export const landingFeatureTones = [
