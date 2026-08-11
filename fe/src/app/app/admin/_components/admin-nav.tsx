@@ -13,6 +13,11 @@ const navItems = [
     label: 'Payments',
     match: (path: string) => path === ROUTES.ADMIN.TRANSACTIONS || path.startsWith(`${ROUTES.ADMIN.TRANSACTIONS}/`),
   },
+  {
+    href: ROUTES.ADMIN.BLOGS,
+    label: 'Blog',
+    match: (path: string) => path === ROUTES.ADMIN.BLOGS,
+  },
 ] as const;
 
 export function AdminNav() {

@@ -8,6 +8,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AlchemyModule } from './modules/alchemy/alchemy.module';
 import { AuthContextModule } from './modules/auth-context/auth-context.module';
+import { BlogsModule } from './modules/blogs/blogs.module';
 import { MarketsModule } from './modules/markets/markets.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { PaymentsModule } from './modules/payments/payments.module';
@@ -45,6 +46,7 @@ import { HealthModule } from './infrastructure/health/health.module';
     AlchemyModule,
     UsersModule,
     AuthContextModule,
+    BlogsModule,
     PaymentsModule,
     MarketsModule,
     AdminModule,

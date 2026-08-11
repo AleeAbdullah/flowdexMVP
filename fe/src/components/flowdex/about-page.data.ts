@@ -87,6 +87,6 @@ export const aboutPagePhases = [
 export const aboutPageCtaContent = {
   title: 'Ready to trade without boundaries?',
   body: 'FlowDex is entirely community-owned. 75% of the total 10 billion $FDP token supply is dedicated to the community, ecosystem, and public presale, with absolutely zero venture capital involvement.',
-  primary: { href: '/whitepaper', label: 'Read the Whitepaper' },
+  primary: { href: '/assets/whitepaper/FlowDex_Whitepaper_v7-1_newlogo.pdf', label: 'Read the Whitepaper', newTab: true },
   secondary: { href: '/buy', label: 'Enter Presale Portal' },
 };

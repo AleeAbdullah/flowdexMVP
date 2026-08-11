@@ -49,7 +49,8 @@ export function FlowdexNotFoundPage(props: {
               <RouteHint label="Protocol overview" href={ROUTES.MARKETING.HOME} />
               <RouteHint label="Token buy flow" href={ROUTES.MARKETING.BUY} />
               <RouteHint label="FAQ" href={ROUTES.MARKETING.FAQ} />
-              <RouteHint label="Whitepaper" href={ROUTES.MARKETING.WHITEPAPER} />
+              <RouteHint label="Blog" href={ROUTES.MARKETING.BLOGS} />
+              <RouteHint label="Whitepaper" href={ROUTES.ASSETS.WHITEPAPER_PDF} newTab />
             </div>
           </div>
         </div>
@@ -61,10 +62,13 @@ export function FlowdexNotFoundPage(props: {
 function RouteHint(props: {
   label: string;
   href: string;
+  newTab?: boolean;
 }) {
   return (
     <Link
       href={props.href}
+      target={props.newTab ? '_blank' : undefined}
+      rel={props.newTab ? 'noreferrer' : undefined}
       className="flex items-center justify-between rounded-[0.75rem] border border-[var(--card-border)] bg-[var(--card-bg)] px-4 py-3 text-[var(--text)] transition hover:border-[var(--accent-border)] hover:text-[var(--accent-strong)]"
     >
       <span>{props.label}</span>

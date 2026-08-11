@@ -14,6 +14,16 @@ async function bootstrap(): Promise<void> {
     rawBody: true,
   });
 
+  app.enableCors({
+    origin: [
+      `https://${env.appDomain}`,
+      `https://www.${env.appDomain}`,
+      ...(process.env.NODE_ENV === 'production'
+        ? []
+        : ['http://localhost:3003', 'http://127.0.0.1:3003']),
+    ],
+  });
+
   app.setGlobalPrefix(env.apiPrefix);
   app.useGlobalPipes(
     new ValidationPipe({

@@ -254,14 +254,14 @@ export function LandingPage() {
               <SectionHeading
                 eyebrow="Stay Close"
                 title="Use the homepage as the front door. Use the route pages for the research."
-                description="The public buy flow already reads live pricing and tier configuration. Tokenomics, roadmap, FAQ, and whitepaper are already dedicated routes. This homepage should now point people there cleanly."
+                description="The public buy flow already reads live pricing and tier configuration. Tokenomics, roadmap, FAQ, and blog routes provide the supporting research, with the whitepaper available as a PDF."
               />
               <div className="mt-8 flex flex-wrap gap-3">
                 <Button variant="brand" size="lg" asChild>
                   <Link href={ROUTES.MARKETING.BUY}>Buy Now</Link>
                 </Button>
                 <Button variant="glass" size="lg" asChild>
-                  <Link href={ROUTES.MARKETING.WHITEPAPER}>Read Whitepaper</Link>
+                  <Link href={ROUTES.ASSETS.WHITEPAPER_PDF} target="_blank" rel="noreferrer">Read Whitepaper</Link>
                 </Button>
               </div>
             </div>

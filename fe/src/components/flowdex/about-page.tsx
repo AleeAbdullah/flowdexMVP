@@ -44,7 +44,7 @@ export function AboutPage() {
               </Link>
             </Button>
             <Button variant="glass" size="lg" asChild>
-              <Link href={ROUTES.MARKETING.WHITEPAPER}>Read the Whitepaper</Link>
+              <Link href={ROUTES.ASSETS.WHITEPAPER_PDF} target="_blank" rel="noreferrer">Read the Whitepaper</Link>
             </Button>
           </>
         )}

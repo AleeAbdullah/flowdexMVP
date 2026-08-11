@@ -190,10 +190,12 @@ export function MarketingCtaBand(props: {
     primary: {
       href: string;
       label: string;
+      newTab?: boolean;
     };
     secondary?: {
       href: string;
       label: string;
+      newTab?: boolean;
     };
   };
 }) {
@@ -211,14 +213,24 @@ export function MarketingCtaBand(props: {
         </div>
         <div className="flex flex-wrap gap-3">
           <Button variant="brand" size="lg" asChild>
-            <Link href={props.content.primary.href}>
+            <Link
+              href={props.content.primary.href}
+              target={props.content.primary.newTab ? '_blank' : undefined}
+              rel={props.content.primary.newTab ? 'noreferrer' : undefined}
+            >
               {props.content.primary.label}
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
           {props.content.secondary ? (
             <Button variant="glass" size="lg" asChild>
-              <Link href={props.content.secondary.href}>{props.content.secondary.label}</Link>
+              <Link
+                href={props.content.secondary.href}
+                target={props.content.secondary.newTab ? '_blank' : undefined}
+                rel={props.content.secondary.newTab ? 'noreferrer' : undefined}
+              >
+                {props.content.secondary.label}
+              </Link>
             </Button>
           ) : null}
         </div>

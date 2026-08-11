@@ -89,6 +89,8 @@ export function MarketingNavClient(props: {
                   <li key={item.href} className="relative">
                     <Link
                       href={item.href}
+                      target={item.newTab ? '_blank' : undefined}
+                      rel={item.newTab ? 'noreferrer' : undefined}
                       prefetch={false}
                       className={cn(
                         'block font-medium transition-[color] duration-150',
@@ -130,6 +132,8 @@ export function MarketingNavClient(props: {
                   <li key={item.href}>
                     <Link
                       href={item.href}
+                      target={item.newTab ? '_blank' : undefined}
+                      rel={item.newTab ? 'noreferrer' : undefined}
                       prefetch={false}
                       onClick={() => setMenuState(false)}
                       className={cn(

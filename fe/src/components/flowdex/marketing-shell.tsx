@@ -88,7 +88,7 @@ export async function MarketingShell({
 
 function FooterColumn(props: {
   title: string;
-  items: Array<{ label: string; href: string; note?: string }>;
+  items: Array<{ label: string; href: string; note?: string; newTab?: boolean }>;
 }) {
   return (
     <div className="space-y-4">
@@ -100,6 +100,8 @@ function FooterColumn(props: {
           <Link
             key={item.label}
             href={item.href}
+            target={item.newTab ? '_blank' : undefined}
+            rel={item.newTab ? 'noreferrer' : undefined}
             prefetch={false}
             className="block text-sm text-[color-mix(in_srgb,var(--text)_72%,transparent)] hover:text-[var(--accent-strong)]"
           >

@@ -1,5 +1,6 @@
 import { LegalDocumentSection, MarketingContentShell, MarketingCtaBand, MarketingPageHero } from './marketing-content';
 import { termsSections } from './legal-page-data';
+import { ROUTES } from '@/routes';
 
 export function TermsPage() {
   return (
@@ -32,7 +33,7 @@ export function TermsPage() {
           title: 'Move from the legal frame into the public product experience.',
           body: 'The legal pages are part of launch readiness, but the live product proof still sits on the home, whitepaper, and buy routes.',
           primary: { href: '/buy', label: 'Buy Now' },
-          secondary: { href: '/whitepaper', label: 'Read Whitepaper' },
+          secondary: { href: ROUTES.ASSETS.WHITEPAPER_PDF, label: 'Read Whitepaper', newTab: true },
         }}
       />
     </div>

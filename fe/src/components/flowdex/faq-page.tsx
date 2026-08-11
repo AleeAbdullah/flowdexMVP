@@ -61,7 +61,7 @@ export function FaqPage() {
         content={{
           title: 'Still have questions?',
           body: 'Read the full whitepaper or chat with us on Telegram.',
-          primary: { href: ROUTES.MARKETING.WHITEPAPER, label: 'Read Whitepaper' },
+          primary: { href: ROUTES.ASSETS.WHITEPAPER_PDF, label: 'Read Whitepaper', newTab: true },
           secondary: { href: 'https://t.me/flowdexprotocolofficial', label: 'Chat with Us on Telegram' },
         }}
       />

@@ -24,12 +24,20 @@ export const API_ROUTES = {
     },
     admin: {
       stats: '/api/bff/admin/stats',
+      blogs: {
+        root: '/api/bff/admin/blogs',
+        detail: (id: string) => `/api/bff/admin/blogs/${id}`,
+      },
       payments: {
         root: '/api/bff/admin/payments',
       },
     },
   },
   public: {
+    blogs: {
+      root: '/blogs',
+      detail: (slug: string) => `/blogs/${encodeURIComponent(slug)}`,
+    },
     markets: {
       crypto: (params: { quote: string; limit: number }) => {
         const searchParams = new URLSearchParams({
@@ -77,6 +85,10 @@ export const API_ROUTES = {
     },
     admin: {
       stats: '/admin/stats',
+      blogs: {
+        root: '/admin/blogs',
+        detail: (id: string) => `/admin/blogs/${id}`,
+      },
       payments: {
         root: '/admin/payments',
       },

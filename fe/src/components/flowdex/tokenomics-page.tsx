@@ -82,7 +82,7 @@ export function TokenomicsPage() {
               </Link>
             </Button>
             <Button variant="glass" size="lg" asChild>
-              <Link href={ROUTES.MARKETING.WHITEPAPER}>Whitepaper</Link>
+              <Link href={ROUTES.ASSETS.WHITEPAPER_PDF} target="_blank" rel="noreferrer">Whitepaper</Link>
             </Button>
           </>
         )}
@@ -171,7 +171,7 @@ export function TokenomicsPage() {
           title: 'Claim your stake in the global intelligence layer.',
           body: 'Secure Tier 1 allocation at the launch-stage price or review the token smart contract before participating.',
           primary: { href: ROUTES.MARKETING.BUY, label: 'Secure Tier 1 Allocation ($0.001)' },
-          secondary: { href: ROUTES.MARKETING.WHITEPAPER, label: 'View Token Smart Contract' },
+          secondary: { href: ROUTES.ASSETS.WHITEPAPER_PDF, label: 'Read Whitepaper', newTab: true },
         }}
       />
     </div>

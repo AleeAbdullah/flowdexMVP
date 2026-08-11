@@ -13,6 +13,7 @@ import { SimulationIntentEntity } from '../../modules/transactions/entities/simu
 import { SyncCheckpointEntity } from '../../modules/transactions/entities/sync-checkpoint.entity';
 import { WebhookDeliveryEntity } from '../../modules/transactions/entities/webhook-delivery.entity';
 import { WalletEntity } from '../../modules/wallets/entities/wallet.entity';
+import { BlogPostEntity } from '../../modules/blogs/entities/blog-post.entity';
 import {
   AuthAccountEntity,
   AuthSessionEntity,
@@ -33,6 +34,7 @@ export default new DataSource({
     AuthVerificationEntity,
     UserProfileEntity,
     WalletEntity,
+    BlogPostEntity,
     PaymentIntentEntity,
     PaymentEntity,
     PaymentWalletActionEntity,

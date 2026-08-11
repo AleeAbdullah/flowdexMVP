@@ -16,7 +16,8 @@ export const marketingShellFooter = {
     {
       title: 'Research',
       items: [
-        { label: 'Whitepaper', href: '/whitepaper' },
+        { label: 'Blog', href: '/blogs' },
+        { label: 'Whitepaper', href: '/assets/whitepaper/FlowDex_Whitepaper_v7-1_newlogo.pdf', newTab: true },
         { label: 'Tokenomics', href: '/tokenomics' },
         { label: 'Roadmap', href: '/roadmap' },
         { label: 'FAQ', href: '/faq' },
@@ -133,33 +134,6 @@ export const marketingTokenomics = [
   { label: 'Core Contributors', share: '12%', note: '1.20B tokens locked entirely for 1 year, followed by a strict 4-year linear vesting schedule.' },
   { label: 'Treasury / DAO', share: '8%', note: '0.80B tokens governed by on-chain community proposals.' },
   { label: 'Initial Liquidity', share: '5%', note: '0.50B tokens allocated directly to AMM pools and top-tier CEXs to guarantee deep day-one liquidity.' },
-];
-
-export const marketingBlogPosts = [
-  {
-    category: 'Buy',
-    date: 'April 2026',
-    title: 'Buy pricing and tiers now stay in sync across the public experience.',
-    summary: 'Pricing, tiers, and purchase configuration are now kept aligned across the public buy flow and supporting pages.',
-  },
-  {
-    category: 'Product',
-    date: 'April 2026',
-    title: 'The public purchase flow now covers checkout, receipts, and activity.',
-    summary: 'Users can connect a wallet, complete a purchase, and review receipts and activity without creating a separate account.',
-  },
-  {
-    category: 'Architecture',
-    date: 'March 2026',
-    title: 'Whitepaper v7.1 expands on the path from Ethereum to FlowChain.',
-    summary: 'The current whitepaper outlines the broader market vision, product roadmap, token utility, and long-term network direction.',
-  },
-  {
-    category: 'Security',
-    date: 'March 2026',
-    title: 'Wallet-first participation remains central to the FlowDex experience.',
-    summary: 'The public product experience focuses on clear wallet verification, straightforward purchase steps, and transparent product messaging.',
-  },
 ];
 
 export const legalUpdateCards = [

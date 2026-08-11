@@ -1,13 +1,15 @@
 type MarketingNavItem = {
   label: string;
   href: string;
+  newTab?: boolean;
 };
 
 export const MARKETING_NAV_ITEMS: MarketingNavItem[] = [
   { label: 'About', href: '/about' },
   { label: 'Tokenomics', href: '/tokenomics' },
   { label: 'Roadmap', href: '/roadmap' },
-  { label: 'Whitepaper', href: '/whitepaper' },
+  { label: 'Blog', href: '/blogs' },
+  { label: 'Whitepaper', href: '/assets/whitepaper/FlowDex_Whitepaper_v7-1_newlogo.pdf', newTab: true },
   { label: 'FAQ', href: '/faq' },
 ];
 
@@ -18,9 +20,5 @@ export function isTopLevelMarketingNavHref(href: string) {
 }
 
 export function getActiveMarketingNavHref(pathname: string): string | null {
-  if (ACTIVE_NAV_HREFS.has(pathname)) {
-    return pathname;
-  }
-
-  return null;
+  return MARKETING_NAV_ITEMS.find(item => pathname === item.href || pathname.startsWith(`${item.href}/`))?.href ?? null;
 }

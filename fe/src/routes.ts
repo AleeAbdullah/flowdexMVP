@@ -14,8 +14,8 @@ export const ROUTES = {
     TERMS: '/terms',
     TOKENOMICS: '/tokenomics',
     UPDATES: '/updates',
-    WHITEPAPER: '/whitepaper',
     BLOGS: '/blogs',
+    blogPost: (slug: string) => `/blogs/post?slug=${encodeURIComponent(slug)}`,
   },
   AUTH: {
     LOGIN: '/login',
@@ -28,6 +28,7 @@ export const ROUTES = {
   ADMIN: {
     HOME: '/app/admin',
     TRANSACTIONS: '/app/admin/transactions',
+    BLOGS: '/app/admin/blogs',
     transactionDetail: (id: string) => `/app/admin/transactions/${id}`,
   },
   ASSETS: {
