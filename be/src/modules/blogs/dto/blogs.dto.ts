@@ -64,10 +64,15 @@ export type BlogPostSummaryDto = {
   summary: string;
   category: string;
   publishedAt: string;
+  coverImageUrl: string | null;
 };
 
 export type BlogPostDto = BlogPostSummaryDto & {
   bodyHtml: string;
   createdAt: string;
   updatedAt: string;
+};
+
+export type BlogImageUploadDto = {
+  id: string;
 };

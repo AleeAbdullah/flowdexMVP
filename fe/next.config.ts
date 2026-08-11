@@ -4,6 +4,9 @@ import withBundleAnalyzer from '@next/bundle-analyzer';
 import './src/libs/Env';
 
 const isStaticExportBuild = process.env.STATIC_EXPORT === 'true';
+const localImageSources = process.env.NODE_ENV === 'production'
+  ? ''
+  : ' http://localhost:3002 http://127.0.0.1:3002';
 
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -13,7 +16,7 @@ const contentSecurityPolicy = [
   "form-action 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https:",
+  `img-src 'self' data: blob: https:${localImageSources}`,
   "font-src 'self' data:",
   "connect-src 'self' https: wss:",
   "frame-src 'self' https:",

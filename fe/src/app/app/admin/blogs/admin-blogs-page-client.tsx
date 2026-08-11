@@ -13,6 +13,7 @@ import {
   useAdminBlogPosts,
   useCreateBlogPost,
   useDeleteBlogPost,
+  useUploadBlogImage,
   useUpdateBlogPost,
 } from '@/dal/app/blogs/blogs.services';
 import type { BlogPost, BlogPostInput, BlogPostsResponse } from '@/dal/app/blogs/blogs.types';
@@ -33,10 +34,11 @@ export function AdminBlogsPageClient(props: {
   const createPost = useCreateBlogPost();
   const updatePost = useUpdateBlogPost();
   const deletePost = useDeleteBlogPost();
+  const uploadImage = useUploadBlogImage();
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [form, setForm] = useState<BlogPostInput>(EMPTY_FORM);
   const [showEditor, setShowEditor] = useState(false);
-  const isSaving = createPost.isPending || updatePost.isPending;
+  const isSaving = createPost.isPending || updatePost.isPending || uploadImage.isPending;
   const bodyText = form.bodyHtml.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim();
   const isValid = Boolean(form.title.trim() && form.summary.trim() && form.category.trim() && bodyText);
 
@@ -173,6 +175,7 @@ export function AdminBlogsPageClient(props: {
               <BlogRichText
                 content={form.bodyHtml}
                 onChange={bodyHtml => setForm(current => ({ ...current, bodyHtml }))}
+                onUploadImage={file => uploadImage.mutateAsync(file)}
                 editable={!isSaving}
               />
             </Field>

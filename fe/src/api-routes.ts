@@ -27,6 +27,7 @@ export const API_ROUTES = {
       blogs: {
         root: '/api/bff/admin/blogs',
         detail: (id: string) => `/api/bff/admin/blogs/${id}`,
+        images: '/api/bff/admin/blogs/images',
       },
       payments: {
         root: '/api/bff/admin/payments',
@@ -37,6 +38,7 @@ export const API_ROUTES = {
     blogs: {
       root: '/blogs',
       detail: (slug: string) => `/blogs/${encodeURIComponent(slug)}`,
+      image: (id: string) => `/blogs/images/${encodeURIComponent(id)}`,
     },
     markets: {
       crypto: (params: { quote: string; limit: number }) => {
@@ -88,6 +90,7 @@ export const API_ROUTES = {
       blogs: {
         root: '/admin/blogs',
         detail: (id: string) => `/admin/blogs/${id}`,
+        images: '/admin/blogs/images',
       },
       payments: {
         root: '/admin/payments',

@@ -98,7 +98,7 @@ export function LandingHeroGlobeVisual(props: VisualProps) {
         />
       </div>
 
-      <div className="absolute z-20 bottom-[3%] left-[200px] w-[82%] max-w-[25.5rem] xl:w-[84%] xl:max-w-[26rem]">
+      <div className="absolute z-20 right-0 bottom-[3%] w-[82%] max-w-[25.5rem] xl:w-[84%] xl:max-w-[26rem]">
         <HeroVisualPanelCard
           panel={props.slide.visualPanel}
           accentColor={props.accentColor}

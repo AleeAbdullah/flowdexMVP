@@ -7,6 +7,7 @@ import useAxiosAuth from '@/hooks/use-axiosAuth';
 import { api, extractAxiosError } from '@/lib/axios';
 import type {
   BlogPost,
+  BlogImageUpload,
   BlogPostInput,
   BlogPostSummariesResponse,
   BlogPostsResponse,
@@ -107,6 +108,24 @@ export function useDeleteBlogPost() {
       toast.success('Blog post deleted');
     },
     onError: error => toast.error(extractAxiosError(error).message || 'Could not delete blog post'),
+  });
+}
+
+export function useUploadBlogImage() {
+  const client = useAxiosAuth();
+
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      const response = await client.post<BlogImageUpload>(API_ROUTES.bff.admin.blogs.images, formData, {
+        headers: { 'Content-Type': undefined },
+      });
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '')
+        ?? API_ROUTES.proxy.publicBackend;
+      return `${apiBaseUrl}${API_ROUTES.public.blogs.image(response.data.id)}`;
+    },
+    onError: error => toast.error(extractAxiosError(error).message || 'Could not upload image'),
   });
 }
 

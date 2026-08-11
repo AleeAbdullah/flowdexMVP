@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 
 import { AuthContext, CurrentAuth } from '../../common/decorators/current-auth.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -8,7 +9,9 @@ import { InternalJwtGuard } from '../../common/guards/internal-jwt.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { UsersService } from '../users/users.service';
 import { BlogsService } from './blogs.service';
-import { CreateBlogPostDto, UpdateBlogPostDto, type BlogPostDto } from './dto/blogs.dto';
+import { CreateBlogPostDto, UpdateBlogPostDto, type BlogImageUploadDto, type BlogPostDto } from './dto/blogs.dto';
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 @ApiTags('admin blogs')
 @ApiBearerAuth()
@@ -34,6 +37,17 @@ export class AdminBlogsController {
   ): Promise<BlogPostDto> {
     await this.usersService.syncAndRequireActive(auth);
     return this.blogsService.create(input, auth.sub);
+  }
+
+  @Post('images')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('image', { limits: { fileSize: MAX_IMAGE_BYTES, files: 1 } }))
+  async uploadImage(
+    @CurrentAuth() auth: AuthContext,
+    @UploadedFile() file: { buffer: Buffer; mimetype: string; size: number } | undefined,
+  ): Promise<BlogImageUploadDto> {
+    await this.usersService.syncAndRequireActive(auth);
+    return this.blogsService.uploadImage(file, auth.sub);
   }
 
   @Patch(':id')

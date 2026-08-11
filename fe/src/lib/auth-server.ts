@@ -166,9 +166,9 @@ export async function proxyPublicBackendRequest(
 
   try {
     const upstreamUrl = `${backendBaseUrl}/${pathSegments.join('/')}${request.nextUrl.search}`;
-    const bodyText = request.method === 'GET' || request.method === 'HEAD'
+    const body = request.method === 'GET' || request.method === 'HEAD'
       ? undefined
-      : await request.text();
+      : await request.arrayBuffer();
     const upstreamResponse = await fetch(upstreamUrl, {
       method: request.method,
       cache: 'no-store',
@@ -178,7 +178,7 @@ export async function proxyPublicBackendRequest(
           ? { 'x-payment-checkout-token': request.headers.get('x-payment-checkout-token') ?? '' }
           : {}),
       },
-      body: bodyText && bodyText.length > 0 ? bodyText : undefined,
+      body: body?.byteLength ? body : undefined,
     });
     const responseText = await upstreamResponse.text();
 
@@ -232,9 +232,9 @@ async function proxyBackendRequestWithAccessToken(
   }
 
   const upstreamUrl = `${baseUrl}/${pathSegments.join('/')}${request.nextUrl.search}`;
-  const bodyText = request.method === 'GET' || request.method === 'HEAD'
+  const body = request.method === 'GET' || request.method === 'HEAD'
     ? undefined
-    : await request.text();
+    : await request.arrayBuffer();
 
   const upstreamResponse = await fetch(upstreamUrl, {
     method: request.method,
@@ -243,7 +243,7 @@ async function proxyBackendRequestWithAccessToken(
       'Content-Type': request.headers.get('content-type') ?? 'application/json',
       Authorization: `Bearer ${accessToken}`,
     },
-    body: bodyText && bodyText.length > 0 ? bodyText : undefined,
+    body: body?.byteLength ? body : undefined,
   });
 
   const responseText = await upstreamResponse.text();

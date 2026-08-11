@@ -5,6 +5,7 @@ export type BlogPostSummary = {
   summary: string;
   category: string;
   publishedAt: string;
+  coverImageUrl: string | null;
 };
 
 export type BlogPost = BlogPostSummary & {
@@ -26,4 +27,8 @@ export type BlogPostSummariesResponse = {
 
 export type BlogPostsResponse = {
   items: BlogPost[];
+};
+
+export type BlogImageUpload = {
+  id: string;
 };

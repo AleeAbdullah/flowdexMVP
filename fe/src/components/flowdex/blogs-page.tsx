@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { MarketingContentShell, MarketingCtaBand, MarketingPageHero } from './marketing-content';
 import { GlassPanel } from '@/components/glass-panel';
 import { Badge } from '@/components/ui/badge';
@@ -55,17 +56,30 @@ export function BlogsPage() {
           <div className="grid gap-5 md:grid-cols-2">
             {posts.map(post => (
               <Link key={post.id} href={ROUTES.MARKETING.blogPost(post.slug)} className="group block h-full">
-                <GlassPanel className="flex h-full flex-col p-6 transition-transform group-hover:-translate-y-1 group-hover:border-[var(--accent-border)]">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Badge variant="brand">{post.category}</Badge>
-                    <span className="text-xs text-[var(--muted)]">{dateFormatter.format(new Date(post.publishedAt))}</span>
+                <GlassPanel className="flex h-full flex-col overflow-hidden p-0 transition-transform group-hover:-translate-y-1 group-hover:border-[var(--accent-border)]">
+                  {post.coverImageUrl ? (
+                    <div className="relative aspect-[16/9] w-full overflow-hidden">
+                      <Image
+                        src={post.coverImageUrl}
+                        alt=""
+                        fill
+                        unoptimized
+                        className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                      />
+                    </div>
+                  ) : null}
+                  <div className="flex flex-1 flex-col p-6">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Badge variant="brand">{post.category}</Badge>
+                      <span className="text-xs text-[var(--muted)]">{dateFormatter.format(new Date(post.publishedAt))}</span>
+                    </div>
+                    <h2 className="mt-5 text-xl font-bold text-[var(--text)] group-hover:text-[var(--accent-strong)]">{post.title}</h2>
+                    <p className="mt-4 flex-1 text-sm leading-8 text-[var(--muted)]">{post.summary}</p>
+                    <span className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-strong)]">
+                      Read article
+                      <ArrowRight aria-hidden className="h-4 w-4" />
+                    </span>
                   </div>
-                  <h2 className="mt-5 text-xl font-bold text-[var(--text)] group-hover:text-[var(--accent-strong)]">{post.title}</h2>
-                  <p className="mt-4 flex-1 text-sm leading-8 text-[var(--muted)]">{post.summary}</p>
-                  <span className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-strong)]">
-                    Read article
-                    <ArrowRight aria-hidden className="h-4 w-4" />
-                  </span>
                 </GlassPanel>
               </Link>
             ))}
