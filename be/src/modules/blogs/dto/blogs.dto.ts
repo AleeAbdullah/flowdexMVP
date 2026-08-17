@@ -10,6 +10,13 @@ export class CreateBlogPostDto {
   @MaxLength(160)
   title!: string;
 
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(190)
+  slug?: string;
+
   @Transform(trim)
   @IsString()
   @MinLength(1)
@@ -35,6 +42,13 @@ export class UpdateBlogPostDto {
   @MinLength(1)
   @MaxLength(160)
   title?: string;
+
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(190)
+  slug?: string;
 
   @IsOptional()
   @Transform(trim)

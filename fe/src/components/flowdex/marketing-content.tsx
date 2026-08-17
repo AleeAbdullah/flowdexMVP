@@ -13,7 +13,37 @@ export function MarketingPageHero(props: {
   description: string;
   meta?: Array<{ label: string; value: string }>;
   actions?: ReactNode;
+  compact?: boolean;
 }) {
+  if (props.compact) {
+    return (
+      <section className="section-shell py-8 md:py-10">
+        <div className="max-w-4xl">
+          <div className="inline-flex rounded-full border border-[var(--accent-border)] bg-[var(--accent-bg)] px-4 py-1 text-[10px] font-bold tracking-[0.35em] text-[var(--cyan)] uppercase">
+            {props.eyebrow}
+          </div>
+          <h1 className="font-heading mt-4 text-balance text-3xl font-bold tracking-tight text-[var(--text)] md:text-5xl">
+            {props.title}
+          </h1>
+          {props.meta?.length ? (
+            <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-[var(--muted)]">
+              {props.meta.map(item => (
+                <div key={item.label} className="flex items-center gap-2">
+                  <dt className="font-semibold text-[var(--text)]">{item.label}</dt>
+                  <dd>{item.value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+          <p className="mt-4 max-w-3xl text-balance text-sm leading-7 text-[var(--muted)] md:text-base">
+            {props.description}
+          </p>
+          {props.actions ? <div className="mt-5 flex flex-wrap gap-3">{props.actions}</div> : null}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="section-shell section-pad grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
       <div className="space-y-6">

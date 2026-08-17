@@ -19,6 +19,9 @@ export const blogQueryKeys = {
   adminList: ['blogs', 'admin'] as const,
 };
 
+const MAX_BLOG_IMAGE_BYTES = 5 * 1024 * 1024;
+const BLOG_IMAGE_UPLOAD_TIMEOUT_MS = 120_000;
+
 const browserPublicProxyConfig = typeof window === 'undefined'
   ? undefined
   : process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true'
@@ -116,10 +119,14 @@ export function useUploadBlogImage() {
 
   return useMutation({
     mutationFn: async (file: File) => {
+      if (file.size > MAX_BLOG_IMAGE_BYTES) {
+        throw new Error('Image must be 5 MB or smaller');
+      }
       const formData = new FormData();
       formData.append('image', file);
       const response = await client.post<BlogImageUpload>(API_ROUTES.bff.admin.blogs.images, formData, {
         headers: { 'Content-Type': undefined },
+        timeout: BLOG_IMAGE_UPLOAD_TIMEOUT_MS,
       });
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '')
         ?? API_ROUTES.proxy.publicBackend;

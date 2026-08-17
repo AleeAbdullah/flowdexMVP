@@ -16,6 +16,7 @@ export type BlogPost = BlogPostSummary & {
 
 export type BlogPostInput = {
   title: string;
+  slug?: string;
   summary: string;
   category: string;
   bodyHtml: string;

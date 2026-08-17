@@ -15,7 +15,7 @@ export const ROUTES = {
     TOKENOMICS: '/tokenomics',
     UPDATES: '/updates',
     BLOGS: '/blogs',
-    blogPost: (slug: string) => `/blogs/post?slug=${encodeURIComponent(slug)}`,
+    blogPost: (slug: string) => `/blogs/${encodeURIComponent(slug)}`,
   },
   AUTH: {
     LOGIN: '/login',

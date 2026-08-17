@@ -59,6 +59,10 @@
     {
       "decision": "Use a compact TipTap toolbar and read-only renderer styled with existing FlowDex tokens and glass panels.",
       "reason": "Matches the supplied Brava editor behavior without introducing a parallel visual system."
+    },
+    {
+      "decision": "Use a fixed 16:9 accent-shade thumbnail with a centered FlowDex icon when a blog post has no cover image.",
+      "reason": "Keeps archive and related-post cards visually aligned without adding a separate placeholder asset."
     }
   ],
   "evidence": [

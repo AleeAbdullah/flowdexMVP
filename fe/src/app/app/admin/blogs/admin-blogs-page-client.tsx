@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { BlogRichText } from '@/components/flowdex/blog-rich-text';
 import { SectionHeading } from '@/components/flowdex/primitives';
 import { formatDateTime } from '@/components/flowdex/utils';
@@ -22,6 +22,7 @@ import { ROUTES } from '@/routes';
 
 const EMPTY_FORM: BlogPostInput = {
   title: '',
+  slug: '',
   summary: '',
   category: '',
   bodyHtml: '',
@@ -58,6 +59,7 @@ export function AdminBlogsPageClient(props: {
     setEditingPost(post);
     setForm({
       title: post.title,
+      slug: post.slug,
       summary: post.summary,
       category: post.category,
       bodyHtml: post.bodyHtml,
@@ -74,6 +76,7 @@ export function AdminBlogsPageClient(props: {
 
     const input = {
       title: form.title.trim(),
+      ...(form.slug?.trim() ? { slug: form.slug.trim() } : {}),
       summary: form.summary.trim(),
       category: form.category.trim(),
       bodyHtml: form.bodyHtml,
@@ -106,6 +109,11 @@ export function AdminBlogsPageClient(props: {
   };
 
   const posts = query.data?.items ?? [];
+  const categories = useMemo(
+    () => [...new Set(posts.map(post => post.category.trim()).filter(Boolean))]
+      .sort((left, right) => left.localeCompare(right)),
+    [posts],
+  );
 
   return (
     <>
@@ -127,7 +135,7 @@ export function AdminBlogsPageClient(props: {
                 <h2 className="text-xl font-bold text-[var(--text)]">
                   {editingPost ? 'Edit post' : 'New post'}
                 </h2>
-                <p className="mt-1 text-sm text-[var(--muted)]">All fields are required.</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">Title, category, summary, and article are required.</p>
               </div>
               <Button type="button" variant="glass" onClick={resetEditor} disabled={isSaving}>Cancel</Button>
             </div>
@@ -147,6 +155,7 @@ export function AdminBlogsPageClient(props: {
               <Field label="Category" htmlFor="blog-category">
                 <Input
                   id="blog-category"
+                  list="blog-category-options"
                   value={form.category}
                   maxLength={60}
                   onChange={event => setForm(current => ({ ...current, category: event.target.value }))}
@@ -154,8 +163,28 @@ export function AdminBlogsPageClient(props: {
                   disabled={isSaving}
                   required
                 />
+                <datalist id="blog-category-options">
+                  {categories.map(category => <option key={category} value={category} />)}
+                </datalist>
+                <p className="text-xs text-[var(--muted)]">Choose an existing category or enter a new one.</p>
               </Field>
             </div>
+
+            <Field label="URL" htmlFor="blog-slug">
+              <div className="flex overflow-hidden rounded-lg border border-[var(--card-border)] bg-[var(--bg-2)] focus-within:ring-2 focus-within:ring-[var(--cyan)]">
+                <span className="flex items-center border-r border-[var(--card-border)] px-3 text-sm text-[var(--muted)]">/blogs/</span>
+                <Input
+                  id="blog-slug"
+                  value={form.slug ?? ''}
+                  maxLength={190}
+                  onChange={event => setForm(current => ({ ...current, slug: event.target.value }))}
+                  placeholder="generated-from-title"
+                  disabled={isSaving}
+                  className="border-0 bg-transparent focus-visible:ring-0"
+                />
+              </div>
+              <p className="text-xs text-[var(--muted)]">Leave blank to generate the URL from the title.</p>
+            </Field>
 
             <Field label="Summary" htmlFor="blog-summary">
               <textarea
@@ -203,37 +232,54 @@ export function AdminBlogsPageClient(props: {
             <p className="mt-2 text-sm text-[var(--muted)]">Create the first post when you are ready to publish.</p>
           </GlassPanel>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
-            {posts.map(post => (
-              <GlassPanel key={post.id} className="flex h-full flex-col p-6">
-                <div className="flex flex-wrap items-center gap-3">
-                  <Badge variant="brand">{post.category}</Badge>
-                  <span className="text-xs text-[var(--muted)]">{formatDateTime(post.publishedAt)}</span>
-                </div>
-                <h3 className="mt-5 text-xl font-bold text-[var(--text)]">{post.title}</h3>
-                <p className="mt-3 flex-1 text-sm leading-7 text-[var(--muted)]">{post.summary}</p>
-                <div className="mt-6 flex flex-wrap gap-2">
-                  <Button type="button" variant="glass" size="sm" onClick={() => openEdit(post)}>Edit</Button>
-                  <Button
-                    type="button"
-                    variant="glass"
-                    size="sm"
-                    onClick={() => handleDelete(post)}
-                    disabled={deletePost.isPending}
-                    className="hover:border-[var(--status-error-border)] hover:text-[var(--status-error-text)]"
-                  >
-                    Delete
-                  </Button>
-                  <Button variant="glass" size="sm" asChild>
-                    <Link href={ROUTES.MARKETING.blogPost(post.slug)} target="_blank" rel="noreferrer">
-                      View
-                      <ArrowRight aria-hidden className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                </div>
-              </GlassPanel>
-            ))}
-          </div>
+          <GlassPanel className="overflow-hidden p-0">
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-collapse text-left">
+                <caption className="sr-only">Published blog posts</caption>
+                <thead className="border-b border-[var(--card-border)] bg-[var(--accent-bg)]">
+                  <tr>
+                    <th scope="col" className="px-5 py-4 text-xs font-bold tracking-wider text-[var(--muted)] uppercase">Post</th>
+                    <th scope="col" className="px-5 py-4 text-xs font-bold tracking-wider text-[var(--muted)] uppercase">Category</th>
+                    <th scope="col" className="px-5 py-4 text-xs font-bold tracking-wider text-[var(--muted)] uppercase">Published</th>
+                    <th scope="col" className="px-5 py-4 text-right text-xs font-bold tracking-wider text-[var(--muted)] uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--card-border)]">
+                  {posts.map(post => (
+                    <tr key={post.id} className="align-middle hover:bg-[var(--accent-bg)]">
+                      <td className="min-w-72 px-5 py-4">
+                        <div className="font-semibold text-[var(--text)]">{post.title}</div>
+                        <div className="mt-1 max-w-xl truncate text-xs text-[var(--muted)]">/blogs/{post.slug}</div>
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-4"><Badge variant="brand">{post.category}</Badge></td>
+                      <td className="whitespace-nowrap px-5 py-4 text-sm text-[var(--muted)]">{formatDateTime(post.publishedAt)}</td>
+                      <td className="whitespace-nowrap px-5 py-4">
+                        <div className="flex justify-end gap-2">
+                          <Button type="button" variant="glass" size="sm" onClick={() => openEdit(post)}>Edit</Button>
+                          <Button
+                            type="button"
+                            variant="glass"
+                            size="sm"
+                            onClick={() => handleDelete(post)}
+                            disabled={deletePost.isPending}
+                            className="hover:border-[var(--status-error-border)] hover:text-[var(--status-error-text)]"
+                          >
+                            Delete
+                          </Button>
+                          <Button variant="glass" size="sm" asChild>
+                            <Link href={ROUTES.MARKETING.blogPost(post.slug)} target="_blank" rel="noreferrer" aria-label={`View ${post.title}`}>
+                              View
+                              <ArrowRight aria-hidden className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </GlassPanel>
         )}
       </section>
     </>

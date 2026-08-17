@@ -232,19 +232,26 @@ async function proxyBackendRequestWithAccessToken(
   }
 
   const upstreamUrl = `${baseUrl}/${pathSegments.join('/')}${request.nextUrl.search}`;
+  const streamBlogImage = request.method === 'POST'
+    && pathSegments.join('/') === 'admin/blogs/images';
   const body = request.method === 'GET' || request.method === 'HEAD'
     ? undefined
-    : await request.arrayBuffer();
-
-  const upstreamResponse = await fetch(upstreamUrl, {
+    : streamBlogImage
+      ? request.body
+      : await request.arrayBuffer();
+  const hasBody = body instanceof ArrayBuffer ? body.byteLength > 0 : Boolean(body);
+  const upstreamInit: RequestInit & { duplex?: 'half' } = {
     method: request.method,
     cache: 'no-store',
     headers: {
       'Content-Type': request.headers.get('content-type') ?? 'application/json',
       Authorization: `Bearer ${accessToken}`,
     },
-    body: body?.byteLength ? body : undefined,
-  });
+    body: hasBody ? body : undefined,
+    ...(streamBlogImage && hasBody ? { duplex: 'half' } : {}),
+  };
+
+  const upstreamResponse = await fetch(upstreamUrl, upstreamInit);
 
   const responseText = await upstreamResponse.text();
 

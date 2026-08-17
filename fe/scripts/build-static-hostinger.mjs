@@ -16,6 +16,7 @@ const disabledSegments = [
   'signup',
   path.join('(marketing)', 'transaction'),
   path.join('(marketing)', 'transactions'),
+  path.join('(marketing)', 'blogs', '[slug]'),
 ];
 const disabledPairs = [];
 

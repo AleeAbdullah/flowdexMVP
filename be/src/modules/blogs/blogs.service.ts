@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import sanitizeHtml = require('sanitize-html');
-import { EntityManager, Repository } from 'typeorm';
+import { EntityManager, Not, Repository } from 'typeorm';
 
 import {
   CreateBlogPostDto,
@@ -17,6 +17,7 @@ import { BlogPostEntity } from './entities/blog-post.entity';
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const BLOG_IMAGE_ID = '[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
 const BLOG_IMAGE_URL = new RegExp(`/blogs/images/(${BLOG_IMAGE_ID})$`, 'i');
+const RESERVED_SLUGS = new Set(['post']);
 
 type UploadedBlogImage = {
   buffer: Buffer;
@@ -80,7 +81,9 @@ export class BlogsService {
         summary: input.summary,
         category: input.category,
         bodyHtml,
-        slug: await this.createUniqueSlug(input.title, repository),
+        slug: input.slug
+          ? await this.createCustomSlug(input.slug, repository)
+          : await this.createUniqueSlug(input.title, repository),
         createdByAdminId: adminUserId,
       });
       const saved = await repository.save(post);
@@ -95,6 +98,9 @@ export class BlogsService {
       const post = this.requirePost(await repository.findOne({ where: { id } }));
 
       if (input.title !== undefined) post.title = input.title;
+      if (input.slug !== undefined) {
+        post.slug = await this.createCustomSlug(input.slug, repository, post.id);
+      }
       if (input.summary !== undefined) post.summary = input.summary;
       if (input.category !== undefined) post.category = input.category;
       if (input.bodyHtml !== undefined) post.bodyHtml = this.sanitizeBody(input.bodyHtml);
@@ -171,15 +177,10 @@ export class BlogsService {
     title: string,
     repository: Repository<BlogPostEntity> = this.blogPostsRepository,
   ): Promise<string> {
-    const normalized = title
-      .normalize('NFKD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 170) || `post-${randomUUID().slice(0, 8)}`;
-    let slug = normalized;
-    let suffix = 2;
+    const normalized = this.normalizeSlug(title)
+      || `post-${randomUUID().slice(0, 8)}`;
+    let slug = RESERVED_SLUGS.has(normalized) ? `${normalized}-2` : normalized;
+    let suffix = slug === normalized ? 2 : 3;
 
     while (await repository.exists({ where: { slug } })) {
       slug = `${normalized.slice(0, 180 - String(suffix).length)}-${suffix}`;
@@ -187,6 +188,36 @@ export class BlogsService {
     }
 
     return slug;
+  }
+
+  private async createCustomSlug(
+    value: string,
+    repository: Repository<BlogPostEntity>,
+    currentPostId?: string,
+  ): Promise<string> {
+    const slug = this.normalizeSlug(value);
+    if (!slug || RESERVED_SLUGS.has(slug)) {
+      throw new BadRequestException('Choose a different blog URL');
+    }
+
+    const exists = await repository.exists({
+      where: currentPostId ? { slug, id: Not(currentPostId) } : { slug },
+    });
+    if (exists) {
+      throw new BadRequestException('That blog URL is already in use');
+    }
+
+    return slug;
+  }
+
+  private normalizeSlug(value: string): string {
+    return value
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 190);
   }
 
   private detectImageMimeType(data: Buffer): string | null {

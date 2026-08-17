@@ -80,3 +80,53 @@ describe('BlogsService images', () => {
     expect(manager.getRepository).toHaveBeenCalledWith(BlogImageEntity);
   });
 });
+
+describe('BlogsService slugs', () => {
+  const now = new Date('2026-08-18T00:00:00.000Z');
+
+  function createService(slugExists = false) {
+    const removeOld = queryBuilder();
+    const imageRepository = { createQueryBuilder: jest.fn().mockReturnValue(removeOld) };
+    const postRepository = {
+      exists: jest.fn().mockResolvedValue(slugExists),
+      create: jest.fn(value => value),
+      save: jest.fn(async value => ({
+        ...value,
+        id: '223e4567-e89b-42d3-a456-426614174000',
+        publishedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      })),
+    };
+    const manager = {
+      getRepository: jest.fn(entity => entity === BlogPostEntity ? postRepository : imageRepository),
+    };
+    const blogRepository = {
+      manager: { transaction: jest.fn(callback => callback(manager)) },
+    };
+
+    return new BlogsService(blogRepository as never, {} as never);
+  }
+
+  it('normalizes a custom slug', async () => {
+    const result = await createService().create({
+      title: 'Long article title',
+      slug: '  Short Custom URL  ',
+      summary: 'Summary',
+      category: 'Product',
+      bodyHtml: '<p>Hello</p>',
+    }, 'admin');
+
+    expect(result.slug).toBe('short-custom-url');
+  });
+
+  it('rejects a custom slug that is already used', async () => {
+    await expect(createService(true).create({
+      title: 'Another article',
+      slug: 'existing-url',
+      summary: 'Summary',
+      category: 'Product',
+      bodyHtml: '<p>Hello</p>',
+    }, 'admin')).rejects.toThrow('That blog URL is already in use');
+  });
+});
