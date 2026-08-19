@@ -28,6 +28,15 @@ export class BlogPostEntity {
   @Column({ name: 'body_html', type: 'text' })
   bodyHtml!: string;
 
+  @Column({ name: 'author_name', type: 'varchar', length: 100 })
+  authorName!: string;
+
+  @Column({ name: 'author_bio', type: 'varchar', length: 500 })
+  authorBio!: string;
+
+  @Column({ name: 'featured_image_url', type: 'text', nullable: true })
+  featuredImageUrl!: string | null;
+
   @Column({ name: 'created_by_admin_id', type: 'varchar', length: 255 })
   createdByAdminId!: string;
 

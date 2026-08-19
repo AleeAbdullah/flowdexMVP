@@ -11,6 +11,7 @@ import { GlassPanel } from '@/components/glass-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePublicBlogPost, usePublicBlogPosts } from '@/dal/app/blogs/blogs.services';
+import { DEFAULT_BLOG_AUTHOR_BIO, DEFAULT_BLOG_AUTHOR_NAME } from '@/dal/app/blogs/blogs.types';
 import { ArrowLeft, ArrowRight } from '@/icons';
 import { ROUTES } from '@/routes';
 
@@ -63,12 +64,12 @@ export function BlogPostPageClient(props: { slug?: string }) {
     <article className="pb-12">
       <MarketingPageHero
         compact
+        actionsFirst
         eyebrow={post.category}
         title={post.title}
         description={post.summary}
         meta={[
           { label: 'Published', value: dateFormatter.format(new Date(post.publishedAt)) },
-          { label: 'Category', value: post.category },
         ]}
         actions={(
           <Button variant="glass" asChild>
@@ -92,9 +93,11 @@ export function BlogPostPageClient(props: { slug?: string }) {
             />
             <div>
               <div className="text-xs font-bold tracking-[0.24em] text-[var(--cyan)] uppercase">Written by</div>
-              <div className="mt-1 text-lg font-bold text-[var(--text)]">FlowDex Team</div>
+              <div className="mt-1 text-lg font-bold text-[var(--text)]">
+                {post.authorName?.trim() || DEFAULT_BLOG_AUTHOR_NAME}
+              </div>
               <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-                Product, research, security, and community updates from the team building FlowDex.
+                {post.authorBio?.trim() || DEFAULT_BLOG_AUTHOR_BIO}
               </p>
             </div>
           </GlassPanel>

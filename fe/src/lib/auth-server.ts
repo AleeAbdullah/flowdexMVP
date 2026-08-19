@@ -182,7 +182,7 @@ export async function proxyPublicBackendRequest(
     });
     const responseText = await upstreamResponse.text();
 
-    return new Response(responseText, {
+    return new Response(responseText || null, {
       status: upstreamResponse.status,
       headers: {
         'Content-Type': upstreamResponse.headers.get('content-type') ?? 'application/json',
@@ -255,7 +255,7 @@ async function proxyBackendRequestWithAccessToken(
 
   const responseText = await upstreamResponse.text();
 
-  return new Response(responseText, {
+  return new Response(responseText || null, {
     status: upstreamResponse.status,
     headers: {
       'Content-Type': upstreamResponse.headers.get('content-type') ?? 'application/json',

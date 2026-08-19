@@ -26,6 +26,10 @@ export const API_ROUTES = {
       stats: '/api/bff/admin/stats',
       blogs: {
         root: '/api/bff/admin/blogs',
+        categories: {
+          root: '/api/bff/admin/blogs/categories',
+          detail: (name: string) => `/api/bff/admin/blogs/categories/${encodeURIComponent(name)}`,
+        },
         detail: (id: string) => `/api/bff/admin/blogs/${id}`,
         images: '/api/bff/admin/blogs/images',
       },
@@ -89,6 +93,10 @@ export const API_ROUTES = {
       stats: '/admin/stats',
       blogs: {
         root: '/admin/blogs',
+        categories: {
+          root: '/admin/blogs/categories',
+          detail: (name: string) => `/admin/blogs/categories/${encodeURIComponent(name)}`,
+        },
         detail: (id: string) => `/admin/blogs/${id}`,
         images: '/admin/blogs/images',
       },

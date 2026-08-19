@@ -85,18 +85,13 @@ export function BlogRichText(props: {
     if (!props.onUploadImage) {
       return;
     }
-    const defaultAlt = file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ');
-    const alt = window.prompt('Describe this image for screen readers', defaultAlt);
-    if (alt === null) {
-      return;
-    }
 
     setIsUploadingImage(true);
     try {
       const src = await props.onUploadImage(file);
       editor.chain().focus().insertContent({
         type: 'blogImage',
-        attrs: { src, alt: alt.trim() },
+        attrs: { src, alt: file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ') },
       }).run();
     } catch {
       // The upload mutation shows the API error.

@@ -11,6 +11,7 @@ import {
   type BlogPostDto,
   type BlogPostSummaryDto,
 } from './dto/blogs.dto';
+import { BlogCategoryEntity } from './entities/blog-category.entity';
 import { BlogImageEntity } from './entities/blog-image.entity';
 import { BlogPostEntity } from './entities/blog-post.entity';
 
@@ -63,12 +64,30 @@ export class BlogsService {
     return this.toDto(this.requirePost(post));
   }
 
-  async listAdmin(): Promise<{ items: BlogPostDto[] }> {
-    const posts = await this.blogPostsRepository.find({
-      order: { publishedAt: 'DESC', createdAt: 'DESC' },
-    });
+  async listAdmin(): Promise<{ items: BlogPostDto[]; categories: string[] }> {
+    const [posts, categories] = await Promise.all([
+      this.blogPostsRepository.find({
+        order: { publishedAt: 'DESC', createdAt: 'DESC' },
+      }),
+      this.blogPostsRepository.manager.getRepository(BlogCategoryEntity).find({
+        select: { name: true },
+        order: { updatedAt: 'DESC', name: 'ASC' },
+      }),
+    ]);
 
-    return { items: posts.map(post => this.toDto(post)) };
+    return {
+      items: posts.map(post => this.toDto(post)),
+      categories: categories.map(category => category.name),
+    };
+  }
+
+  async createCategory(name: string): Promise<{ name: string }> {
+    await this.saveCategory(this.blogPostsRepository.manager, name);
+    return { name };
+  }
+
+  async deleteCategory(name: string): Promise<void> {
+    await this.blogPostsRepository.manager.getRepository(BlogCategoryEntity).delete(name);
   }
 
   async create(input: CreateBlogPostDto, adminUserId: string): Promise<BlogPostDto> {
@@ -81,13 +100,16 @@ export class BlogsService {
         summary: input.summary,
         category: input.category,
         bodyHtml,
+        authorName: input.authorName,
+        authorBio: input.authorBio,
+        featuredImageUrl: input.featuredImageUrl ?? null,
         slug: input.slug
           ? await this.createCustomSlug(input.slug, repository)
           : await this.createUniqueSlug(input.title, repository),
         createdByAdminId: adminUserId,
       });
       const saved = await repository.save(post);
-      await this.syncImages(manager, saved.id, bodyHtml);
+      await this.syncImages(manager, saved.id, bodyHtml, saved.featuredImageUrl);
       return this.toDto(saved);
     });
   }
@@ -104,9 +126,12 @@ export class BlogsService {
       if (input.summary !== undefined) post.summary = input.summary;
       if (input.category !== undefined) post.category = input.category;
       if (input.bodyHtml !== undefined) post.bodyHtml = this.sanitizeBody(input.bodyHtml);
+      if (input.authorName !== undefined) post.authorName = input.authorName;
+      if (input.authorBio !== undefined) post.authorBio = input.authorBio;
+      if (input.featuredImageUrl !== undefined) post.featuredImageUrl = input.featuredImageUrl;
 
       const saved = await repository.save(post);
-      await this.syncImages(manager, saved.id, saved.bodyHtml);
+      await this.syncImages(manager, saved.id, saved.bodyHtml, saved.featuredImageUrl);
       return this.toDto(saved);
     });
   }
@@ -228,9 +253,21 @@ export class BlogsService {
     return null;
   }
 
-  private async syncImages(manager: EntityManager, blogPostId: string, bodyHtml: string): Promise<void> {
+  private async syncImages(
+    manager: EntityManager,
+    blogPostId: string,
+    bodyHtml: string,
+    featuredImageUrl: string | null,
+  ): Promise<void> {
     const repository = manager.getRepository(BlogImageEntity);
-    const imageIds = [...new Set(this.extractImageSources(bodyHtml)
+    if (featuredImageUrl && !BLOG_IMAGE_URL.test(featuredImageUrl)) {
+      throw new BadRequestException('Featured image is unavailable');
+    }
+
+    const imageIds = [...new Set([
+      ...this.extractImageSources(bodyHtml),
+      ...(featuredImageUrl ? [featuredImageUrl] : []),
+    ]
       .map(source => source.match(BLOG_IMAGE_URL)?.[1])
       .filter((id): id is string => Boolean(id)))];
     const images = imageIds.length
@@ -258,6 +295,10 @@ export class BlogsService {
     }
   }
 
+  private async saveCategory(manager: EntityManager, name: string): Promise<void> {
+    await manager.getRepository(BlogCategoryEntity).upsert({ name }, ['name']);
+  }
+
   private extractImageSources(bodyHtml: string): string[] {
     return [...bodyHtml.matchAll(/<img\b[^>]*\bsrc="([^"]+)"/gi)].map(match => match[1]);
   }
@@ -277,7 +318,7 @@ export class BlogsService {
       summary: post.summary,
       category: post.category,
       publishedAt: post.publishedAt.toISOString(),
-      coverImageUrl: this.extractImageSources(post.bodyHtml)[0] ?? null,
+      coverImageUrl: post.featuredImageUrl ?? this.extractImageSources(post.bodyHtml)[0] ?? null,
     };
   }
 
@@ -285,6 +326,9 @@ export class BlogsService {
     return {
       ...this.toSummary(post),
       bodyHtml: post.bodyHtml,
+      authorName: post.authorName,
+      authorBio: post.authorBio,
+      featuredImageUrl: post.featuredImageUrl,
       createdAt: post.createdAt.toISOString(),
       updatedAt: post.updatedAt.toISOString(),
     };

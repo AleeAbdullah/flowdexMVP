@@ -1,3 +1,6 @@
+export const DEFAULT_BLOG_AUTHOR_NAME = 'FlowDex Team';
+export const DEFAULT_BLOG_AUTHOR_BIO = 'Product, research, security, and community updates from the team building FlowDex.';
+
 export type BlogPostSummary = {
   id: string;
   slug: string;
@@ -10,6 +13,9 @@ export type BlogPostSummary = {
 
 export type BlogPost = BlogPostSummary & {
   bodyHtml: string;
+  authorName?: string;
+  authorBio?: string;
+  featuredImageUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -20,6 +26,9 @@ export type BlogPostInput = {
   summary: string;
   category: string;
   bodyHtml: string;
+  authorName: string;
+  authorBio: string;
+  featuredImageUrl?: string | null;
 };
 
 export type BlogPostSummariesResponse = {
@@ -28,6 +37,7 @@ export type BlogPostSummariesResponse = {
 
 export type BlogPostsResponse = {
   items: BlogPost[];
+  categories: string[];
 };
 
 export type BlogImageUpload = {

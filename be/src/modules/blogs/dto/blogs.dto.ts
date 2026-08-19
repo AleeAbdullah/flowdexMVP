@@ -3,6 +3,14 @@ import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 const trim = ({ value }: { value: unknown }) => typeof value === 'string' ? value.trim() : value;
 
+export class BlogCategoryNameDto {
+  @Transform(trim)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(60)
+  name!: string;
+}
+
 export class CreateBlogPostDto {
   @Transform(trim)
   @IsString()
@@ -33,6 +41,25 @@ export class CreateBlogPostDto {
   @MinLength(1)
   @MaxLength(100_000)
   bodyHtml!: string;
+
+  @Transform(trim)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  authorName!: string;
+
+  @Transform(trim)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(500)
+  authorBio!: string;
+
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(2_048)
+  featuredImageUrl?: string | null;
 }
 
 export class UpdateBlogPostDto {
@@ -69,6 +96,27 @@ export class UpdateBlogPostDto {
   @MinLength(1)
   @MaxLength(100_000)
   bodyHtml?: string;
+
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  authorName?: string;
+
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(500)
+  authorBio?: string;
+
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(2_048)
+  featuredImageUrl?: string | null;
 }
 
 export type BlogPostSummaryDto = {
@@ -83,6 +131,9 @@ export type BlogPostSummaryDto = {
 
 export type BlogPostDto = BlogPostSummaryDto & {
   bodyHtml: string;
+  authorName: string;
+  authorBio: string;
+  featuredImageUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };

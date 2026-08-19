@@ -1,22 +1,35 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
+import { Check, ChevronDown, Plus, Trash2 } from 'lucide-react';
+import { BlogCardThumbnail } from '@/components/flowdex/blog-card-thumbnail';
 import { BlogRichText } from '@/components/flowdex/blog-rich-text';
 import { SectionHeading } from '@/components/flowdex/primitives';
 import { formatDateTime } from '@/components/flowdex/utils';
 import { GlassPanel } from '@/components/glass-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   useAdminBlogPosts,
+  useCreateBlogCategory,
   useCreateBlogPost,
+  useDeleteBlogCategory,
   useDeleteBlogPost,
   useUploadBlogImage,
   useUpdateBlogPost,
 } from '@/dal/app/blogs/blogs.services';
-import type { BlogPost, BlogPostInput, BlogPostsResponse } from '@/dal/app/blogs/blogs.types';
+import { DEFAULT_BLOG_AUTHOR_BIO, DEFAULT_BLOG_AUTHOR_NAME, type BlogPost, type BlogPostInput, type BlogPostsResponse } from '@/dal/app/blogs/blogs.types';
 import { ArrowRight } from '@/icons';
 import { ROUTES } from '@/routes';
 
@@ -26,22 +39,28 @@ const EMPTY_FORM: BlogPostInput = {
   summary: '',
   category: '',
   bodyHtml: '',
+  authorName: DEFAULT_BLOG_AUTHOR_NAME,
+  authorBio: DEFAULT_BLOG_AUTHOR_BIO,
+  featuredImageUrl: null,
 };
 
 export function AdminBlogsPageClient(props: {
   initialData: BlogPostsResponse;
 }) {
   const query = useAdminBlogPosts(props.initialData);
+  const createCategory = useCreateBlogCategory();
+  const deleteCategory = useDeleteBlogCategory();
   const createPost = useCreateBlogPost();
   const updatePost = useUpdateBlogPost();
   const deletePost = useDeleteBlogPost();
   const uploadImage = useUploadBlogImage();
+  const featuredImageInput = useRef<HTMLInputElement>(null);
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [form, setForm] = useState<BlogPostInput>(EMPTY_FORM);
   const [showEditor, setShowEditor] = useState(false);
   const isSaving = createPost.isPending || updatePost.isPending || uploadImage.isPending;
   const bodyText = form.bodyHtml.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim();
-  const isValid = Boolean(form.title.trim() && form.summary.trim() && form.category.trim() && bodyText);
+  const isValid = Boolean(form.title.trim() && form.summary.trim() && form.category.trim() && form.authorName.trim() && form.authorBio.trim() && bodyText);
 
   const resetEditor = () => {
     setEditingPost(null);
@@ -63,6 +82,9 @@ export function AdminBlogsPageClient(props: {
       summary: post.summary,
       category: post.category,
       bodyHtml: post.bodyHtml,
+      authorName: post.authorName?.trim() || DEFAULT_BLOG_AUTHOR_NAME,
+      authorBio: post.authorBio?.trim() || DEFAULT_BLOG_AUTHOR_BIO,
+      featuredImageUrl: post.featuredImageUrl,
     });
     setShowEditor(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -80,6 +102,9 @@ export function AdminBlogsPageClient(props: {
       summary: form.summary.trim(),
       category: form.category.trim(),
       bodyHtml: form.bodyHtml,
+      authorName: form.authorName.trim(),
+      authorBio: form.authorBio.trim(),
+      featuredImageUrl: form.featuredImageUrl ?? null,
     };
 
     try {
@@ -108,12 +133,17 @@ export function AdminBlogsPageClient(props: {
     }
   };
 
+  const handleFeaturedImage = async (file: File) => {
+    try {
+      const featuredImageUrl = await uploadImage.mutateAsync(file);
+      setForm(current => ({ ...current, featuredImageUrl }));
+    } catch {
+      // Mutation hook surfaces the API message as a toast.
+    }
+  };
+
   const posts = query.data?.items ?? [];
-  const categories = useMemo(
-    () => [...new Set(posts.map(post => post.category.trim()).filter(Boolean))]
-      .sort((left, right) => left.localeCompare(right)),
-    [posts],
-  );
+  const categories = query.data?.categories ?? [];
 
   return (
     <>
@@ -153,20 +183,17 @@ export function AdminBlogsPageClient(props: {
                 />
               </Field>
               <Field label="Category" htmlFor="blog-category">
-                <Input
+                <CategoryCombobox
                   id="blog-category"
-                  list="blog-category-options"
                   value={form.category}
-                  maxLength={60}
-                  onChange={event => setForm(current => ({ ...current, category: event.target.value }))}
-                  placeholder="Product, Security, Community…"
+                  categories={categories}
+                  onChange={category => setForm(current => ({ ...current, category }))}
+                  onCreate={createCategory.mutateAsync}
+                  onDelete={deleteCategory.mutateAsync}
+                  isCreating={createCategory.isPending}
+                  deletingCategory={deleteCategory.isPending ? deleteCategory.variables : undefined}
                   disabled={isSaving}
-                  required
                 />
-                <datalist id="blog-category-options">
-                  {categories.map(category => <option key={category} value={category} />)}
-                </datalist>
-                <p className="text-xs text-[var(--muted)]">Choose an existing category or enter a new one.</p>
               </Field>
             </div>
 
@@ -200,6 +227,52 @@ export function AdminBlogsPageClient(props: {
               />
             </Field>
 
+            <Field label="Featured image">
+              <p className="text-xs text-[var(--muted)]">
+                Optional. Shown on blog and related-post cards; otherwise the first article image is used.
+              </p>
+              {form.featuredImageUrl ? (
+                <div className="max-w-xl overflow-hidden rounded-xl border border-[var(--card-border)]">
+                  <BlogCardThumbnail src={form.featuredImageUrl} />
+                </div>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="glass"
+                  onClick={() => featuredImageInput.current?.click()}
+                  disabled={isSaving}
+                >
+                  {uploadImage.isPending ? 'Uploading…' : form.featuredImageUrl ? 'Replace image' : 'Upload image'}
+                </Button>
+                {form.featuredImageUrl ? (
+                  <Button
+                    type="button"
+                    variant="glass"
+                    onClick={() => setForm(current => ({ ...current, featuredImageUrl: null }))}
+                    disabled={isSaving}
+                  >
+                    Remove
+                  </Button>
+                ) : null}
+              </div>
+              <input
+                ref={featuredImageInput}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="sr-only"
+                aria-label="Upload featured image"
+                disabled={isSaving}
+                onChange={event => {
+                  const file = event.target.files?.[0];
+                  event.target.value = '';
+                  if (file) {
+                    void handleFeaturedImage(file);
+                  }
+                }}
+              />
+            </Field>
+
             <Field label="Article">
               <BlogRichText
                 content={form.bodyHtml}
@@ -207,6 +280,33 @@ export function AdminBlogsPageClient(props: {
                 onUploadImage={file => uploadImage.mutateAsync(file)}
                 editable={!isSaving}
               />
+            </Field>
+
+            <Field label="Author name" htmlFor="blog-author-name">
+              <Input
+                id="blog-author-name"
+                value={form.authorName}
+                maxLength={100}
+                onChange={event => setForm(current => ({ ...current, authorName: event.target.value }))}
+                placeholder="FlowDex Team"
+                disabled={isSaving}
+                required
+              />
+            </Field>
+
+            <Field label="Author bio" htmlFor="blog-author-bio">
+              <textarea
+                id="blog-author-bio"
+                value={form.authorBio}
+                maxLength={500}
+                onChange={event => setForm(current => ({ ...current, authorBio: event.target.value }))}
+                placeholder="Short author biography shown below the article"
+                disabled={isSaving}
+                required
+                rows={3}
+                className="w-full resize-y rounded-lg border border-[var(--card-border)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus-visible:ring-2 focus-visible:ring-[var(--cyan)] disabled:opacity-50"
+              />
+              <p className="text-xs text-[var(--muted)]">Shown in the “Written by” card below the article.</p>
             </Field>
 
             <div className="flex justify-end">
@@ -283,6 +383,137 @@ export function AdminBlogsPageClient(props: {
         )}
       </section>
     </>
+  );
+}
+
+function CategoryCombobox(props: {
+  id: string;
+  value: string;
+  categories: string[];
+  onChange: (category: string) => void;
+  onCreate: (category: string) => Promise<unknown>;
+  onDelete: (category: string) => Promise<unknown>;
+  isCreating?: boolean;
+  deletingCategory?: string;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const query = search.trim();
+  const normalizedQuery = query.toLocaleLowerCase();
+  const matches = props.categories
+    .filter(category => category.toLocaleLowerCase().includes(normalizedQuery))
+    .slice(0, 5);
+  const canCreate = query.length > 0
+    && !props.categories.some(category => category.toLocaleLowerCase() === normalizedQuery);
+
+  const select = (category: string) => {
+    props.onChange(category);
+    setOpen(false);
+    setSearch('');
+  };
+
+  const create = async (category: string) => {
+    try {
+      await props.onCreate(category);
+      select(category);
+    } catch {
+      // Mutation hook surfaces the API message as a toast.
+    }
+  };
+
+  const remove = async (category: string) => {
+    try {
+      await props.onDelete(category);
+      if (props.value === category) {
+        props.onChange('');
+      }
+    } catch {
+      // Mutation hook surfaces the API message as a toast.
+    }
+  };
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={nextOpen => {
+        setOpen(nextOpen);
+        if (!nextOpen) {
+          setSearch('');
+        }
+      }}
+    >
+      <PopoverTrigger asChild>
+        <Button
+          id={props.id}
+          type="button"
+          variant="glass"
+          role="combobox"
+          aria-expanded={open}
+          aria-label="Category"
+          disabled={props.disabled}
+          className="w-full justify-between px-3 font-normal"
+        >
+          <span className={props.value ? 'text-[var(--text)]' : 'text-[var(--muted)]'}>
+            {props.value || 'Select a category'}
+          </span>
+          <ChevronDown className="opacity-50" aria-hidden />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-[var(--radix-popover-trigger-width)] border-[var(--card-border)] bg-[var(--surface-elevated)] p-0 text-[var(--text)]"
+      >
+        <Command shouldFilter={false} className="bg-transparent text-[var(--text)]">
+          <CommandInput
+            value={search}
+            onValueChange={setSearch}
+            maxLength={60}
+            placeholder="Search categories…"
+            className="text-[var(--text)] placeholder:text-[var(--muted)]"
+          />
+          <CommandList>
+            <CommandEmpty>No categories found.</CommandEmpty>
+            <CommandGroup heading={query ? 'Results' : 'Recent categories'}>
+              {matches.map(category => (
+                <div key={category} className="flex items-center gap-1">
+                  <CommandItem
+                    value={category}
+                    onSelect={() => select(category)}
+                    className="flex-1 text-[var(--text)] data-[selected=true]:bg-[var(--accent-bg)]"
+                  >
+                    <Check className={props.value === category ? 'opacity-100' : 'opacity-0'} aria-hidden />
+                    {category}
+                  </CommandItem>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Delete ${category}`}
+                    disabled={props.disabled || props.deletingCategory === category}
+                    onClick={() => void remove(category)}
+                    className="h-8 w-8 text-[var(--muted)] hover:text-[var(--status-error-text)]"
+                  >
+                    <Trash2 aria-hidden />
+                  </Button>
+                </div>
+              ))}
+              {canCreate ? (
+                <CommandItem
+                  value={query}
+                  onSelect={() => void create(query)}
+                  disabled={props.isCreating}
+                  className="text-[var(--text)] data-[selected=true]:bg-[var(--accent-bg)]"
+                >
+                  <Plus aria-hidden />
+                  {props.isCreating ? 'Adding…' : `Add “${query}”`}
+                </CommandItem>
+              ) : null}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
 

@@ -89,7 +89,7 @@ export function BlogsPage() {
                       <span className="text-xs text-[var(--muted)]">{dateFormatter.format(new Date(post.publishedAt))}</span>
                     </div>
                     <h2 className="mt-5 text-xl font-bold text-[var(--text)] group-hover:text-[var(--accent-strong)]">{post.title}</h2>
-                    <p className="mt-4 flex-1 text-sm leading-8 text-[var(--muted)]">{post.summary}</p>
+                    <p className="mt-4 line-clamp-4 flex-1 text-sm leading-8 text-[var(--muted)]">{post.summary}</p>
                     <span className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-strong)]">
                       Read article
                       <ArrowRight aria-hidden className="h-4 w-4" />

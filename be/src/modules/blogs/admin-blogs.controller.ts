@@ -9,7 +9,7 @@ import { InternalJwtGuard } from '../../common/guards/internal-jwt.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { UsersService } from '../users/users.service';
 import { BlogsService } from './blogs.service';
-import { CreateBlogPostDto, UpdateBlogPostDto, type BlogImageUploadDto, type BlogPostDto } from './dto/blogs.dto';
+import { BlogCategoryNameDto, CreateBlogPostDto, UpdateBlogPostDto, type BlogImageUploadDto, type BlogPostDto } from './dto/blogs.dto';
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
@@ -25,7 +25,7 @@ export class AdminBlogsController {
   ) {}
 
   @Get()
-  async list(@CurrentAuth() auth: AuthContext): Promise<{ items: BlogPostDto[] }> {
+  async list(@CurrentAuth() auth: AuthContext): Promise<{ items: BlogPostDto[]; categories: string[] }> {
     await this.usersService.syncAndRequireActive(auth);
     return this.blogsService.listAdmin();
   }
@@ -37,6 +37,25 @@ export class AdminBlogsController {
   ): Promise<BlogPostDto> {
     await this.usersService.syncAndRequireActive(auth);
     return this.blogsService.create(input, auth.sub);
+  }
+
+  @Post('categories')
+  async createCategory(
+    @CurrentAuth() auth: AuthContext,
+    @Body() input: BlogCategoryNameDto,
+  ): Promise<{ name: string }> {
+    await this.usersService.syncAndRequireActive(auth);
+    return this.blogsService.createCategory(input.name);
+  }
+
+  @Delete('categories/:name')
+  @HttpCode(204)
+  async deleteCategory(
+    @CurrentAuth() auth: AuthContext,
+    @Param() input: BlogCategoryNameDto,
+  ): Promise<void> {
+    await this.usersService.syncAndRequireActive(auth);
+    await this.blogsService.deleteCategory(input.name);
   }
 
   @Post('images')

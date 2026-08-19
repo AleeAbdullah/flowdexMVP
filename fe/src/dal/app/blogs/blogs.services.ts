@@ -80,6 +80,43 @@ export function useCreateBlogPost() {
   });
 }
 
+export function useCreateBlogCategory() {
+  const client = useAxiosAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const response = await client.post<{ name: string }>(API_ROUTES.bff.admin.blogs.categories.root, { name });
+      return response.data;
+    },
+    onSuccess: category => {
+      queryClient.setQueryData<BlogPostsResponse>(blogQueryKeys.adminList, current => current && ({
+        ...current,
+        categories: [category.name, ...current.categories.filter(name => name !== category.name)],
+      }));
+      toast.success('Category added');
+    },
+    onError: error => toast.error(extractAxiosError(error).message || 'Could not add category'),
+  });
+}
+
+export function useDeleteBlogCategory() {
+  const client = useAxiosAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (name: string) => client.delete(API_ROUTES.bff.admin.blogs.categories.detail(name)),
+    onSuccess: (_, deletedName) => {
+      queryClient.setQueryData<BlogPostsResponse>(blogQueryKeys.adminList, current => current && ({
+        ...current,
+        categories: current.categories.filter(name => name !== deletedName),
+      }));
+      toast.success('Category deleted');
+    },
+    onError: error => toast.error(extractAxiosError(error).message || 'Could not delete category'),
+  });
+}
+
 export function useUpdateBlogPost() {
   const client = useAxiosAuth();
   const queryClient = useQueryClient();

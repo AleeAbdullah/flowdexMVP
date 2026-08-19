@@ -1,10 +1,12 @@
 import { BadRequestException } from '@nestjs/common';
 
 import { BlogsService } from './blogs.service';
+import { BlogCategoryEntity } from './entities/blog-category.entity';
 import { BlogImageEntity } from './entities/blog-image.entity';
 import { BlogPostEntity } from './entities/blog-post.entity';
 
 const imageId = '123e4567-e89b-42d3-a456-426614174000';
+const featuredImageId = '323e4567-e89b-42d3-a456-426614174000';
 
 function queryBuilder(extra: Record<string, unknown> = {}) {
   return {
@@ -35,17 +37,26 @@ describe('BlogsService images', () => {
       .rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('associates inline images and returns the first one as the cover', async () => {
-    const select = queryBuilder({
+  it('prefers a featured image while retaining the first-inline-image fallback', async () => {
+    const selectInline = queryBuilder({
       getMany: jest.fn().mockResolvedValue([{ id: imageId, blogPostId: null }]),
     });
-    const removeOld = queryBuilder();
-    const associate = queryBuilder();
+    const selectFeatured = queryBuilder({
+      getMany: jest.fn().mockResolvedValue([
+        { id: imageId, blogPostId: null },
+        { id: featuredImageId, blogPostId: null },
+      ]),
+    });
+    const associateInline = queryBuilder();
+    const associateFeatured = queryBuilder();
     const imageRepository = {
       createQueryBuilder: jest.fn()
-        .mockReturnValueOnce(select)
-        .mockReturnValueOnce(removeOld)
-        .mockReturnValueOnce(associate),
+        .mockReturnValueOnce(selectInline)
+        .mockReturnValueOnce(queryBuilder())
+        .mockReturnValueOnce(associateInline)
+        .mockReturnValueOnce(selectFeatured)
+        .mockReturnValueOnce(queryBuilder())
+        .mockReturnValueOnce(associateFeatured),
     };
     const now = new Date('2026-08-11T00:00:00.000Z');
     const postRepository = {
@@ -68,16 +79,49 @@ describe('BlogsService images', () => {
     const service = new BlogsService(blogRepository as never, {} as never);
     const imageUrl = `https://api.flowdex.app/api/blogs/images/${imageId}`;
 
-    const result = await service.create({
+    const legacyResult = await service.create({
       title: 'Image post',
       summary: 'Summary',
       category: 'Product',
       bodyHtml: `<p>Hello</p><img src="${imageUrl}" alt="Chart">`,
+      authorName: 'Custom Author',
+      authorBio: 'Custom author bio.',
+    }, 'admin');
+    const featuredImageUrl = `https://api.flowdex.app/api/blogs/images/${featuredImageId}`;
+    const featuredResult = await service.create({
+      title: 'Featured image post',
+      summary: 'Summary',
+      category: 'Product',
+      bodyHtml: `<p>Hello</p><img src="${imageUrl}" alt="Chart">`,
+      authorName: 'Custom Author',
+      authorBio: 'Custom author bio.',
+      featuredImageUrl,
     }, 'admin');
 
-    expect(result.coverImageUrl).toBe(imageUrl);
-    expect(associate.set).toHaveBeenCalledWith({ blogPostId: result.id });
+    expect(legacyResult.coverImageUrl).toBe(imageUrl);
+    expect(legacyResult.authorName).toBe('Custom Author');
+    expect(legacyResult.authorBio).toBe('Custom author bio.');
+    expect(featuredResult.coverImageUrl).toBe(featuredImageUrl);
+    expect(associateInline.set).toHaveBeenCalledWith({ blogPostId: legacyResult.id });
+    expect(associateFeatured.set).toHaveBeenCalledWith({ blogPostId: featuredResult.id });
     expect(manager.getRepository).toHaveBeenCalledWith(BlogImageEntity);
+  });
+});
+
+describe('BlogsService categories', () => {
+  it('stores and deletes a category without requiring a blog post', async () => {
+    const categoryRepository = {
+      upsert: jest.fn(),
+      delete: jest.fn().mockResolvedValue({ affected: 0 }),
+    };
+    const service = new BlogsService({
+      manager: { getRepository: jest.fn().mockReturnValue(categoryRepository) },
+    } as never, {} as never);
+
+    await expect(service.createCategory('Research')).resolves.toEqual({ name: 'Research' });
+    await expect(service.deleteCategory('Research')).resolves.toBeUndefined();
+    expect(categoryRepository.upsert).toHaveBeenCalledWith({ name: 'Research' }, ['name']);
+    expect(categoryRepository.delete).toHaveBeenCalledWith('Research');
   });
 });
 
@@ -115,6 +159,8 @@ describe('BlogsService slugs', () => {
       summary: 'Summary',
       category: 'Product',
       bodyHtml: '<p>Hello</p>',
+      authorName: 'Custom Author',
+      authorBio: 'Custom author bio.',
     }, 'admin');
 
     expect(result.slug).toBe('short-custom-url');
@@ -127,6 +173,8 @@ describe('BlogsService slugs', () => {
       summary: 'Summary',
       category: 'Product',
       bodyHtml: '<p>Hello</p>',
+      authorName: 'Custom Author',
+      authorBio: 'Custom author bio.',
     }, 'admin')).rejects.toThrow('That blog URL is already in use');
   });
 });
